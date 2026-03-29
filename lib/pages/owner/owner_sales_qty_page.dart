@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../utils/date_formatters.dart';
 
 class OwnerSalesQtyPage extends StatelessWidget {
   final DateTimeRange? dateRange;
@@ -9,10 +10,11 @@ class OwnerSalesQtyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String title = 'Total Sales (Quantity)';
+    String title = 'ยอดขายรวม (จำนวน)';
     if (dateRange != null) {
-      title +=
-          ' (${DateFormat('MMM d').format(dateRange!.start)} - ${DateFormat('MMM d').format(dateRange!.end)})';
+      final startLabel = FormatterUtils.formatThaiDateShort(dateRange!.start);
+      final endLabel = FormatterUtils.formatThaiDateShort(dateRange!.end);
+      title += ' ($startLabel - $endLabel)';
     }
 
     return Scaffold(
@@ -40,7 +42,7 @@ class OwnerSalesQtyPage extends StatelessWidget {
             }).toList();
           }
 
-          if (docs.isEmpty) return const Center(child: Text('No sales found.'));
+          if (docs.isEmpty) return const Center(child: Text('ไม่พบข้อมูลการขาย'));
 
           // Sort descending locally to bypass composite index issues
           final sortedDocs = docs.toList()
@@ -59,8 +61,8 @@ class OwnerSalesQtyPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final doc = sortedDocs[index];
               final data = doc.data() as Map<String, dynamic>;
-              final details = data['details'] ?? 'Unknown Item';
-              final userEmail = data['userEmail'] ?? 'Unknown User';
+              final details = data['details'] ?? 'ไม่ทราบรายการ';
+              final userEmail = data['userEmail'] ?? 'ไม่ทราบผู้ใช้';
               final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
               // We assume 1 transaction = 1 item sold based on our mock logic
@@ -78,11 +80,11 @@ class OwnerSalesQtyPage extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    '$userEmail\n${timestamp != null ? DateFormat('MMM dd, yyyy').format(timestamp) : ''}',
+                    '$userEmail\n${timestamp != null ? FormatterUtils.formatThaiDateShort(timestamp) : ''}',
                   ),
                   isThreeLine: true,
                   trailing: Text(
-                    'Qty: $quantity',
+                    'จำนวน: $quantity',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

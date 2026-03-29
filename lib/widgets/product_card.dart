@@ -49,7 +49,7 @@ class ProductCard extends StatelessWidget {
                       ),
                       child: const Center(
                         child: Text(
-                          'OUT OF\nSTOCK',
+                          'สินค้า\nหมด',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: Colors.white,
@@ -82,11 +82,11 @@ class ProductCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${product.weight} Baht',
+                        '${product.weight} บาท',
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                       Text(
-                        'Stock: ${product.stock}',
+                        'คงเหลือ: ${product.stock}',
                         style: TextStyle(
                             color: isOutOfStock ? Colors.red : Colors.green[700],
                             fontSize: 12,

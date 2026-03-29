@@ -133,7 +133,12 @@ class _OwnerPickupsTabState extends State<OwnerPickupsTab> {
             } else if (dateKey == tomorrow) {
               dateLabel = 'พรุ่งนี้';
             } else {
-              dateLabel = DateFormat('EEEE, MMM d, yyyy').format(dateKey);
+              const thaiDays = ['วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์'];
+              const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+              final dayName = thaiDays[dateKey.weekday - 1];
+              final monthName = thaiMonths[dateKey.month - 1];
+              final year = dateKey.year + 543;
+              dateLabel = '$dayName, ${dateKey.day} $monthName $year';
             }
 
             return Column(
@@ -165,7 +170,7 @@ class _OwnerPickupsTabState extends State<OwnerPickupsTab> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  DateFormat('hh:mm a').format(apt.date),
+                                  '${DateFormat('HH:mm').format(apt.date)} น.',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -190,7 +195,7 @@ class _OwnerPickupsTabState extends State<OwnerPickupsTab> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Customer ID: ${apt.userId.substring(0, 5)}...',
+                                      'รหัสลูกค้า: ${apt.userId.substring(0, 5)}...',
                                       style: const TextStyle(
                                         color: Colors.grey,
                                         fontSize: 13,

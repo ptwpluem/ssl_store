@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../utils/date_formatters.dart';
 
 class OwnerSavingsTransactionsPage extends StatelessWidget {
   final DateTimeRange? dateRange;
@@ -9,10 +10,11 @@ class OwnerSavingsTransactionsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String title = 'Savings Business Activity';
+    String title = 'รายรับรายจ่ายออมทอง';
     if (dateRange != null) {
-      title +=
-          ' (${DateFormat('MMM d').format(dateRange!.start)} - ${DateFormat('MMM d').format(dateRange!.end)})';
+      final startLabel = FormatterUtils.formatThaiDateShort(dateRange!.start);
+      final endLabel = FormatterUtils.formatThaiDateShort(dateRange!.end);
+      title += ' ($startLabel - $endLabel)';
     }
 
     return Scaffold(
@@ -41,7 +43,7 @@ class OwnerSavingsTransactionsPage extends StatelessWidget {
             }).toList();
           }
 
-          if (docs.isEmpty) return const Center(child: Text('No savings transactions found.'));
+          if (docs.isEmpty) return const Center(child: Text('ไม่พบประวัติการทำรายการออมทอง'));
 
           final sortedDocs = docs.toList()
             ..sort((a, b) {
@@ -62,9 +64,9 @@ class OwnerSavingsTransactionsPage extends StatelessWidget {
               final doc = sortedDocs[index];
               final data = doc.data() as Map<String, dynamic>;
               final type = data['type'] as String? ?? 'unknown';
-              final details = data['details'] ?? 'Savings Transaction';
+              final details = data['details'] ?? 'รายการออมทอง';
               final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-              final userEmail = data['userEmail'] ?? 'Unknown User';
+              final userEmail = data['userEmail'] ?? 'ไม่ทราบผู้ใช้';
               final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
               Color amountColor = type == 'savings_deposit' ? Colors.teal : Colors.orange;
@@ -82,7 +84,7 @@ class OwnerSavingsTransactionsPage extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    '$userEmail\n${timestamp != null ? DateFormat('MMM dd, yyyy').format(timestamp) : ''}',
+                    '$userEmail\n${timestamp != null ? FormatterUtils.formatThaiDateShort(timestamp) : ''}',
                   ),
                   isThreeLine: true,
                   trailing: Text(

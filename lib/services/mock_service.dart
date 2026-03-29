@@ -32,15 +32,28 @@ class MockService {
 
   // Helper to find the sequential user document by Auth UID
   Future<DocumentReference> _getUserDocRef(String uid) async {
-    final query = await FirebaseFirestore.instance
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) {
-      throw Exception('User document not found for UI profile retrieval.');
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.reference;
+      }
+
+      // User document might not be indexed yet or still being created
+      retryCount++;
+      if (retryCount < maxRetries) {
+        await Future.delayed(Duration(milliseconds: 200 * retryCount));
+      }
     }
-    return query.docs.first.reference;
+
+    throw Exception('User document not found (UID: $uid). Please check if your profile is fully set up.');
   }
 
   Future<void> _generateInitialNews() async {
@@ -240,13 +253,6 @@ class MockService {
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
 
-    await _walletService.performTransaction(
-      walletId: walletId,
-      amount: amount,
-      type: WalletTransactionType.deposit,
-      description: 'Wallet Top-Up',
-    );
-
     // Record in global transactions collection
     final id = await _idGeneratorService.generateId(
       'transactions',
@@ -262,9 +268,19 @@ class MockService {
       print('DEBUG: Profile retrieval failed for transaction record: $e');
     }
 
+    final globalTxId = 't$id';
+
+    await _walletService.performTransaction(
+      walletId: walletId,
+      amount: amount,
+      type: WalletTransactionType.deposit,
+      description: 'Wallet Top-Up',
+      referenceId: globalTxId,
+    );
+
     await FirebaseFirestore.instance
         .collection('transactions')
-        .doc('t$id')
+        .doc(globalTxId)
         .set({
           'type': 'deposit',
           'amount': amount,
@@ -304,13 +320,6 @@ class MockService {
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
 
-    await _walletService.performTransaction(
-      walletId: walletId,
-      amount: amount,
-      type: WalletTransactionType.withdrawal,
-      description: 'Wallet Withdrawal',
-    );
-
     // Record in global transactions collection
     final id = await _idGeneratorService.generateId(
       'transactions',
@@ -326,9 +335,19 @@ class MockService {
       print('DEBUG: Profile retrieval failed for transaction record: $e');
     }
 
+    final globalTxId = 't$id';
+
+    await _walletService.performTransaction(
+      walletId: walletId,
+      amount: amount,
+      type: WalletTransactionType.withdrawal,
+      description: 'Wallet Withdrawal',
+      referenceId: globalTxId,
+    );
+
     await FirebaseFirestore.instance
         .collection('transactions')
-        .doc('t$id')
+        .doc(globalTxId)
         .set({
           'type': 'withdrawal',
           'amount': amount,
@@ -454,12 +473,10 @@ class MockService {
     return FirebaseFirestore.instance
         .collection('transactions')
         .where('userId', isEqualTo: uid)
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
+          final transactions = snapshot.docs.map((doc) {
             final data = doc.data();
-            // Simple string to enum mapping
             TransactionType type = TransactionType.buy;
             if (data['type'] == 'sell')
               type = TransactionType.sell;
@@ -483,8 +500,13 @@ class MockService {
               timestamp:
                   (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
               details: data['details'] ?? '',
+              userId: data['userId'] ?? uid,
             );
           }).toList();
+
+          // Sort descending locally by timestamp
+          transactions.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return transactions;
         });
   }
 
@@ -682,9 +704,6 @@ class MockService {
     // Repair existing data if needed (one-time for this session/demo)
     await _repairPawnData();
 
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
-
     final uid = currentUserId;
     if (uid == null) throw Exception('User not logged in');
 
@@ -787,6 +806,7 @@ class MockService {
             amount: amount,
             type: WalletTransactionType.purchase,
             description: 'Purchase: $assetName',
+            referenceId: 't$id',
           );
 
           // 4. Deduct Stock
@@ -811,11 +831,10 @@ class MockService {
           };
           transaction.set(assetRef, assetDoc);
         } else if (type == TransactionType.pawn) {
-          // 4. Create Asset in Portfolio for Pawn
-          final userRef = await _getUserDocRef(uid);
-          final assetRef = userRef.collection('assets').doc('a$id');
+          final userRefPawn = await _getUserDocRef(uid);
+          final assetRefPawn = userRefPawn.collection('assets').doc('a$id');
 
-          final assetDoc = {
+          final assetDocPawn = {
             'name': assetName,
             'weight': weight,
             'category': category ?? 'General',
@@ -830,7 +849,41 @@ class MockService {
             'purity': purity,
             'interestRate': 0.0125, // 1.25% monthly
           };
-          transaction.set(assetRef, assetDoc);
+          transaction.set(assetRefPawn, assetDocPawn);
+
+          // 5. Perform Wallet Transaction (Add Loan Funds)
+          final walletQueryPawn = await FirebaseFirestore.instance
+              .collection('wallets')
+              .where('userId', isEqualTo: uid)
+              .limit(1)
+              .get();
+          if (walletQueryPawn.docs.isNotEmpty) {
+            await _walletService.performTransactionWithTx(
+              transaction: transaction,
+              walletId: walletQueryPawn.docs.first.id,
+              amount: amount,
+              type: WalletTransactionType.deposit,
+              description: 'Pawn Loan: $assetName',
+              referenceId: 't$id',
+            );
+          }
+        } else if (type == TransactionType.sell) {
+          // 4. Perform Wallet Transaction (Add Sale Funds)
+          final walletQuerySell = await FirebaseFirestore.instance
+              .collection('wallets')
+              .where('userId', isEqualTo: uid)
+              .limit(1)
+              .get();
+          if (walletQuerySell.docs.isNotEmpty) {
+            await _walletService.performTransactionWithTx(
+              transaction: transaction,
+              walletId: walletQuerySell.docs.first.id,
+              amount: amount,
+              type: WalletTransactionType.sale,
+              description: 'Sell Back: $assetName',
+              referenceId: 't$id',
+            );
+          }
         }
 
         // 6. Create Transaction Ledger (Root Collection)
@@ -857,15 +910,15 @@ class MockService {
         transaction.set(globalTxRef, transactionDoc);
 
         // 7. Add Notification
+        final userRefNotif = await _getUserDocRef(uid);
         final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-        final userRef = await _getUserDocRef(uid);
-        final notifRef = userRef.collection('notifications').doc('n_$notifId');
+        final notifRef = userRefNotif.collection('notifications').doc('n_$notifId');
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
-          title: 'Transaction Successful',
+          title: 'ทำรายการสำเร็จ',
           message:
-              'Successfully completed ${type.name} for $assetName (${weight.toStringAsFixed(2)} Baht).',
+              'ทำรายการ ${type == TransactionType.buy ? "ซื้อ" : "ขาย"} $assetName (${weight.toStringAsFixed(2)} บาท) สำเร็จแล้ว',
           type: type == TransactionType.buy ? 'store' : 'pawn',
           timestamp: DateTime.now(),
           isRead: false,
@@ -936,7 +989,7 @@ class MockService {
           'productId': productId,
           'timestamp': FieldValue.serverTimestamp(),
           'details':
-              'RESTOCK: $productName ($quantity units @ ฿${unitCost.toStringAsFixed(0)})',
+              'เพิ่มสต็อก: $productName ($quantity ชิ้น @ ฿${unitCost.toStringAsFixed(0)})',
           'userId': uid,
           'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Owner',
         };
@@ -955,6 +1008,12 @@ class MockService {
   }) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('User not logged in');
+
+    // Generate global transaction ID first
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'SEL',
+    );
 
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -979,17 +1038,12 @@ class MockService {
           walletId: walletQuery.docs.first.id,
           amount: sellPrice,
           type: WalletTransactionType.sale,
-          description: 'Asset Sale: ${asset.name}',
+          description: 'ขายสินทรัพย์: ${asset.name}',
+          referenceId: 't$id',
         );
 
         // 3. Remove the asset from the user's portfolio
         transaction.delete(assetRef);
-
-        // 4. Create the Sell Transaction record (Root)
-        final id = await _idGeneratorService.generateId(
-          'transactions',
-          prefixOverride: 'SEL',
-        );
         String displayName = 'Unknown User';
         try {
           final userProfile = await getUserProfile();
@@ -1009,7 +1063,7 @@ class MockService {
           'weight': asset.weight,
           'category': asset.category,
           'timestamp': FieldValue.serverTimestamp(),
-          'details': 'SELL: ${asset.name} (${asset.weight} Baht)',
+          'details': 'ขาย: ${asset.name} (${asset.weight} บาท)',
           'cost': sellPrice, // Store's outflow is the cost
           'profit': 0.0, // Realized later
           'purity': asset.purity,
@@ -1030,9 +1084,9 @@ class MockService {
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
-          title: 'Asset Sold',
+          title: 'ขายสินทรัพย์สำเร็จ',
           message:
-              'Successfully sold ${asset.name} for ฿${formatter.format(sellPrice)}.',
+              'ขาย ${asset.name} สำเร็จแล้ว เป็นเงิน ฿${formatter.format(sellPrice)}',
           type: 'store',
           timestamp: DateTime.now(),
           isRead: false,
@@ -1051,6 +1105,12 @@ class MockService {
   }) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('User not logged in');
+
+    // Generate global transaction ID first
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'PWN',
+    );
 
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -1077,7 +1137,8 @@ class MockService {
           walletId: walletQuery.docs.first.id,
           amount: loanAmount,
           type: WalletTransactionType.deposit,
-          description: 'Pawn Loan: ${asset.name}',
+          description: 'เงินกู้จำนำ: ${asset.name}',
+          referenceId: 't$id',
         );
 
         // 3. Update asset status to 'pawned' and attach loan data
@@ -1094,10 +1155,6 @@ class MockService {
         });
 
         // 4. Create Pawn Transaction (Root)
-        final id = await _idGeneratorService.generateId(
-          'transactions',
-          prefixOverride: 'PWN',
-        );
         String displayName = 'Unknown User';
         try {
           final userProfile = await getUserProfile();
@@ -1117,7 +1174,7 @@ class MockService {
           'weight': asset.weight,
           'category': asset.category,
           'timestamp': FieldValue.serverTimestamp(),
-          'details': 'PAWN: ${asset.name} (${asset.weight} Baht)',
+          'details': 'จำนำ: ${asset.name} (${asset.weight} บาท)',
           'userId': uid,
           'userEmail':
               FirebaseAuth.instance.currentUser?.email ?? 'Unknown Email',
@@ -1136,9 +1193,9 @@ class MockService {
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
-          title: 'Pawn Successful',
+          title: 'จำนำสำเร็จ',
           message:
-              'Successfully pawned ${asset.name} for a loan of ฿${formatter.format(loanAmount)}.',
+              'จำนำ ${asset.name} สำเร็จแล้ว ได้รับเงินกู้ ฿${formatter.format(loanAmount)}',
           type: 'pawn',
           timestamp: DateTime.now(),
           isRead: false,
@@ -1157,6 +1214,12 @@ class MockService {
   }) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('User not logged in');
+
+    // Generate global transaction ID first
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'RED',
+    );
 
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -1184,6 +1247,7 @@ class MockService {
           amount: totalOwed,
           type: WalletTransactionType.withdrawal,
           description: 'Pawn Redemption: ${asset.name}',
+          referenceId: 't$id',
         );
 
         // 2. Clear loan fields and revert status to 'owned'
@@ -1196,10 +1260,6 @@ class MockService {
         });
 
         // 4. Create Redeem Transaction (Root)
-        final id = await _idGeneratorService.generateId(
-          'transactions',
-          prefixOverride: 'RED',
-        );
         String displayName = 'Unknown User';
         try {
           final userProfile = await getUserProfile();
@@ -1248,9 +1308,9 @@ class MockService {
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
-          title: 'Asset Redeemed',
+          title: 'ไถ่ถอนสินทรัพย์สำเร็จ',
           message:
-              'Successfully redeemed ${asset.name}. Total paid: ฿${formatter.format(totalOwed)}.',
+              'ไถ่ถอน ${asset.name} สำเร็จแล้ว ยอดชำระทั้งหมด: ฿${formatter.format(totalOwed)}',
           type: 'pawn',
           timestamp: DateTime.now(),
           isRead: false,
@@ -1456,8 +1516,8 @@ class MockService {
   }
 
   Future<void> completeAppointment({
-    required String appointmentId,
     required String userId,
+    required String appointmentId,
     required String assetId,
     required String assetName,
   }) async {
@@ -1479,9 +1539,8 @@ class MockService {
       final notifRef = userRef.collection('notifications').doc('n_$notifId');
       final notif = NotificationItem(
         id: notifId,
-        title: 'Pickup Successful',
-        message:
-            'You have successfully picked up your $assetName from the store.',
+        title: 'รับสินค้าสำเร็จ',
+        message: 'คุณรับมอบ $assetName จากทางร้านเรียบร้อยแล้ว',
         type: 'appointment',
         timestamp: DateTime.now(),
         isRead: false,
@@ -1490,39 +1549,13 @@ class MockService {
     });
   }
 
-  // Live Cloud Products Stream
-  Stream<List<Product>> getProductsStream() {
-    return FirebaseFirestore.instance.collection('products').snapshots().map((
-      snapshot,
-    ) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Product(
-          id: doc.id,
-          name: data['name'] ?? 'Unknown Product',
-          description: data['description'] ?? '',
-          price: (data['price'] ?? 0 as num).toDouble(),
-          weight: (data['weight'] ?? 0 as num).toDouble(),
-          laborFee: (data['laborFee'] ?? 0 as num).toDouble(),
-          costBasis: (data['costBasis'] ?? 0 as num).toDouble(),
-          stock: data['stock'] ?? 0,
-          imageUrl: data['imageUrl'] ?? '',
-          category: data['category'] ?? 'General',
-        );
-      }).toList();
-    });
-  }
-
-  // Admin function to reset/seed catalog
-  Future<void> seedDummyProducts() async {
-    final firestore = FirebaseFirestore.instance;
-    final productsRef = firestore.collection('products');
-
+  Future<void> _generateInitialProducts() async {
+    final productsRef = FirebaseFirestore.instance.collection('products');
     final dummyProducts = [
       {
-        'name': 'Classic Gold Chain',
+        'name': 'สร้อยคอทองคำ ลายสี่เสา',
         'description':
-            'A timeless 96.5% pure gold necklace suitable for everyday wear. Features a durable hook clasp.',
+            'สร้อยคอทองคำแท้ 96.5% ลายสี่เสา ดีไซน์คลาสสิก แข็งแรงทนทาน เหมาะสำหรับใส่ทำกิจกรรมประจำวัน',
         'price': 42000.0,
         'weight': 1.0,
         'laborFee': 1200.0,
@@ -1533,9 +1566,9 @@ class MockService {
         'category': 'Necklace',
       },
       {
-        'name': 'Dragon Carved Ring',
+        'name': 'แหวนทองคำ ลายมังกรคาบแก้ว',
         'description':
-            'Intricately designed gold ring featuring a traditional dragon motif. Perfect for special occasions.',
+            'แหวนทองคำแท้ 96.5% แกะสลักลายมังกรอย่างประณีต เสริมบารมีและความเป็นสิริมงคล',
         'price': 21500.0,
         'weight': 0.5,
         'laborFee': 800.0,
@@ -1546,9 +1579,9 @@ class MockService {
         'category': 'Ring',
       },
       {
-        'name': 'Simple Gold Bangle',
+        'name': 'กำไลทองคำกลมเกลี้ยง',
         'description':
-            'Elegant solid gold bangle with a smooth polished finish.',
+            'กำไลทองคำแท้ 96.5% แบบกลมเกลี้ยง ขัดเงาสวยงาม เรียบง่ายแต่หรูหรา',
         'price': 84500.0,
         'weight': 2.0,
         'laborFee': 1500.0,
@@ -1559,9 +1592,9 @@ class MockService {
         'category': 'Bracelet',
       },
       {
-        'name': 'Lotus Stud Earrings',
+        'name': 'ต่างหูทองคำ ลายดอกพิกุล',
         'description':
-            'Delicate gold stud earrings shaped like blooming lotus flowers.',
+            'ต่างหูทองคำแท้ 96.5% ลายดอกพิกุล งานศิลปะไทยโบราณที่ละเอียดอ่อนและงดงาม',
         'price': 10800.0,
         'weight': 0.25,
         'laborFee': 600.0,
@@ -1572,9 +1605,9 @@ class MockService {
         'category': 'Earrings',
       },
       {
-        'name': 'Ruby Embedded Ring',
+        'name': 'แหวนทองคำประดับทับทิมแท้',
         'description':
-            'Premium gold ring featuring a small, high-quality ruby centerpiece.',
+            'แหวนทองคำแท้ 96.5% ดีไซน์ร่วมสมัย ประดับด้วยทับทิมเม็ดสวย คุณภาพสูง',
         'price': 25000.0,
         'weight': 0.5,
         'laborFee': 2500.0,
@@ -1583,6 +1616,78 @@ class MockService {
         'imageUrl':
             'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0164.jpg',
         'category': 'Ring',
+      },
+      {
+        'name': 'ทองคำแท่ง 0.25 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 0.25 บาท (1 สลึง)',
+        'price': 10000.0,
+        'weight': 0.25,
+        'laborFee': 0.0,
+        'costBasis': 9000.0,
+        'stock': 50,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.25',
+        'category': 'Gold Bar',
+      },
+      {
+        'name': 'ทองคำแท่ง 0.5 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 0.5 บาท (2 สลึง)',
+        'price': 20000.0,
+        'weight': 0.5,
+        'laborFee': 0.0,
+        'costBasis': 18000.0,
+        'stock': 40,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.5',
+        'category': 'Gold Bar',
+      },
+      {
+        'name': 'ทองคำแท่ง 1 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 1 บาท',
+        'price': 40000.0,
+        'weight': 1.0,
+        'laborFee': 0.0,
+        'costBasis': 38000.0,
+        'stock': 30,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+1',
+        'category': 'Gold Bar',
+      },
+      {
+        'name': 'ทองคำแท่ง 2 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 2 บาท',
+        'price': 80000.0,
+        'weight': 2.0,
+        'laborFee': 0.0,
+        'costBasis': 76000.0,
+        'stock': 20,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+2',
+        'category': 'Gold Bar',
+      },
+      {
+        'name': 'ทองคำแท่ง 5 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 5 บาท',
+        'price': 200000.0,
+        'weight': 5.0,
+        'laborFee': 0.0,
+        'costBasis': 190000.0,
+        'stock': 10,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+5',
+        'category': 'Gold Bar',
+      },
+      {
+        'name': 'ทองคำแท่ง 10 บาท',
+        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 10 บาท',
+        'price': 400000.0,
+        'weight': 10.0,
+        'laborFee': 0.0,
+        'costBasis': 380000.0,
+        'stock': 5,
+        'imageUrl':
+            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+10',
+        'category': 'Gold Bar',
       },
       {
         'name': 'Gold Bar 0.25 Baht',
@@ -1662,6 +1767,36 @@ class MockService {
       final productId = await _idGeneratorService.generateId('products');
       await productsRef.doc(productId).set({...prod, 'id': productId});
     }
+  }
+
+  // Live Cloud Products Stream
+  Stream<List<Product>> getProductsStream() {
+    final collection = FirebaseFirestore.instance.collection('products');
+
+    // Auto-generate if empty
+    collection.limit(1).get().then((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        _generateInitialProducts();
+      }
+    });
+
+    return collection.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Product(
+          id: doc.id,
+          name: data['name'] ?? 'ไม่ทราบชื่อสินค้า',
+          description: data['description'] ?? '',
+          price: (data['price'] ?? 0 as num).toDouble(),
+          weight: (data['weight'] ?? 0 as num).toDouble(),
+          laborFee: (data['laborFee'] ?? 0 as num).toDouble(),
+          costBasis: (data['costBasis'] ?? 0 as num).toDouble(),
+          stock: data['stock'] ?? 0,
+          imageUrl: data['imageUrl'] ?? '',
+          category: data['category'] ?? 'ทั่วไป',
+        );
+      }).toList();
+    });
   }
 
   // Search and Filter helper (to be used locally on the streamed list)
@@ -1750,6 +1885,12 @@ class MockService {
     final walletId = walletQuery.docs.first.id;
     final userRef = await _getUserDocRef(uid);
 
+    // Generate global transaction ID first
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'SAV',
+    );
+
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // 2. Process wallet transaction (vaildates balance internally)
       await _walletService.performTransactionWithTx(
@@ -1758,6 +1899,7 @@ class MockService {
         amount: amountInTHB,
         type: WalletTransactionType.purchase, // Purchase of gold
         description: 'Gold Savings Deposit',
+        referenceId: 't$id',
       );
 
       // 3. Update the aggregate savings account
@@ -1784,10 +1926,6 @@ class MockService {
 
       // 5. Add global transaction record
       final formatter = NumberFormat('#,##0.00');
-      final id = await _idGeneratorService.generateId(
-        'transactions',
-        prefixOverride: 'SAV',
-      );
       String displayName = 'Unknown User';
       try {
         final userProfile = await getUserProfile();
@@ -1824,9 +1962,9 @@ class MockService {
       final notifRef = userRef.collection('notifications').doc('n_$notifId');
       final notif = NotificationItem(
         id: notifId,
-        title: 'Gold Savings Deposit',
+        title: 'ฝากเงินออมทองสำเร็จ',
         message:
-            'Successfully deposited ฿${formatter.format(amountInTHB)} toward your Gold Savings. Gained ${weightGained.toStringAsFixed(4)} Baht.',
+            'ฝากเงิน ฿${formatter.format(amountInTHB)} เข้าออมทองสำเร็จแล้ว ได้รับทองเพิ่ม ${weightGained.toStringAsFixed(4)} บาท',
         type: 'savings',
         timestamp: DateTime.now(),
         isRead: false,
@@ -1854,6 +1992,12 @@ class MockService {
     final walletId = walletQuery.docs.first.id;
     final userRef = await _getUserDocRef(uid);
 
+    // Generate global transaction ID first
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'SAV',
+    );
+
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // 2. Check if user has enough saved gold weight
       final savingsRef = userRef.collection('savings').doc('account');
@@ -1875,6 +2019,7 @@ class MockService {
         amount: amountInTHB,
         type: WalletTransactionType.sale, // Sale of gold from savings
         description: 'Gold Savings Withdrawal',
+        referenceId: 't$id',
       );
 
       // 4. Update the aggregate savings account
@@ -1906,10 +2051,6 @@ class MockService {
 
       // 6. Add global transaction record
       final formatter = NumberFormat('#,##0.00');
-      final id = await _idGeneratorService.generateId(
-        'transactions',
-        prefixOverride: 'SAV',
-      );
       String displayName = 'Unknown User';
       try {
         final userProfile = await getUserProfile();
@@ -1946,9 +2087,9 @@ class MockService {
       final notifRef = userRef.collection('notifications').doc('n_$notifId');
       final notif = NotificationItem(
         id: notifId,
-        title: 'Gold Savings Sold',
+        title: 'ขายทองออมสำเร็จ',
         message:
-            'Successfully sold ${weightToSell.toStringAsFixed(4)} Baht of saved gold. You received ฿${formatter.format(amountInTHB)} back into your wallet.',
+            'ขายทองออมจำนวน ${weightToSell.toStringAsFixed(4)} บาท สำเร็จแล้ว คุณได้รับเงิน ฿${formatter.format(amountInTHB)} กลับเข้าวอลเล็ต',
         type: 'savings',
         timestamp: DateTime.now(),
         isRead: false,

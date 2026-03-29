@@ -10,6 +10,7 @@ class GoldTransaction {
   final double? laborFee; // ค่ากำเหน็จ
   final DateTime timestamp;
   final String details;
+  final String userId;
 
   GoldTransaction({
     required this.id,
@@ -21,5 +22,6 @@ class GoldTransaction {
     this.laborFee,
     required this.timestamp,
     required this.details,
+    required this.userId,
   });
 }

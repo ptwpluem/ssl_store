@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/gold_asset.dart';
 import '../models/appointment.dart';
 import '../services/mock_service.dart';
+import '../utils/date_formatters.dart';
 
 class AppointmentPage extends StatefulWidget {
   final Appointment? editingAppointment;
@@ -112,7 +113,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
       if (_editingAppointment != null) {
         await _service.updateAppointment(_editingAppointment!.id, combinedDateTime);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment Rescheduled Successfully!')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('เลื่อนนัดหมายสำเร็จ!')));
           Navigator.pop(context); // Go back if we navigated here purely to edit
         }
       } else {
@@ -121,7 +122,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
           appointmentDate: combinedDateTime,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment Scheduled Successfully!')));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('นัดหมายสำเร็จ!')));
           setState(() {
             _passedAsset = null; // Clear booking form
             _selectedDate = null;
@@ -152,13 +153,13 @@ class _AppointmentPageState extends State<AppointmentPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Manage Appointment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            Text('จัดการนัดหมาย', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(apt.assetName, style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               icon: const Icon(Icons.edit_calendar),
-              label: const Text('Reschedule'),
+              label: const Text('เลื่อนนัดหมาย'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF800000),
                 foregroundColor: Colors.white,
@@ -175,7 +176,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
             const SizedBox(height: 12),
             OutlinedButton.icon(
               icon: const Icon(Icons.cancel, color: Colors.red),
-              label: const Text('Cancel Appointment', style: TextStyle(color: Colors.red)),
+              label: const Text('ยกเลิกนัดหมาย', style: TextStyle(color: Colors.red)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.red),
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -195,12 +196,12 @@ class _AppointmentPageState extends State<AppointmentPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Appointment?'),
-        content: const Text('This will release your time slot, and your gold asset will return to your portfolio.'),
+        title: const Text('ยกเลิกนัดหมาย?'),
+        content: const Text('การยกเลิกนัดหมายจะยกเลิกช่วงเวลานี้ และสินค้าของคุณจะกลับไปอยู่ในพอร์ตโฟลิโอ'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No, Keep It'),
+            child: const Text('ไม่เก็บไว้ตามเดิม'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -209,7 +210,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
               try {
                 await _service.cancelAppointment(apt.id, apt.assetId);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appointment Canceled.')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยกเลิกนัดหมายแล้ว')));
                 }
               } catch (e) {
                 if (mounted) {
@@ -217,7 +218,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                 }
               }
             },
-            child: const Text('Yes, Cancel Now', style: TextStyle(color: Colors.white)),
+            child: const Text('ใช่, ยกเลิกเดี๋ยวนี้', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -238,14 +239,14 @@ class _AppointmentPageState extends State<AppointmentPage> {
         appBar: AppBar(
           backgroundColor: const Color(0xFF800000),
           foregroundColor: Colors.white,
-          title: Text(isEditing ? 'Reschedule Pickup' : 'Store Appointments'),
+          title: Text(isEditing ? 'เลื่อนเวลารับสินค้า' : 'นัดรับสินค้าที่ร้าน'),
           bottom: TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             indicatorColor: const Color(0xFFFFD700),
             tabs: [
-              Tab(text: isEditing ? 'Edit Slot' : 'Book Pickup', icon: const Icon(Icons.add_shopping_cart)),
-              const Tab(text: 'My Schedule', icon: Icon(Icons.calendar_month)),
+              Tab(text: isEditing ? 'แก้ไขเวลา' : 'นัดรับสินค้า', icon: const Icon(Icons.add_shopping_cart)),
+              const Tab(text: 'ตารางของฉัน', icon: Icon(Icons.calendar_month)),
             ],
           ),
         ),
@@ -270,12 +271,12 @@ class _AppointmentPageState extends State<AppointmentPage> {
               Icon(Icons.inventory, size: 64, color: Colors.grey),
               SizedBox(height: 16),
               Text(
-                'No Asset Selected',
+                'ยังไม่ได้เลือกสินค้า',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
               Text(
-                'Please go to your Portfolio and select "Pick Up In Store" on an owned asset to schedule a pickup.',
+                'กรุณาไปที่พอร์ตโฟลิโอของคุณและเลือก "รับสินค้าที่ร้าน" เพื่อทำการนัดหมาย',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),
@@ -300,7 +301,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(isEditing ? 'Rescheduling Asset' : 'Asset to Pick Up', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                   Text(isEditing ? 'กำลังแก้ไขรายการ' : 'สินค้าที่ต้องการรับ', style: const TextStyle(fontSize: 14, color: Colors.grey)),
                   const SizedBox(height: 8),
                   Text(assetName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
                   if (!isEditing) Text('Weight: ${_passedAsset!.weight} Baht', style: const TextStyle(fontSize: 14)),
@@ -309,12 +310,12 @@ class _AppointmentPageState extends State<AppointmentPage> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text('Select Date', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('เลือกวันที่', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: _pickDate,
             icon: const Icon(Icons.calendar_today),
-            label: Text(_selectedDate == null ? 'Tap to Pick Date' : DateFormat('EEEE, dd MMM yyyy').format(_selectedDate!)),
+            label: Text(_selectedDate == null ? 'แตะเพื่อเลือกวัน' : FormatterUtils.formatThaiDateShort(_selectedDate!)),
             style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
           ),
           
@@ -323,7 +324,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Select Time Slot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('เลือกเวลา', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 if (_isLoadingSlots) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
               ],
             ),
@@ -371,7 +372,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                             )
                           ),
                           if (isFull)
-                            const Text('Full', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            const Text('เต็ม', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -389,7 +390,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
             ),
             child: _isProcessing 
               ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : Text(isEditing ? 'Confirm Reschedule' : 'Confirm Pickup Appointment', style: const TextStyle(fontSize: 16, color: Colors.white)),
+              : Text(isEditing ? 'ยืนยันการเลื่อนนัด' : 'ยืนยันการนัดรับสินค้า', style: const TextStyle(fontSize: 16, color: Colors.white)),
           ),
         ],
       ),
@@ -404,7 +405,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading appointments: ${snapshot.error}'));
+          return Center(child: Text('ข้อผิดพลาดการโหลดนัดหมาย: ${snapshot.error}'));
         }
 
         final appointments = snapshot.data ?? [];
@@ -416,7 +417,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
               children: [
                 Icon(Icons.event_available, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
-                Text('No Upcoming Appointments', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                Text('ไม่มีนัดหมายเร็วๆ นี้', style: TextStyle(fontSize: 18, color: Colors.grey)),
               ],
             ),
           );
@@ -446,9 +447,9 @@ class _AppointmentPageState extends State<AppointmentPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-                    Text(DateFormat('EEEE, dd MMM yyyy • hh:mm a').format(apt.date)),
+                    Text(FormatterUtils.formatThaiDateTime(apt.date)),
                     Text(
-                      isCompleted ? 'COMPLETED' : 'SCHEDULED (Tap to Manage)',
+                      isCompleted ? 'เสร็จสิ้น' : 'นัดหมายแล้ว (แตะเพื่อจัดการ)',
                       style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)
                     ),
                   ],

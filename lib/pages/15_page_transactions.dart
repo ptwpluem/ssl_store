@@ -24,7 +24,7 @@ class TransactionHistoryPage extends StatelessWidget {
             );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final transactions = snapshot.data ?? [];

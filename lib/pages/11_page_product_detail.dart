@@ -58,23 +58,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Payment Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF600000))),
+                            const Text('สรุปการชำระเงิน', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF600000))),
                             const SizedBox(height: 16),
-                            _summaryRow('Item', widget.product.name),
-                            _summaryRow('Quantity', '$_quantity'),
-                            _summaryRow('Weight', '${widget.product.weight * _quantity} Baht'),
-                            _summaryRow('Gold Price', '฿ ${NumberFormat('#,##0').format(widget.product.weight * (widget.currentRate?.sellPrice ?? 0) * _quantity)}'),
-                            _summaryRow('Labor Fee', '฿ ${NumberFormat('#,##0').format(widget.product.laborFee * _quantity)}'),
+                            _summaryRow('รายการ', widget.product.name),
+                            _summaryRow('จำนวน', '$_quantity'),
+                            _summaryRow('น้ำหนักรวม', '${widget.product.weight * _quantity} บาท'),
+                            _summaryRow('ราคาทอง', '฿ ${NumberFormat('#,##0').format(widget.product.weight * (widget.currentRate?.sellPrice ?? 0) * _quantity)}'),
+                            _summaryRow('ค่ากำเหน็จ', '฿ ${NumberFormat('#,##0').format(widget.product.laborFee * _quantity)}'),
                             const Divider(height: 24),
-                            _summaryRow('Total Cost', '฿ ${NumberFormat('#,##0').format(totalPrice)}', isBold: true),
+                            _summaryRow('ยอดรวมทั้งสิ้น', '฿ ${NumberFormat('#,##0').format(totalPrice)}', isBold: true),
                             if (balance >= totalPrice) ...[
-                              _summaryRow('Estimated Remaining Balance', '฿ ${NumberFormat('#,##0').format(balance - totalPrice)}', isBold: true),
+                              _summaryRow('เงินคงเหลือโดยประมาณ', '฿ ${NumberFormat('#,##0').format(balance - totalPrice)}', isBold: true),
                             ] else ...[
                               const SizedBox(height: 8),
                               const Padding(
                                 padding: EdgeInsets.only(bottom: 16.0),
                                 child: Text(
-                                  'Insufficient funds. Please check your wallet balance.',
+                                  'ยอดเงินในวอลเล็ตไม่เพียงพอ กรุณาเติมเงิน',
                                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
                                 ),
@@ -103,7 +103,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             if (mounted) {
                               Navigator.pop(context); // Close bottom sheet
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Purchase Successful! Added to Portfolio.')),
+                                const SnackBar(content: Text('ซื้อสำเร็จแล้ว! ตรวจสอบได้ที่พอร์ตโฟลิโอของคุณ')),
                               );
                               Navigator.pop(context); // Go back to catalog
                             }
@@ -127,7 +127,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                         child: _isProcessing
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Confirm Purchase', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            : const Text('ยืนยันการสั่งซื้อ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -162,7 +162,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     bool isOutOfStock = widget.product.stock <= 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Details')),
+      appBar: AppBar(title: const Text('รายละเอียดสินค้า')),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -200,7 +200,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          isOutOfStock ? 'Out of Stock' : 'In Stock: ${widget.product.stock}',
+                          isOutOfStock ? 'สินค้าหมด' : 'คงเหลือ: ${widget.product.stock}',
                           style: TextStyle(
                             color: isOutOfStock ? Colors.grey[600] : Colors.green[700],
                             fontWeight: FontWeight.bold,
@@ -214,7 +214,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${widget.product.weight} Baht',
+                        '${widget.product.weight} บาท',
                         style: TextStyle(fontSize: 18, color: Colors.grey[700]),
                       ),
                       if (widget.currentRate != null)
@@ -238,9 +238,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const Text('จำนวน', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
-                          Text('Total: ฿ ${NumberFormat('#,##0').format(totalPrice)}',
+                          Text('ยอดรวม: ฿ ${NumberFormat('#,##0').format(totalPrice)}',
                               style: const TextStyle(color: Color(0xFF600000), fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
@@ -270,15 +270,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ],
                   ),
                   const Divider(height: 32),
-                  const Text('Price Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text('รายละเอียดราคา', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   if (widget.currentRate != null) ...[
-                    _summaryRow('Current Gold Rate', '฿ ${NumberFormat('#,##0').format(widget.currentRate!.sellPrice)} / Baht'),
-                    _summaryRow('Gold Value (${widget.product.weight}x)', '฿ ${NumberFormat('#,##0').format(basePrice)}'),
-                    _summaryRow('Labor Fee', '฿ ${NumberFormat('#,##0').format(widget.product.laborFee)}'),
+                    _summaryRow('ราคาทองวันนี้', '฿ ${NumberFormat('#,##0').format(widget.currentRate!.sellPrice)} / บาท'),
+                    _summaryRow('มูลค่าทอง (${widget.product.weight} บาท)', '฿ ${NumberFormat('#,##0').format(basePrice)}'),
+                    _summaryRow('ค่ากำเหน็จ', '฿ ${NumberFormat('#,##0').format(widget.product.laborFee)}'),
                   ],
                   const SizedBox(height: 24),
-                  const Text('Description', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('คำอธิบายสินค้า', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text(widget.product.description, style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87)),
                   const SizedBox(height: 48),
@@ -302,7 +302,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              isOutOfStock ? 'Out of Stock' : 'Buy Now',
+              isOutOfStock ? 'สินค้าหมด' : 'ซื้อทันที',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),

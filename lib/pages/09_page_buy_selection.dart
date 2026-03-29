@@ -9,7 +9,7 @@ class BuySelectionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buy Gold'),
+        title: const Text('ซื้อทอง'),
         centerTitle: true,
       ),
       body: Padding(
@@ -18,7 +18,7 @@ class BuySelectionPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'What would you like to buy?',
+              'คุณต้องการซื้ออะไร?',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -28,7 +28,7 @@ class BuySelectionPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Choose your investment or ornament',
+              'เลือกประเภททองคำที่คุณต้องการ',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -39,9 +39,9 @@ class BuySelectionPage extends StatelessWidget {
             
             // Gold Bar Option
             _SelectionCard(
-              title: 'Gold Bar',
-              subtitle: 'ทองคำแท่ง',
-              description: 'Pure investment gold with live market rates. Buy based on weight.',
+              title: 'ทองคำแท่ง',
+              subtitle: '',
+              description: 'ทองคำแท่งบริสุทธิ์เพื่อการลงทุน ซื้อขายตามราคาสมาคมฯ',
               icon: Icons.currency_exchange,
               backgroundColor: const Color(0xFFFFF8E1),
               iconColor: const Color(0xFFF57C00),
@@ -59,9 +59,9 @@ class BuySelectionPage extends StatelessWidget {
             
             // Gold Ornament Option
             _SelectionCard(
-              title: 'Gold Ornament',
-              subtitle: 'ทองรูปพรรณ',
-              description: 'Beautifully crafted jewelry including necklaces, rings, and more.',
+              title: 'ทองรูปพรรณ',
+              subtitle: '',
+              description: 'เครื่องประดับทองคำสวยงาม มีให้เลือกทั้งสร้อยคอ แหวน และอื่นๆ',
               icon: Icons.grid_view_rounded,
               backgroundColor: const Color(0xFFE3F2FD),
               iconColor: const Color(0xFF1976D2),
@@ -150,14 +150,16 @@ class _SelectionCard extends StatelessWidget {
                           color: Color(0xFF800000),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF4A4A4A),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF4A4A4A),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),

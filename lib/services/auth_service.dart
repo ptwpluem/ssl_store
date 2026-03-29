@@ -85,7 +85,6 @@ class AuthService {
           'phoneNumber': phoneNumber,
           'location': location,
           'role': 'user',
-          'walletBalance': 0,
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeen': FieldValue.serverTimestamp(),
         });
@@ -168,7 +167,6 @@ class AuthService {
         'email': user.email,
         'lastSeen': FieldValue.serverTimestamp(),
         'role': intendedRole, 
-        'walletBalance': 0,
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       print('DEBUG: Created new $intendedRole document: $customId');

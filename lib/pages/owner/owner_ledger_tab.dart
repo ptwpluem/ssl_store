@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../utils/date_formatters.dart';
 
 class OwnerLedgerTab extends StatefulWidget {
   const OwnerLedgerTab({super.key});
@@ -106,7 +107,6 @@ class _OwnerLedgerTabState extends State<OwnerLedgerTab> {
         }
 
         final formatter = NumberFormat('#,##0.00');
-        final dateFormat = DateFormat('MMM dd, yyyy HH:mm');
 
         var docs = snapshot.data!.docs;
 
@@ -133,7 +133,7 @@ class _OwnerLedgerTabState extends State<OwnerLedgerTab> {
 
             final typeStr = data['type'] as String? ?? 'unknown';
             final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-            final email = data['userEmail'] as String? ?? 'Unknown User';
+            final email = data['userEmail'] as String? ?? 'ไม่ทราบผู้ใช้';
             final details = data['details'] as String? ?? '';
             final category = data['category'] as String? ?? 'ทั่วไป';
             final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
@@ -180,7 +180,7 @@ class _OwnerLedgerTabState extends State<OwnerLedgerTab> {
                     Text('หมวดหมู่: $category'),
                     if (timestamp != null)
                       Text(
-                        dateFormat.format(timestamp),
+                        FormatterUtils.formatThaiDateTime(timestamp),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,

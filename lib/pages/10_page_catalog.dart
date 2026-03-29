@@ -19,8 +19,15 @@ class _CatalogPageState extends State<CatalogPage> {
   GoldRate? _currentRate;
   
   String _searchQuery = '';
-  String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Necklace', 'Ring', 'Bracelet', 'Earrings', 'Gold Bar'];
+  String _selectedCategory = 'ทั้งหมด';
+  final Map<String, String> _categories = {
+    'ทั้งหมด': 'All', 
+    'สร้อยคอ': 'Necklace', 
+    'แหวน': 'Ring', 
+    'สร้อยข้อมือ': 'Bracelet', 
+    'ต่างหู': 'Earrings', 
+    'ทองคำแท่ง': 'Gold Bar'
+  };
 
   @override
   void initState() {
@@ -38,13 +45,13 @@ class _CatalogPageState extends State<CatalogPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jewelry Store'),
+        title: const Text('ร้านทอง'),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
                ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Catalog is connected to live Firestore!'))
+                 const SnackBar(content: Text('หน้าร้านค้านี้เชื่อมต่อกับ Firestore แล้ว!'))
                );
             },
             tooltip: 'Live Connection',
@@ -58,7 +65,7 @@ class _CatalogPageState extends State<CatalogPage> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search jewelry...',
+                hintText: 'ค้นหาเครื่องประดับ...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -80,15 +87,15 @@ class _CatalogPageState extends State<CatalogPage> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: _categories.length,
               itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category;
+                final displayCategory = _categories.keys.elementAt(index);
+                final isSelected = _selectedCategory == displayCategory;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: ChoiceChip(
-                    label: Text(category),
+                    label: Text(displayCategory),
                     selected: isSelected,
                     onSelected: (selected) {
-                      if (selected) setState(() => _selectedCategory = category);
+                      if (selected) setState(() => _selectedCategory = displayCategory);
                     },
                     selectedColor: const Color(0xFF800000),
                     labelStyle: TextStyle(
@@ -124,7 +131,8 @@ class _CatalogPageState extends State<CatalogPage> {
                 // Apply local filters (search query + category)
                 final productsToShow = allCloudProducts.where((p) {
                   final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
-                  final matchesCategory = _selectedCategory == 'All' || p.category == _selectedCategory;
+                  final backendCategory = _categories[_selectedCategory];
+                  final matchesCategory = backendCategory == 'All' || p.category == backendCategory;
                   return matchesSearch && matchesCategory;
                 }).toList();
 
@@ -135,7 +143,7 @@ class _CatalogPageState extends State<CatalogPage> {
                       children: [
                         const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
                         const SizedBox(height: 16),
-                        const Text('No jewelry found matching your criteria.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        const Text('ไม่พบเครื่องประดับที่ตรงกับคำค้นหาของคุณ', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16)),
                       ],
                     ),
                   );

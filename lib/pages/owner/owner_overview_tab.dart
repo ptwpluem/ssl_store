@@ -12,6 +12,8 @@ import 'owner_sell_transactions_page.dart';
 import 'owner_savings_transactions_page.dart';
 import '../../services/mock_service.dart';
 import '../../models/gold_transaction.dart';
+import '../../widgets/owner_metric_card.dart';
+import '../../utils/date_formatters.dart';
 
 class OwnerOverviewTab extends StatefulWidget {
   const OwnerOverviewTab({super.key});
@@ -68,18 +70,25 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
       int dueSoon = 0;
       int overdue = 0;
       final now = DateTime.now();
-      final soonThreshold = now.add(const Duration(days: 7));
+      final today = DateTime(now.year, now.month, now.day);
+      final soonThreshold = today.add(const Duration(days: 7));
 
       for (var doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        final dueDate = (data['dueDate'] as Timestamp?)?.toDate();
+        final dueDateRaw = data['dueDate'] as Timestamp?;
+        if (dueDateRaw == null) {
+          active++;
+          continue;
+        }
+
+        final dueDateDisp = dueDateRaw.toDate();
+        final dueDateDay = DateTime(dueDateDisp.year, dueDateDisp.month, dueDateDisp.day);
+        
         active++;
-        if (dueDate != null) {
-          if (dueDate.isBefore(now)) {
-            overdue++;
-          } else if (dueDate.isBefore(soonThreshold)) {
-            dueSoon++;
-          }
+        if (dueDateDay.isBefore(today)) {
+          overdue++;
+        } else if (dueDateDay.isBefore(soonThreshold) || dueDateDay.isAtSameMomentAs(soonThreshold)) {
+          dueSoon++;
         }
       }
       return {
@@ -103,7 +112,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     String dateRangeText = 'ทั้งหมด';
     if (_selectedDateRange != null) {
       dateRangeText =
-          '${DateFormat('MMM d, yyyy').format(_selectedDateRange!.start)} - ${DateFormat('MMM d, yyyy').format(_selectedDateRange!.end)}';
+          '${FormatterUtils.formatThaiDateShort(_selectedDateRange!.start)} - ${FormatterUtils.formatThaiDateShort(_selectedDateRange!.end)}';
     }
 
     return SingleChildScrollView(
@@ -190,7 +199,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           child: Row(
             children: [
               Expanded(
-                child: _MetricCard(
+                child: OwnerMetricCard(
                   title: 'กำไร',
                   icon: Icons.trending_up,
                   color: const Color(0xFF2E7D32),
@@ -218,7 +227,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _MetricCard(
+                child: OwnerMetricCard(
                   title: 'รายได้',
                   icon: Icons.monetization_on,
                   color: const Color(0xFF1A237E),
@@ -258,7 +267,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _MetricCard(
+                child: OwnerMetricCard(
                   title: 'เงินต้น/ทุน',
                   icon: Icons.payments,
                   color: const Color(0xFFC62828),
@@ -308,7 +317,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.7,
           children: [
-            _MetricCard(
+            OwnerMetricCard(
               title: 'รายการซื้อ',
               icon: Icons.shopping_bag,
               color: const Color(0xFF1976D2),
@@ -320,7 +329,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               ),
               stream: _getTypeCountStream(['buy']).map((c) => c.toString()),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'รายการขาย',
               icon: Icons.storefront,
               color: const Color(0xFFC62828),
@@ -332,7 +341,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               ),
               stream: _getTypeCountStream(['sell']).map((c) => c.toString()),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'รายการจำนำ',
               icon: Icons.real_estate_agent,
               color: const Color(0xFFE65100),
@@ -341,13 +350,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
               stream: _getTypeCountStream(['pawn']).map((c) => c.toString()),
-              subtitleStream: _getPawnStatsStream().map((stats) {
-                if (stats['overdue']! > 0) return '${stats['overdue']} ค้างชำระ';
-                if (stats['dueSoon']! > 0) return '${stats['dueSoon']} ใกล้ครบกำหนด';
-                return 'สถานะปกติ';
-              }),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'รายการออมทอง',
               icon: Icons.savings,
               color: const Color(0xFF00695C),
@@ -377,7 +381,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.7,
           children: [
-            _MetricCard(
+            OwnerMetricCard(
               title: 'ยอดเงินในวอลเล็ตลูกค้า',
               icon: Icons.account_balance_wallet,
               color: const Color(0xFF6A1B9A),
@@ -396,7 +400,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 return _formatCurrency(total);
               }),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'มูลค่าสต็อก (ราคาขาย)',
               icon: Icons.auto_graph,
               color: const Color(0xFFEF6C00),
@@ -425,7 +429,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 return _formatCurrency(totalValue);
               }),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'เงินลงทุนในสต็อก',
               icon: Icons.inventory,
               color: const Color(0xFF4E342E),
@@ -449,7 +453,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 return _formatCurrency(totalInvestment);
               }),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'ประเภทสินค้า',
               icon: Icons.inventory_2,
               color: const Color(0xFF2E7D32),
@@ -481,7 +485,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.7,
           children: [
-            _MetricCard(
+            OwnerMetricCard(
               title: 'ทองรับจำนำ (ใช้งาน)',
               icon: Icons.real_estate_agent,
               color: const Color(0xFFE65100),
@@ -490,13 +494,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
               stream: _getTypeCountStream(['pawn']).map((c) => c.toString()),
-              subtitleStream: _getPawnStatsStream().map((stats) {
-                if (stats['overdue']! > 0) return '${stats['overdue']} Overdue';
-                if (stats['dueSoon']! > 0) return '${stats['dueSoon']} Due Soon';
-                return 'All Healthy';
-              }),
             ),
-            _MetricCard(
+            OwnerMetricCard(
               title: 'หนี้สินออมทอง',
               icon: Icons.savings,
               color: const Color(0xFF00695C),
@@ -634,146 +633,6 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           },
         );
       },
-    );
-  }
-}
-
-
-class _MetricCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final Stream<String> stream;
-  final Stream<String>? subtitleStream;
-  final VoidCallback? onTap;
-  final bool isHero;
-
-  const _MetricCard({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.stream,
-    this.subtitleStream,
-    this.onTap,
-    this.isHero = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isHero ? color : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(isHero ? 0.3 : 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: !isHero ? Border.all(color: Colors.grey[200]!) : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: isHero ? 16.0 : 8.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isHero 
-                  ? MainAxisAlignment.spaceBetween 
-                  : MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: (isHero ? Colors.white : color).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: isHero ? Colors.white : color,
-                        size: isHero ? 24 : 18,
-                      ),
-                    ),
-                    if (onTap != null)
-                      Icon(
-                        Icons.chevron_right,
-                        color: (isHero ? Colors.white : Colors.grey).withOpacity(0.5),
-                        size: 16,
-                      ),
-                  ],
-                ),
-                SizedBox(height: isHero ? 0 : 4),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    StreamBuilder<String>(
-                      stream: stream,
-                      builder: (context, snapshot) {
-                        String data = snapshot.data ?? '0';
-                        if (snapshot.hasError) data = 'Error';
-                        return Text(
-                          data,
-                          style: TextStyle(
-                            fontSize: isHero ? 22 : 18,
-                            fontWeight: FontWeight.bold,
-                            color: isHero ? Colors.white : Colors.black87,
-                            letterSpacing: -0.5,
-                            height: 1.1,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 1),
-                    if (subtitleStream != null) ...[
-                      StreamBuilder<String>(
-                        stream: subtitleStream,
-                        builder: (context, snapshot) {
-                          final text = snapshot.data ?? '';
-                          if (text.isEmpty) return const SizedBox.shrink();
-                          
-                          Color textColor = Colors.grey[600]!;
-                          if (text.contains('Overdue')) textColor = Colors.red[700]!;
-                          else if (text.contains('Due Soon')) textColor = Colors.orange[800]!;
-
-                          return Text(
-                            text,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: isHero ? Colors.white.withOpacity(0.9) : textColor,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 1),
-                    ],
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: isHero ? 13 : 11,
-                        fontWeight: FontWeight.w600,
-                        color: (isHero ? Colors.white : Colors.grey[600])!.withOpacity(0.8),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

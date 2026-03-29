@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../utils/date_formatters.dart';
 
 class OwnerSalesThbPage extends StatelessWidget {
   final DateTimeRange? dateRange;
@@ -9,10 +10,11 @@ class OwnerSalesThbPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String title = 'Total Sales (THB)';
+    String title = 'ยอดขายรวม (บาท)';
     if (dateRange != null) {
-      title +=
-          ' (${DateFormat('MMM d').format(dateRange!.start)} - ${DateFormat('MMM d').format(dateRange!.end)})';
+      final startLabel = FormatterUtils.formatThaiDateShort(dateRange!.start);
+      final endLabel = FormatterUtils.formatThaiDateShort(dateRange!.end);
+      title += ' ($startLabel - $endLabel)';
     }
 
     return Scaffold(
@@ -40,7 +42,7 @@ class OwnerSalesThbPage extends StatelessWidget {
             }).toList();
           }
 
-          if (docs.isEmpty) return const Center(child: Text('No sales found.'));
+          if (docs.isEmpty) return const Center(child: Text('ไม่พบข้อมูลการขาย'));
 
           // Sort descending locally to bypass composite index issues
           final sortedDocs = docs.toList()
@@ -61,9 +63,9 @@ class OwnerSalesThbPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final doc = sortedDocs[index];
               final data = doc.data() as Map<String, dynamic>;
-              final details = data['details'] ?? 'Unknown Sale';
+              final details = data['details'] ?? 'ไม่ทราบการขาย';
               final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
-              final userEmail = data['userEmail'] ?? 'Unknown User';
+              final userEmail = data['userEmail'] ?? 'ไม่ทราบผู้ใช้';
               final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
               return Card(
@@ -78,7 +80,7 @@ class OwnerSalesThbPage extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    '$userEmail\n${timestamp != null ? DateFormat('MMM dd, yyyy').format(timestamp) : ''}',
+                    '$userEmail\n${timestamp != null ? FormatterUtils.formatThaiDateShort(timestamp) : ''}',
                   ),
                   isThreeLine: true,
                   trailing: Text(

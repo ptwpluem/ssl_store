@@ -51,13 +51,14 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
           }
           
           final now = DateTime.now();
-          final soonThreshold = now.add(const Duration(days: 7));
+          final today = DateTime(now.year, now.month, now.day);
+          final soonThresholdDay = today.add(const Duration(days: 7));
           
           List<Map<String, dynamic>> items = [];
           
           if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
             items = snapshot.data!.docs.map((d) => d.data() as Map<String, dynamic>).toList();
-            return _buildList(context, items, now, soonThreshold);
+            return _buildList(context, items, now, today, soonThresholdDay);
           } else {
             // Fallback: Query transactions if no assets found
             return StreamBuilder<QuerySnapshot>(
@@ -86,7 +87,7 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
                     'dueDate': Timestamp.fromDate(timestamp.toDate().add(const Duration(days: 30))),
                     'status': 'pawned',
                   };
-                }).toList(), now, soonThreshold);
+                }).toList(), now, today, soonThresholdDay);
               },
             );
           }
@@ -95,21 +96,29 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<Map<String, dynamic>> items, DateTime now, DateTime soonThreshold) {
+  Widget _buildList(BuildContext context, List<Map<String, dynamic>> items, DateTime now, DateTime today, DateTime soonThresholdDay) {
     var filteredItems = items;
 
     // Apply Filter
     if (_filter == 'เกินกำหนด') {
       filteredItems = filteredItems.where((data) {
-        final dueDate = data['dueDate'] as Timestamp?;
-        return dueDate != null && dueDate.toDate().isBefore(now);
+        final dueDateRaw = data['dueDate'] as Timestamp?;
+        if (dueDateRaw == null) return false;
+        final d = dueDateRaw.toDate();
+        final dueDateDay = DateTime(d.year, d.month, d.day);
+        return dueDateDay.isBefore(today);
       }).toList();
     } else if (_filter == 'ใกล้ครบกำหนด') {
       filteredItems = filteredItems.where((data) {
-        final dueDate = data['dueDate'] as Timestamp?;
-        return dueDate != null && 
-               dueDate.toDate().isAfter(now) && 
-               dueDate.toDate().isBefore(soonThreshold);
+        final dueDateRaw = data['dueDate'] as Timestamp?;
+        if (dueDateRaw == null) return false;
+        final d = dueDateRaw.toDate();
+        final dueDateDay = DateTime(d.year, d.month, d.day);
+        
+        bool isOverdue = dueDateDay.isBefore(today);
+        bool isWithinThreshold = dueDateDay.isBefore(soonThresholdDay) || dueDateDay.isAtSameMomentAs(soonThresholdDay);
+        
+        return !isOverdue && isWithinThreshold;
       }).toList();
     }
 
@@ -137,8 +146,16 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
         final pawnDate = (data['pawnDate'] as Timestamp?)?.toDate();
         final dueDate = (data['dueDate'] as Timestamp?)?.toDate();
 
-        bool isOverdue = dueDate != null && dueDate.isBefore(now);
-        bool isDueSoon = dueDate != null && !isOverdue && dueDate.isBefore(soonThreshold);
+        final dueDateRaw = data['dueDate'] as Timestamp?;
+        bool isOverdue = false;
+        bool isDueSoon = false;
+        
+        if (dueDateRaw != null) {
+          final d = dueDateRaw.toDate();
+          final dueDateDay = DateTime(d.year, d.month, d.day);
+          isOverdue = dueDateDay.isBefore(today);
+          isDueSoon = !isOverdue && (dueDateDay.isBefore(soonThresholdDay) || dueDateDay.isAtSameMomentAs(soonThresholdDay));
+        }
 
         Color statusColor = Colors.grey;
         String statusLabel = 'ปกติ';
