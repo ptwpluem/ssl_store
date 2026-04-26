@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart';
-import '../models/gold_rate.dart';
-import '../models/gold_savings.dart';
+import 'package:flutter/material.dart'; // UI components
+import 'package:intl/intl.dart'; // format number
+import 'package:firebase_auth/firebase_auth.dart'; // authentication
+import '../services/auth_service.dart'; // authentication service
+import '../models/gold_rate.dart'; // gold rate model
+import '../models/gold_savings.dart'; // gold savings model
 import '../services/mock_service.dart';
+import '../models/gold_asset.dart';
+import '03_page_appointment.dart';
 
 class GoldSavingsPage extends StatefulWidget {
   const GoldSavingsPage({super.key});
@@ -19,7 +21,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
 
-  void _deposit(double currentBuyPrice, double amount) async {
+  void _deposit(double currentBuyPrice, double amount) async { // deposit gold to savings
     if (amount <= 0) return;
 
     setState(() {
@@ -33,7 +35,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Successfully deposited ฿${NumberFormat('#,##0').format(amount)} to your savings!',
+              'ออมทองสำเร็จ จำนวน ฿${NumberFormat('#,##0').format(amount)}!',
             ),
             backgroundColor: Colors.green,
           ),
@@ -57,7 +59,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     }
   }
 
-  void _withdraw(double currentSellPrice, double weightToSell) async {
+  void _withdraw(double currentSellPrice, double weightToSell) async { // withdraw gold from savings
     if (weightToSell <= 0) return;
 
     setState(() {
@@ -71,7 +73,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Successfully sold ${weightToSell.toStringAsFixed(4)} Baht of saved gold.',
+              'ขายทองสำเร็จ จำนวน ${weightToSell.toStringAsFixed(4)} บาท',
             ),
             backgroundColor: Colors.green,
           ),
@@ -95,7 +97,70 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     }
   }
 
-  void _showDepositSheet(double currentBuyPrice) {
+  void _withdrawPhysical(double currentBuyPrice, double weightToWithdraw) async {
+    final premiumFee = weightToWithdraw * 300; // Example: 300 THB per Baht for premium
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final assetId = await _service.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
+      
+      if (mounted) {
+        // Create a temporary asset object to pass to the scheduling page
+        final newAsset = GoldAsset(
+          id: assetId,
+          name: 'ทองคำแท่ง ($weightToWithdraw บาท)',
+          weight: weightToWithdraw,
+          category: 'ทองคำแท่ง',
+          acquisitionDate: DateTime.now(),
+          acquisitionPrice: weightToWithdraw * currentBuyPrice,
+          status: 'owned',
+          purity: 0.965,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ถอนทองแท่ง ${weightToWithdraw.toStringAsFixed(4)} บาท สำเร็จ! กำลังพาไปหน้านัดหมาย...',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Wait a bit for the snackbar to be seen
+        await Future.delayed(const Duration(seconds: 1));
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AppointmentPage(),
+              settings: RouteSettings(arguments: newAsset),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showDepositSheet(double currentBuyPrice) { // show deposit sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -121,7 +186,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Buy Gold (Savings)',
+                          'ออมทองเพิ่ม',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -138,17 +203,17 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Current Price: ฿${NumberFormat('#,##0').format(currentBuyPrice)} / Baht',
+                      'ราคาทองวันนี้: ฿${NumberFormat('#,##0').format(currentBuyPrice)} / บาท',
                       style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 24),
-                    TextField(
+                    TextField( // input amount to deposit
                       controller: _amountController,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Amount (THB)',
+                        labelText: 'ระบุจำนวนเงิน (บาท)',
                         prefixIcon: const Icon(
                           Icons.account_balance_wallet,
                           color: Color(0xFF800000),
@@ -248,7 +313,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                               ),
                             )
                           : const Text(
-                              'Confirm Deposit',
+                              'ยืนยันการออม',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -292,7 +357,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     );
   }
 
-  void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) {
+  void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) { // show withdraw sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -318,7 +383,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Sell Gold (Withdraw)',
+                          'ขายทองที่สะสม',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -335,12 +400,12 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Sell Price: ฿${NumberFormat('#,##0').format(currentSellPrice)} / Baht',
+                      'ราคารับซื้อคืน: ฿${NumberFormat('#,##0').format(currentSellPrice)} / บาท',
                       style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Available: ${currentSavedWeight.toStringAsFixed(4)} Baht',
+                      'ทองที่ถอนได้: ${currentSavedWeight.toStringAsFixed(4)} บาท',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -353,7 +418,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                         decimal: true,
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Weight to sell (Baht)',
+                        labelText: 'น้ำหนักทองที่ต้องการขาย (บาท)',
                         prefixIcon: const Icon(
                           Icons.fitness_center,
                           color: Color(0xFF1E88E5),
@@ -473,7 +538,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
-                                      'Cannot sell more than available weight.',
+                                      'ไม่สามารถขายเกินจำนวนทองที่มีได้',
                                     ),
                                   ),
                                 );
@@ -489,7 +554,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                               ),
                             )
                           : const Text(
-                              'Confirm Sell',
+                              'ยืนยันการขาย',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -524,11 +589,113 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     );
   }
 
-  @override
+  void _showPhysicalWithdrawSheet(double currentBuyPrice, double currentSavedWeight) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'ถอนทองแท่ง (รับทองจริง)',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFE65100), // Orange/Gold for physical
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'คุณมีทองสะสมทั้งหมด: ${currentSavedWeight.toStringAsFixed(4)} บาท',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '* สามารถถอนได้เป็นทวีคูณของ 0.25 บาท',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              
+              // Withdrawal Options
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [0.25, 0.5, 1.0, 2.0].where((w) => w <= currentSavedWeight).map((w) {
+                  final fee = w * 300;
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _withdrawPhysical(currentBuyPrice, w);
+                    },
+                    child: Container(
+                      width: (MediaQuery.of(context).size.width - 60) / 2,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE65100)),
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFFFF3E0),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '$w บาท',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFE65100),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'ค่าธรรมเนียม: ฿${NumberFormat('#,##0').format(fee)}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (currentSavedWeight < 0.25)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    'ยอดสะสมของคุณยังไม่ถึงเกณฑ์ขั้นต่ำ (0.25 บาท)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override // build UI for gold savings page
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gold Savings'),
+        title: const Text('บัญชีออมทอง'),
         actions: [
           StreamBuilder<double>(
             stream: _service.getWalletBalanceStream(),
@@ -552,7 +719,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ],
       ),
       backgroundColor: const Color(0xFFF5F5F7),
-      body: StreamBuilder<User?>(
+      body: StreamBuilder<User?>( // check user login
         stream: _authService.user,
         builder: (context, authSnapshot) {
           if (authSnapshot.connectionState == ConnectionState.waiting) {
@@ -572,7 +739,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Please login to access Gold Savings',
+                      'กรุณาเข้าสู่ระบบเพื่อใช้งานบัญชีออมทอง',
                       style: TextStyle(fontSize: 18),
                     ),
                     const SizedBox(height: 24),
@@ -582,7 +749,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                         backgroundColor: const Color(0xFF800000),
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Login / Sign Up'),
+                      child: const Text('เข้าสู่ระบบ / สมัครสมาชิก'),
                     ),
                   ],
                 ),
@@ -647,7 +814,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                         Icons.add_circle_outline,
                                       ),
                                       label: const Text(
-                                        'Save Gold',
+                                        'เริ่มออมทอง',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -685,7 +852,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                         Icons.remove_circle_outline,
                                       ),
                                       label: const Text(
-                                        'Sell Gold',
+                                        'ขายทองสะสม',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -701,6 +868,33 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                               ),
                             ),
 
+                            // New Withdrawal Button
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE65100), // Physical gold color
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.inventory_2_outlined),
+                                label: const Text(
+                                  'รับทองจริง (ถอนทองแท่ง)',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: account.totalWeightSaved >= 0.25
+                                    ? () => _showPhysicalWithdrawSheet(currentBuyPrice, account.totalWeightSaved)
+                                    : null,
+                              ),
+                            ),
+
                             // Stats Card
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -710,14 +904,14 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                 children: [
                                   Expanded(
                                     child: _buildStatCard(
-                                      'Total Invested',
+                                      'ยอดเงินสะสม',
                                       '฿${NumberFormat('#,##0').format(account.totalAmountInvested)}',
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: _buildStatCard(
-                                      'Current Value',
+                                      'มูลค่าทองปัจจุบัน',
                                       '฿${NumberFormat('#,##0').format(account.totalWeightSaved * currentBuyPrice)}',
                                     ),
                                   ),
@@ -774,7 +968,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'No savings history yet.',
+                              'ยังไม่มีประวัติการออมทอง',
                               style: TextStyle(color: Colors.grey),
                             ),
                           ],
@@ -832,7 +1026,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      isDeposit ? 'Bought Gold' : 'Sold Gold',
+                                      isDeposit ? 'ออมทอง' : 'ขายทอง',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -855,7 +1049,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${isDeposit ? '+' : ''}${tx.weightGained.toStringAsFixed(4)} Baht',
+                                    '${isDeposit ? '+' : ''}${tx.weightGained.toStringAsFixed(4)} บาท',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: isDeposit
@@ -923,7 +1117,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
       child: Column(
         children: [
           const Text(
-            'My Gold Savings',
+            'ทองที่สะสมได้',
             style: TextStyle(
               color: Colors.grey,
               fontWeight: FontWeight.bold,
@@ -960,7 +1154,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                   ),
                   const Text(
-                    'Baht',
+                    'บาท',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
@@ -973,7 +1167,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            '${(progress * 100).toStringAsFixed(1)}% of 1 Baht Goal',
+            '${(progress * 100).toStringAsFixed(1)}% ของเป้าหมาย 1 บาท',
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Color(0xFF800000),

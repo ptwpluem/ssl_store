@@ -94,6 +94,12 @@ class TransactionHistoryPage extends StatelessWidget {
         amountPrefix = '+';
         amountColor = Colors.green.shade700; // Added to wallet
         break;
+      case TransactionType.savings_physical_withdraw:
+        iconColor = Colors.orange.shade800;
+        iconData = Icons.inventory_2;
+        amountPrefix = '-';
+        amountColor = Colors.red.shade700; // Deducted fee from wallet
+        break;
     }
 
     final dateFormat = DateFormat('dd MMM yyyy • HH:mm น.');
@@ -107,6 +113,7 @@ class TransactionHistoryPage extends StatelessWidget {
       case TransactionType.redeem: typeLabel = 'ไถ่ถอน'; break;
       case TransactionType.savings_deposit: typeLabel = 'ออมทอง (ฝาก)'; break;
       case TransactionType.savings_withdraw: typeLabel = 'ออมทอง (ถอน)'; break;
+      case TransactionType.savings_physical_withdraw: typeLabel = 'ถอนทองแท่ง'; break;
     }
 
     return Container(

@@ -16,6 +16,7 @@ import '../models/gold_savings.dart';
 
 import 'wallet_service.dart';
 import 'id_generator_service.dart';
+import 'price_calculation_service.dart';
 import '../models/wallet_transaction.dart';
 
 class MockService {
@@ -60,44 +61,54 @@ class MockService {
     final batch = FirebaseFirestore.instance.batch();
     final newsList = [
       {
-        'title': 'ทำไมทองคำถึงเป็นสินทรัพย์ปลอดภัยที่ควรมี?',
+        'title': 'แนวโน้มราคาทองปี 69: ลุ้นแตะ 85,000 บาท? วิเคราะห์ปัจจัยหนุนระดับโลก',
         'summary':
-            'ในสภาวะเศรษฐกิจผันผวน ทองคำคือคำตอบของการรักษาความมั่งคั่ง...',
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Safe+Haven',
+            'นักวิเคราะห์คาดราคาทองไทยมีโอกาสพุ่งสูงต่อเนื่องจากแรงหนุนของธนาคารกลางทั่วโลกและภาวะเศรษฐกิจผันผวน',
+        'imageUrl': 'assets/images/news_trend.png',
+        'url': 'https://www.bangkokpost.com/business/general/2881144/gold-prices-hit-another-record',
         'date': Timestamp.fromDate(
           DateTime.now().subtract(const Duration(days: 1)),
         ),
-        'content': 'เนื้อหาฉบับเต็มเกี่ยวกับทองคำที่เป็นสินทรัพย์ปลอดภัย...',
+        'content': 'บทวิเคราะห์เจาะลึกเกี่ยวกับทิศทางราคาทองคำในปี 2569 ที่อาจทำสถิติสูงสุดใหม่...',
       },
       {
-        'title': 'วิเคราะห์ราคาทอง: แนวโน้มขาขึ้นยังคงดำเนินต่อไป',
+        'title': 'สงครามในต่างประเทศกระทบราคาทองอย่างไร? ทำไมช่วงนี้ทองถึงเป็นหลุมหลบภัยที่ดีที่สุด',
         'summary':
-            'ผู้เชี่ยวชาญคาดการณ์ราคาทองคำจะเติบโตอย่างต่อเนื่องในไตรมาสนี้จากปัจจัยระดับโลก',
-        'imageUrl':
-            'https://via.placeholder.com/150x150/800000/FFFFFF?text=Price+Up',
+            'ทำความเข้าใจความสัมพันธ์ระหว่างความขัดแย้งระดับโลกและราคาทองคำที่เพิ่มขึ้นอย่างรวดเร็ว',
+        'imageUrl': 'assets/images/news_war.png',
+        'url': 'https://www.bangkokpost.com/business/general/2778841/gold-prices-volatile-amid-geopolitical-tensions',
         'date': Timestamp.fromDate(
           DateTime.now().subtract(const Duration(days: 3)),
         ),
-        'content': 'บทวิเคราะห์ราคาทองคำเชิงลึก...',
+        'content': 'วิเคราะห์ผลกระทบของสงครามและภูมิรัฐศาสตร์ต่อความเชื่อมั่นของนักลงทุนทองคำ...',
       },
       {
-        'title': 'เข้าใจความแตกต่าง: ทอง 96.5% vs 99.99%',
+        'title': 'ออมทองฉบับชาวบ้าน: ทำไมการเก็บทองถึงช่วยรักษาความมั่งคั่งได้ดีกว่าเงินฝากในช่วงนี้',
         'summary':
-            'ความแตกต่างคืออะไร และแบบไหนที่เหมาะกับการลงทุนของคุณ? เรามีคำตอบ',
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFA000/000000?text=Gold+Standard',
+            'เปรียบเทียบข้อดีของการออมทองคำและการฝากเงินธนาคาร เพื่อความมั่นคงของครอบครัวในระยะยาว',
+        'imageUrl': 'assets/images/news_saving.png',
+        'url': 'https://www.bangkokpost.com/business/general/2785541/gold-savings-plans-gain-popularity',
         'date': Timestamp.fromDate(
           DateTime.now().subtract(const Duration(days: 5)),
         ),
-        'content': 'เนื้อหาให้ความรู้เกี่ยวกับมาตรฐานทองคำ...',
+        'content': 'เคล็ดลับการเริ่มออมทองทีละนิดสำหรับคนทำงานและเกษตรกร เพื่อสร้างอนาคตที่ยั่งยืน...',
+      },
+      {
+        'title': 'ขายข้าวแล้วซื้อทอง: ทำไมเกษตรกรไทยถึงนิยมเปลี่ยนเงินจากการเกษตรเป็นสินทรัพย์ทองคำ',
+        'summary':
+            'ส่องพฤติกรรมการออมของคนไทยในต่างจังหวัดที่นิยมแปลงรายได้จากผลผลิตเป็นทองคำเพื่อความอุ่นใจ',
+        'imageUrl': 'assets/images/news_harvest.png',
+        'url': 'https://www.bangkokpost.com/business/general/2774914/gold-prices-set-new-records',
+        'date': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(days: 7)),
+        ),
+        'content': 'ทำไมทองคำถึงเป็น "ธนาคารเคลื่อนที่" ที่ชาวบ้านไว้วางใจมาทุกยุคทุกสมัย...',
       },
     ];
 
     for (int i = 0; i < newsList.length; i++) {
-      final docRef = FirebaseFirestore.instance
-          .collection('news')
-          .doc('news_$i');
+      final docId = await _idGeneratorService.generateId('news');
+      final docRef = FirebaseFirestore.instance.collection('news').doc(docId);
       batch.set(docRef, newsList[i]);
     }
     await batch.commit();
@@ -107,10 +118,53 @@ class MockService {
   Stream<List<NewsItem>> getNewsStream() {
     final collection = FirebaseFirestore.instance.collection('news');
 
-    // Auto-generate if empty
-    collection.limit(1).get().then((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        _generateInitialNews();
+    // Auto-generate if empty or contains old English mock data (Self-healing)
+    collection.get().then((snapshot) async {
+      final docs = snapshot.docs;
+      
+      bool needsUpdate = false;
+      const oldTitles = [
+        'Why Gold is the Best Safe Haven Asset?',
+        'Gold Price Analysis: Upward Trend continues',
+        'Understanding 96.5% vs 99.99% Gold'
+      ];
+      
+      if (docs.isNotEmpty) {
+        for (var doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final title = data['title'] as String?;
+          final imageUrl = data['imageUrl'] as String?;
+          
+          // Check for old English titles
+          if (title != null && oldTitles.contains(title)) {
+            needsUpdate = true;
+            break;
+          }
+          
+          // Check for missing URL or old placeholder images in Thai news
+          if (title != null && title.contains('ทอง') && (!data.containsKey('url') || imageUrl?.contains('placeholder') == true)) {
+            needsUpdate = true;
+            break;
+          }
+        }
+      }
+
+      if (docs.isEmpty || needsUpdate) {
+        // If update needed, clear ONLY those items or all if it's the mock set
+        if (needsUpdate) {
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final title = data['title'] as String?;
+            final imageUrl = data['imageUrl'] as String?;
+            
+            bool isOldMock = title != null && (oldTitles.contains(title) || (title.contains('ทอง') && (!data.containsKey('url') || imageUrl?.contains('placeholder') == true)));
+            
+            if (isOldMock) {
+              await doc.reference.delete();
+            }
+          }
+        }
+        await _generateInitialNews();
       }
     });
 
@@ -126,6 +180,7 @@ class MockService {
           imageUrl: data['imageUrl'] ?? 'https://via.placeholder.com/150x150',
           date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
           content: data['content'] ?? '',
+          url: data['url'] as String?,
         );
       }).toList();
     });
@@ -140,28 +195,30 @@ class MockService {
         'color': 0xFF800000,
         'textColor': 0xFFFFFFFF,
         'image':
-            'https://via.placeholder.com/600x200/800000/FFFFFF?text=50%25+OFF',
+            'https://via.placeholder.com/600x200/800000/FFFFFF?text=%E0%B8%A5%E0%B8%94+50%25',
+        'category': 'catalog',
       },
       {
         'title': 'คอลเลกชันมังกรทอง\nรับตรุษจีน',
         'color': 0xFFFFD700,
         'textColor': 0xFF000000,
         'image':
-            'https://via.placeholder.com/600x200/FFD700/000000?text=Dragon+Collection',
+            'https://via.placeholder.com/600x200/FFD700/000000?text=%E0%B8%A1%E0%B8%B1%E0%B8%87%E0%B8%81%E0%B8%A3%E0%B8%97%E0%B8%AD%E0%B8%81',
+        'category': 'catalog',
       },
       {
         'title': 'ออมทองง่ายๆ\nเริ่มต้นเพียง 100 บาท',
         'color': 0xFF1E88E5,
         'textColor': 0xFFFFFFFF,
         'image':
-            'https://via.placeholder.com/600x200/1E88E5/FFFFFF?text=Saving+Plan',
+            'https://via.placeholder.com/600x200/1E88E5/FFFFFF?text=%E0%B8%AD%E0%B8%AD%E0%B8%A1%E0%B8%97%E0%B8%AD%E0%B8%81',
+        'category': 'savings',
       },
     ];
 
     for (int i = 0; i < promos.length; i++) {
-      final docRef = FirebaseFirestore.instance
-          .collection('promotions')
-          .doc('promo_$i');
+      final docId = await _idGeneratorService.generateId('promotions');
+      final docRef = FirebaseFirestore.instance.collection('promotions').doc(docId);
       batch.set(docRef, promos[i]);
     }
     await batch.commit();
@@ -171,10 +228,34 @@ class MockService {
   Stream<List<Map<String, dynamic>>> getPromotionsStream() {
     final collection = FirebaseFirestore.instance.collection('promotions');
 
-    // Auto-generate if empty
-    collection.limit(1).get().then((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        _generateInitialPromotions();
+    // Auto-generate if empty, outdated, or has duplicates (Self-healing)
+    collection.get().then((snapshot) async {
+      final docs = snapshot.docs;
+      bool isOutdated = docs.isNotEmpty && !docs.first.data().containsKey('category');
+      
+      // Check for duplicates by title
+      final titles = <String>{};
+      bool hasDuplicates = false;
+      for (var doc in docs) {
+        final title = (doc.data() as Map<String, dynamic>)['title'] as String?;
+        if (title != null) {
+          if (titles.contains(title)) {
+            hasDuplicates = true;
+            break;
+          }
+          titles.add(title);
+        }
+      }
+
+      // Also reset if more than 3 items (since we only expect 1 set of 3)
+      bool excessiveItems = docs.length > 3;
+
+      if (docs.isEmpty || isOutdated || hasDuplicates || excessiveItems) {
+        // Clear all and regenerate
+        for (var doc in docs) {
+          await doc.reference.delete();
+        }
+        await _generateInitialPromotions();
       }
     });
 
@@ -187,6 +268,7 @@ class MockService {
           'color': data['color'] ?? 0xFF800000,
           'textColor': data['textColor'] ?? 0xFFFFFFFF,
           'image': data['image'],
+          'category': data['category'] ?? 'catalog',
         };
       }).toList();
     });
@@ -268,7 +350,7 @@ class MockService {
       print('DEBUG: Profile retrieval failed for transaction record: $e');
     }
 
-    final globalTxId = 't$id';
+    final globalTxId = id;
 
     await _walletService.performTransaction(
       walletId: walletId,
@@ -293,9 +375,9 @@ class MockService {
         });
 
     // Add a notification
-    final notifId = DateTime.now().millisecondsSinceEpoch.toString();
+    final notifId = await _idGeneratorService.generateId('notifications');
     final userRef = await _getUserDocRef(uid);
-    final notifRef = userRef.collection('notifications').doc('n_$notifId');
+    final notifRef = userRef.collection('notifications').doc(notifId);
     final formatter = NumberFormat('#,##0.00');
     final notif = NotificationItem(
       id: notifId,
@@ -335,7 +417,7 @@ class MockService {
       print('DEBUG: Profile retrieval failed for transaction record: $e');
     }
 
-    final globalTxId = 't$id';
+    final globalTxId = id;
 
     await _walletService.performTransaction(
       walletId: walletId,
@@ -360,9 +442,9 @@ class MockService {
         });
 
     // Add a notification
-    final notifId = DateTime.now().millisecondsSinceEpoch.toString();
+    final notifId = await _idGeneratorService.generateId('notifications');
     final userRef = await _getUserDocRef(uid);
-    final notifRef = userRef.collection('notifications').doc('n_$notifId');
+    final notifRef = userRef.collection('notifications').doc(notifId);
     final formatter = NumberFormat('#,##0.00');
     final notif = NotificationItem(
       id: notifId,
@@ -528,7 +610,7 @@ class MockService {
     final batch = FirebaseFirestore.instance.batch();
     final notifs = [
       NotificationItem(
-        id: 'n1',
+        id: await _idGeneratorService.generateId('notifications'),
         title: 'รายการจำนำใกล้ครบกำหนด',
         message: 'รายการทองจำนำของคุณ "สร้อยคอทองคำ 1 บาท" จะครบกำหนดใน 3 วัน',
         type: 'pawn',
@@ -536,7 +618,7 @@ class MockService {
         isRead: false,
       ),
       NotificationItem(
-        id: 'n2',
+        id: await _idGeneratorService.generateId('notifications'),
         title: 'มีสินค้าในตะกร้า',
         message: 'คุณมีทองคำแท่ง 1 บาท ตกค้างในตะกร้าสินค้า!',
         type: 'cart',
@@ -544,7 +626,7 @@ class MockService {
         isRead: false,
       ),
       NotificationItem(
-        id: 'n3',
+        id: await _idGeneratorService.generateId('notifications'),
         title: 'แจ้งเตือนจากทางร้าน',
         message: 'ประกาศ: วันนี้ร้านปิดเนื่องจากสถานการณ์น้ำท่วมใหญ่',
         type: 'store',
@@ -552,7 +634,7 @@ class MockService {
         isRead: false,
       ),
       NotificationItem(
-        id: 'n4',
+        id: await _idGeneratorService.generateId('notifications'),
         title: 'แจ้งเตือนการนัดหมาย',
         message: 'แจ้งเตือน: คุณมีนัดรับสินค้าในวันพรุ่งนี้ เวลา 10:30 น.',
         type: 'appointment',
@@ -560,7 +642,7 @@ class MockService {
         isRead: true,
       ),
       NotificationItem(
-        id: 'n5',
+        id: await _idGeneratorService.generateId('notifications'),
         title: 'แจ้งเตือนราคาทอง',
         message: 'ราคาทองคำลดลงถึงระดับที่คุณตั้งเป้าหมายไว้ (฿40,000) แล้ว',
         type: 'price',
@@ -806,7 +888,7 @@ class MockService {
             amount: amount,
             type: WalletTransactionType.purchase,
             description: 'Purchase: $assetName',
-            referenceId: 't$id',
+            referenceId: id,
           );
 
           // 4. Deduct Stock
@@ -818,7 +900,7 @@ class MockService {
 
           // 5. Create Asset in Portfolio
           final userRef = await _getUserDocRef(uid);
-          final assetRef = userRef.collection('assets').doc('a$id');
+          final assetRef = userRef.collection('assets').doc(id);
 
           final assetDoc = {
             'name': assetName,
@@ -832,7 +914,7 @@ class MockService {
           transaction.set(assetRef, assetDoc);
         } else if (type == TransactionType.pawn) {
           final userRefPawn = await _getUserDocRef(uid);
-          final assetRefPawn = userRefPawn.collection('assets').doc('a$id');
+          final assetRefPawn = userRefPawn.collection('assets').doc(id);
 
           final assetDocPawn = {
             'name': assetName,
@@ -864,7 +946,7 @@ class MockService {
               amount: amount,
               type: WalletTransactionType.deposit,
               description: 'Pawn Loan: $assetName',
-              referenceId: 't$id',
+              referenceId: id,
             );
           }
         } else if (type == TransactionType.sell) {
@@ -881,14 +963,14 @@ class MockService {
               amount: amount,
               type: WalletTransactionType.sale,
               description: 'Sell Back: $assetName',
-              referenceId: 't$id',
+              referenceId: id,
             );
           }
         }
 
         // 6. Create Transaction Ledger (Root Collection)
         final transactionDoc = {
-          'assetId': 'a$id',
+          'assetId': id,
           'type': type.name,
           'amount': amount,
           'weight': weight,
@@ -906,13 +988,13 @@ class MockService {
         };
         final globalTxRef = FirebaseFirestore.instance
             .collection('transactions')
-            .doc('t$id');
+            .doc(id);
         transaction.set(globalTxRef, transactionDoc);
 
         // 7. Add Notification
         final userRefNotif = await _getUserDocRef(uid);
-        final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-        final notifRef = userRefNotif.collection('notifications').doc('n_$notifId');
+        final notifId = await _idGeneratorService.generateId('notifications');
+        final notifRef = userRefNotif.collection('notifications').doc(notifId);
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
@@ -980,7 +1062,7 @@ class MockService {
         // 4. Create Restock Transaction Record (Global)
         final globalTxRef = FirebaseFirestore.instance
             .collection('transactions')
-            .doc('t$id');
+            .doc(id);
 
         final restockDoc = {
           'type': 'restock',
@@ -1039,7 +1121,7 @@ class MockService {
           amount: sellPrice,
           type: WalletTransactionType.sale,
           description: 'ขายสินทรัพย์: ${asset.name}',
-          referenceId: 't$id',
+          referenceId: id,
         );
 
         // 3. Remove the asset from the user's portfolio
@@ -1075,12 +1157,12 @@ class MockService {
 
         final globalTxRef = FirebaseFirestore.instance
             .collection('transactions')
-            .doc('t$id');
+            .doc(id);
         transaction.set(globalTxRef, transactionDoc);
 
         // 5. Add a notification
-        final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-        final notifRef = userRef.collection('notifications').doc('n_$notifId');
+        final notifId = await _idGeneratorService.generateId('notifications');
+        final notifRef = userRef.collection('notifications').doc(notifId);
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
@@ -1138,7 +1220,7 @@ class MockService {
           amount: loanAmount,
           type: WalletTransactionType.deposit,
           description: 'เงินกู้จำนำ: ${asset.name}',
-          referenceId: 't$id',
+          referenceId: id,
         );
 
         // 3. Update asset status to 'pawned' and attach loan data
@@ -1183,13 +1265,13 @@ class MockService {
 
         final globalTxRef = FirebaseFirestore.instance
             .collection('transactions')
-            .doc('t$id');
+            .doc(id);
 
         transaction.set(globalTxRef, transactionDoc);
 
         // 5. Add a notification
-        final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-        final notifRef = userRef.collection('notifications').doc('n_$notifId');
+        final notifId = await _idGeneratorService.generateId('notifications');
+        final notifRef = userRef.collection('notifications').doc(notifId);
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
@@ -1247,7 +1329,7 @@ class MockService {
           amount: totalOwed,
           type: WalletTransactionType.withdrawal,
           description: 'Pawn Redemption: ${asset.name}',
-          referenceId: 't$id',
+          referenceId: id,
         );
 
         // 2. Clear loan fields and revert status to 'owned'
@@ -1298,13 +1380,13 @@ class MockService {
 
         final globalTxRef = FirebaseFirestore.instance
             .collection('transactions')
-            .doc('t$id');
+            .doc(id);
 
         transaction.set(globalTxRef, transactionDoc);
 
         // 5. Add a notification
-        final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-        final notifRef = userRef.collection('notifications').doc('n_$notifId');
+        final notifId = await _idGeneratorService.generateId('notifications');
+        final notifRef = userRef.collection('notifications').doc(notifId);
         final formatter = NumberFormat('#,##0.00');
         final notif = NotificationItem(
           id: notifId,
@@ -1535,8 +1617,8 @@ class MockService {
       transaction.update(assetRef, {'status': 'collected'});
 
       // 3. Send Notification to User
-      final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-      final notifRef = userRef.collection('notifications').doc('n_$notifId');
+      final notifId = await _idGeneratorService.generateId('notifications');
+      final notifRef = userRef.collection('notifications').doc(notifId);
       final notif = NotificationItem(
         id: notifId,
         title: 'รับสินค้าสำเร็จ',
@@ -1552,250 +1634,262 @@ class MockService {
   Future<void> _generateInitialProducts() async {
     final productsRef = FirebaseFirestore.instance.collection('products');
     final dummyProducts = [
+      // --- Necklace (สร้อยคอ) ---
       {
         'name': 'สร้อยคอทองคำ ลายสี่เสา',
-        'description':
-            'สร้อยคอทองคำแท้ 96.5% ลายสี่เสา ดีไซน์คลาสสิก แข็งแรงทนทาน เหมาะสำหรับใส่ทำกิจกรรมประจำวัน',
+        'description': 'สร้อยคอทองคำแท้ 96.5% ลายสี่เสา ดีไซน์คลาสสิก แข็งแรงทนทาน',
         'price': 42000.0,
         'weight': 1.0,
         'laborFee': 1200.0,
         'costBasis': 40000.0,
         'stock': 15,
-        'imageUrl':
-            'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0370.jpg',
-        'category': 'Necklace',
+        'imageUrl': 'assets/images/prod_necklace_si_sao.png',
+        'category': 'สร้อยคอ',
       },
       {
-        'name': 'แหวนทองคำ ลายมังกรคาบแก้ว',
-        'description':
-            'แหวนทองคำแท้ 96.5% แกะสลักลายมังกรอย่างประณีต เสริมบารมีและความเป็นสิริมงคล',
+        'name': 'สร้อยคอทองคำ ลายเบนซ์',
+        'description': 'สร้อยคอทองคำแท้ 96.5% ลายเบนซ์ ขัดเงาสวยงาม เรียบหรู',
+        'price': 21500.0,
+        'weight': 0.5,
+        'laborFee': 800.0,
+        'costBasis': 20000.0,
+        'stock': 10,
+        'imageUrl': 'assets/images/prod_necklace_benz.png',
+        'category': 'สร้อยคอ',
+      },
+      {
+        'name': 'สร้อยคอทองคำ ลายคดกริช',
+        'description': 'สร้อยคอทองคำแท้ 96.5% ลายคดกริช งานละเอียดปราณีต',
+        'price': 11000.0,
+        'weight': 0.25,
+        'laborFee': 600.0,
+        'costBasis': 10000.0,
+        'stock': 20,
+        'imageUrl': 'assets/images/prod_necklace_kod_grit.png',
+        'category': 'สร้อยคอ',
+      },
+      // --- Ring (แหวน) ---
+      {
+        'name': 'แหวนทองคำ ลายมังกร',
+        'description': 'แหวนทองคำแท้ 96.5% แกะสลักลายมังกร เสริมบารมี',
         'price': 21500.0,
         'weight': 0.5,
         'laborFee': 800.0,
         'costBasis': 20000.0,
         'stock': 8,
-        'imageUrl':
-            'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0158.jpg',
-        'category': 'Ring',
+        'imageUrl': 'assets/images/prod_ring_dragon.png',
+        'category': 'แหวน',
       },
       {
-        'name': 'กำไลทองคำกลมเกลี้ยง',
-        'description':
-            'กำไลทองคำแท้ 96.5% แบบกลมเกลี้ยง ขัดเงาสวยงาม เรียบง่ายแต่หรูหรา',
-        'price': 84500.0,
-        'weight': 2.0,
-        'laborFee': 1500.0,
-        'costBasis': 80000.0,
-        'stock': 5,
-        'imageUrl':
-            'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0279-Edit.jpg',
-        'category': 'Bracelet',
-      },
-      {
-        'name': 'ต่างหูทองคำ ลายดอกพิกุล',
-        'description':
-            'ต่างหูทองคำแท้ 96.5% ลายดอกพิกุล งานศิลปะไทยโบราณที่ละเอียดอ่อนและงดงาม',
+        'name': 'แหวนทองคำ ลายเกลี้ยง',
+        'description': 'แหวนทองคำแท้ 96.5% แบบเรียบเกลี้ยง ขัดเงาพิถีพิถัน',
         'price': 10800.0,
         'weight': 0.25,
-        'laborFee': 600.0,
-        'costBasis': 9500.0,
-        'stock': 20,
-        'imageUrl':
-            'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0209-Edit.jpg',
-        'category': 'Earrings',
+        'laborFee': 500.0,
+        'costBasis': 10000.0,
+        'stock': 25,
+        'imageUrl': 'assets/images/prod_ring_plain.png',
+        'category': 'แหวน',
       },
       {
-        'name': 'แหวนทองคำประดับทับทิมแท้',
-        'description':
-            'แหวนทองคำแท้ 96.5% ดีไซน์ร่วมสมัย ประดับด้วยทับทิมเม็ดสวย คุณภาพสูง',
-        'price': 25000.0,
-        'weight': 0.5,
-        'laborFee': 2500.0,
-        'costBasis': 22000.0,
-        'stock': 3,
-        'imageUrl':
-            'https://somsrimanee.com/wp-content/uploads/2023/07/20240906-0164.jpg',
-        'category': 'Ring',
+        'name': 'แหวนทองคำ ลายหัวใจ',
+        'description': 'แหวนทองคำแท้ 96.5% รูปหัวใจ ดีไซน์หวานน่ารัก',
+        'price': 6500.0,
+        'weight': 0.125,
+        'laborFee': 500.0,
+        'costBasis': 5500.0,
+        'stock': 30,
+        'imageUrl': 'assets/images/prod_ring_heart.png',
+        'category': 'แหวน',
       },
+      // --- Bracelet (สร้อยข้อมือ) ---
+      {
+        'name': 'สร้อยข้อมือ ลายมีนา',
+        'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายมีนา แข็งแรง สวยงาม',
+        'price': 42500.0,
+        'weight': 1.0,
+        'laborFee': 1500.0,
+        'costBasis': 40000.0,
+        'stock': 12,
+        'imageUrl': 'assets/images/prod_bracelet_meena.png',
+        'category': 'สร้อยข้อมือ',
+      },
+      {
+        'name': 'สร้อยข้อมือ ลายพิกุล',
+        'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายพิกุล งานศิลปะไทยโบราณ',
+        'price': 85000.0,
+        'weight': 2.0,
+        'laborFee': 2500.0,
+        'costBasis': 80000.0,
+        'stock': 5,
+        'imageUrl': 'assets/images/prod_bracelet_pikul.png',
+        'category': 'สร้อยข้อมือ',
+      },
+      {
+        'name': 'กำไลทองคำ เกลี้ยงกลม',
+        'description': 'กำไลทองคำแท้ 96.5% แบบกลมเรียบ ขัดเงาแวววาว',
+        'price': 21800.0,
+        'weight': 0.5,
+        'laborFee': 1000.0,
+        'costBasis': 20000.0,
+        'stock': 15,
+        'imageUrl': 'assets/images/prod_bracelet_plain_bangle.png',
+        'category': 'สร้อยข้อมือ',
+      },
+      // --- Earring (ต่างหู) ---
+      {
+        'name': 'ต่างหูทองคำ ลายพิกุล',
+        'description': 'ต่างหูทองคำแท้ 96.5% ลายพิกุล ขนาดกระทัดรัด สวยงาม',
+        'price': 5800.0,
+        'weight': 0.125,
+        'laborFee': 600.0,
+        'costBasis': 5000.0,
+        'stock': 20,
+        'imageUrl': 'assets/images/prod_earring_pikul.png',
+        'category': 'ต่างหู',
+      },
+      {
+        'name': 'ต่างหูทองคำ ห่วงกลม',
+        'description': 'ต่างหูทองคำแท้ 96.5% แบบห่วง เรียบง่าย ใส่ได้ทุกวัน',
+        'price': 10800.0,
+        'weight': 0.25,
+        'laborFee': 700.0,
+        'costBasis': 9500.0,
+        'stock': 18,
+        'imageUrl': 'assets/images/prod_earring_hoop.png',
+        'category': 'ต่างหู',
+      },
+      {
+        'name': 'ต่างหูทองคำ แป้นหัวใจ',
+        'description': 'ต่างหูทองคำแท้ 96.5% แบบแป้นรูปหัวใจ น่ารักสดใส',
+        'price': 5500.0,
+        'weight': 0.125,
+        'laborFee': 500.0,
+        'costBasis': 4800.0,
+        'stock': 22,
+        'imageUrl': 'assets/images/prod_earring_heart.png',
+        'category': 'ต่างหู',
+      },
+      // --- Gold Bar (ทองคำแท่ง) ---
       {
         'name': 'ทองคำแท่ง 0.25 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 0.25 บาท (1 สลึง)',
-        'price': 10000.0,
+        'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.25 บาท สำหรับออมทอง',
+        'price': 10250.0,
         'weight': 0.25,
         'laborFee': 0.0,
-        'costBasis': 9000.0,
-        'stock': 50,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.25',
-        'category': 'Gold Bar',
+        'costBasis': 10000.0,
+        'stock': 100,
+        'imageUrl': 'assets/images/prod_gold_bar.png',
+        'category': 'ทองคำแท่ง',
       },
       {
         'name': 'ทองคำแท่ง 0.5 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 0.5 บาท (2 สลึง)',
-        'price': 20000.0,
+        'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.5 บาท สำหรับออมทอง',
+        'price': 20500.0,
         'weight': 0.5,
         'laborFee': 0.0,
-        'costBasis': 18000.0,
-        'stock': 40,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.5',
-        'category': 'Gold Bar',
+        'costBasis': 20000.0,
+        'stock': 50,
+        'imageUrl': 'assets/images/prod_gold_bar.png',
+        'category': 'ทองคำแท่ง',
       },
       {
         'name': 'ทองคำแท่ง 1 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 1 บาท',
-        'price': 40000.0,
+        'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 1 บาท สำหรับออมทอง',
+        'price': 41000.0,
         'weight': 1.0,
         'laborFee': 0.0,
-        'costBasis': 38000.0,
+        'costBasis': 40000.0,
         'stock': 30,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+1',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'ทองคำแท่ง 2 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 2 บาท',
-        'price': 80000.0,
-        'weight': 2.0,
-        'laborFee': 0.0,
-        'costBasis': 76000.0,
-        'stock': 20,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+2',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'ทองคำแท่ง 5 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 5 บาท',
-        'price': 200000.0,
-        'weight': 5.0,
-        'laborFee': 0.0,
-        'costBasis': 190000.0,
-        'stock': 10,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+5',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'ทองคำแท่ง 10 บาท',
-        'description': 'ทองคำแท่งมาตรฐาน 96.5% น้ำหนัก 10 บาท',
-        'price': 400000.0,
-        'weight': 10.0,
-        'laborFee': 0.0,
-        'costBasis': 380000.0,
-        'stock': 5,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+10',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 0.25 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 0.25 Baht.',
-        'price': 10000.0,
-        'weight': 0.25,
-        'laborFee': 0.0,
-        'costBasis': 9000.0,
-        'stock': 50,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.25',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 0.5 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 0.5 Baht.',
-        'price': 20000.0,
-        'weight': 0.5,
-        'laborFee': 0.0,
-        'costBasis': 18000.0,
-        'stock': 40,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+0.5',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 1 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 1.0 Baht.',
-        'price': 40000.0,
-        'weight': 1.0,
-        'laborFee': 0.0,
-        'costBasis': 38000.0,
-        'stock': 30,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+1',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 2 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 2.0 Baht.',
-        'price': 80000.0,
-        'weight': 2.0,
-        'laborFee': 0.0,
-        'costBasis': 76000.0,
-        'stock': 20,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+2',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 5 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 5.0 Baht.',
-        'price': 200000.0,
-        'weight': 5.0,
-        'laborFee': 0.0,
-        'costBasis': 190000.0,
-        'stock': 10,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+5',
-        'category': 'Gold Bar',
-      },
-      {
-        'name': 'Gold Bar 10 Baht',
-        'description': 'Standard 96.5% Gold Bar, weighing 10.0 Baht.',
-        'price': 400000.0,
-        'weight': 10.0,
-        'laborFee': 0.0,
-        'costBasis': 380000.0,
-        'stock': 5,
-        'imageUrl':
-            'https://via.placeholder.com/150x150/FFD700/000000?text=Bar+10',
-        'category': 'Gold Bar',
+        'imageUrl': 'assets/images/prod_gold_bar.png',
+        'category': 'ทองคำแท่ง',
       },
     ];
 
     for (var prod in dummyProducts) {
       final productId = await _idGeneratorService.generateId('products');
-      await productsRef.doc(productId).set({...prod, 'id': productId});
+      
+      // Dynamically calculate labor fee if not explicitly provided or to override with new logic
+      final weight = (prod['weight'] as num).toDouble();
+      final category = prod['category'] as String;
+      final calculatedLaborFee = PriceCalculationService.calculateLaborFee(category, weight);
+
+      await productsRef.doc(productId).set({
+        ...prod, 
+        'id': productId,
+        'laborFee': calculatedLaborFee, // Apply standardized fee logic
+      });
     }
   }
+
+  bool _isGeneratingInitialProducts = false;
 
   // Live Cloud Products Stream
   Stream<List<Product>> getProductsStream() {
     final collection = FirebaseFirestore.instance.collection('products');
 
-    // Auto-generate if empty
-    collection.limit(1).get().then((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        _generateInitialProducts();
+    // Auto-generate if empty or contains outdated mock data (Self-healing)
+    collection.get().then((snapshot) async {
+      if (_isGeneratingInitialProducts) return;
+
+      final docs = snapshot.docs;
+      bool needsReset = false;
+      
+      if (docs.isNotEmpty) {
+        for (var doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name'] as String? ?? '';
+          final category = data['category'] as String? ?? '';
+          final imageUrl = data['imageUrl'] as String?;
+          
+          // Detect English mock names, "Amulet", or old somsrimanee images
+          if (name.contains('Gold Earring') || 
+              name.contains('Gold Ring') || 
+              name.contains('Gold Bracelet') || 
+              name.contains('Gold Necklace') ||
+              category.toLowerCase().contains('amulet') ||
+              imageUrl?.contains('somsrimanee') == true) {
+            needsReset = true;
+            break;
+          }
+        }
+      }
+
+      if (docs.isEmpty || needsReset) {
+        _isGeneratingInitialProducts = true;
+        try {
+          // Clear existing items to ensure a clean standardized state
+          if (docs.isNotEmpty) {
+            for (var doc in docs) {
+              await doc.reference.delete();
+            }
+          }
+          await _generateInitialProducts();
+        } finally {
+          _isGeneratingInitialProducts = false;
+        }
       }
     });
 
     return collection.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Product(
-          id: doc.id,
-          name: data['name'] ?? 'ไม่ทราบชื่อสินค้า',
-          description: data['description'] ?? '',
-          price: (data['price'] ?? 0 as num).toDouble(),
-          weight: (data['weight'] ?? 0 as num).toDouble(),
-          laborFee: (data['laborFee'] ?? 0 as num).toDouble(),
-          costBasis: (data['costBasis'] ?? 0 as num).toDouble(),
-          stock: data['stock'] ?? 0,
-          imageUrl: data['imageUrl'] ?? '',
-          category: data['category'] ?? 'ทั่วไป',
-        );
-      }).toList();
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return Product(
+              id: doc.id,
+              name: data['name'] ?? 'ไม่ทราบชื่อสินค้า',
+              description: data['description'] ?? '',
+              price: (data['price'] ?? 0 as num).toDouble(),
+              weight: (data['weight'] ?? 0 as num).toDouble(),
+              laborFee: (data['laborFee'] ?? 0 as num).toDouble(),
+              costBasis: (data['costBasis'] ?? 0 as num).toDouble(),
+              stock: data['stock'] ?? 0,
+              imageUrl: data['imageUrl'] ?? '',
+              category: data['category'] ?? 'ทั่วไป',
+            );
+          })
+          .where((p) => p.category != 'ทองคำแท่ง') // Filter out gold bars from main catalog
+          .toList();
     });
   }
 
@@ -1899,7 +1993,7 @@ class MockService {
         amount: amountInTHB,
         type: WalletTransactionType.purchase, // Purchase of gold
         description: 'Gold Savings Deposit',
-        referenceId: 't$id',
+        referenceId: id,
       );
 
       // 3. Update the aggregate savings account
@@ -1954,12 +2048,12 @@ class MockService {
 
       final globalTransactionsRef = FirebaseFirestore.instance
           .collection('transactions')
-          .doc('t$id');
+          .doc(id);
       transaction.set(globalTransactionsRef, globalTxDoc);
 
       // 6. Add a notification
-      final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-      final notifRef = userRef.collection('notifications').doc('n_$notifId');
+      final notifId = await _idGeneratorService.generateId('notifications');
+      final notifRef = userRef.collection('notifications').doc(notifId);
       final notif = NotificationItem(
         id: notifId,
         title: 'ฝากเงินออมทองสำเร็จ',
@@ -2019,7 +2113,7 @@ class MockService {
         amount: amountInTHB,
         type: WalletTransactionType.sale, // Sale of gold from savings
         description: 'Gold Savings Withdrawal',
-        referenceId: 't$id',
+        referenceId: id,
       );
 
       // 4. Update the aggregate savings account
@@ -2079,12 +2173,12 @@ class MockService {
 
       final globalTransactionsRef = FirebaseFirestore.instance
           .collection('transactions')
-          .doc('t$id');
+          .doc(id);
       transaction.set(globalTransactionsRef, globalTxDoc);
 
       // 7. Add a notification
-      final notifId = DateTime.now().millisecondsSinceEpoch.toString();
-      final notifRef = userRef.collection('notifications').doc('n_$notifId');
+      final notifId = await _idGeneratorService.generateId('notifications');
+      final notifRef = userRef.collection('notifications').doc(notifId);
       final notif = NotificationItem(
         id: notifId,
         title: 'ขายทองออมสำเร็จ',
@@ -2096,6 +2190,165 @@ class MockService {
       );
       transaction.set(notifRef, notif.toMap());
     });
+  }
+
+  Future<String> withdrawPhysicalGoldBar(
+    double weightToWithdraw,
+    double currentBuyPricePerBaht,
+    double premiumFee,
+  ) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('User not logged in');
+
+    if (weightToWithdraw % 0.25 != 0) {
+      throw Exception('น้ำหนักทองที่ถอนได้ต้องเป็นทวีคูณของ 0.25 บาทเท่านั้น');
+    }
+
+    await Future.delayed(const Duration(seconds: 1)); // Network simulation
+
+    final userRef = await _getUserDocRef(uid);
+    final walletQuery = await FirebaseFirestore.instance
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
+    final walletId = walletQuery.docs.first.id;
+
+    // Generate global transaction ID
+    final id = await _idGeneratorService.generateId(
+      'transactions',
+      prefixOverride: 'SAV',
+    );
+
+    // Prepare assetId beforehand
+    final assetId = await _idGeneratorService.generateId('assets', prefixOverride: 'AST');
+
+    // 6. Find Store Stock document for the Gold Bar BEFORE the transaction
+    final productsRef = FirebaseFirestore.instance.collection('products');
+    final productQuery = await productsRef
+        .where('category', isEqualTo: 'ทองคำแท่ง')
+        .where('weight', isEqualTo: weightToWithdraw)
+        .limit(1)
+        .get();
+    
+    final productDocRef = productQuery.docs.isNotEmpty ? productQuery.docs.first.reference : null;
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      // 1. Check if user has enough saved gold weight
+      final savingsRef = userRef.collection('savings').doc('account');
+      final savingsDoc = await transaction.get(savingsRef);
+      final currentWeight =
+          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ??
+                  0.0 as num)
+              .toDouble();
+
+      if (currentWeight < weightToWithdraw) {
+        throw Exception('คุณมีทองสะสมไม่เพียงพอสำหรับการถอน');
+      }
+
+      // 2. Process premium fee from wallet
+      await _walletService.performTransactionWithTx(
+        transaction: transaction,
+        walletId: walletId,
+        amount: premiumFee,
+        type: WalletTransactionType.purchase, // Fee payment
+        description: 'ค่าธรรมเนียมถอนทองแท่ง (${weightToWithdraw} บาท)',
+        referenceId: id,
+      );
+
+      // 3. Update the aggregate savings account
+      double proportionSold = weightToWithdraw / currentWeight;
+      double currentInvested =
+          ((savingsDoc.data()
+                      as Map<String, dynamic>?)?['totalAmountInvested'] ??
+                  0.0 as num)
+              .toDouble();
+      double investedToDeduct = proportionSold * currentInvested;
+
+      transaction.set(savingsRef, {
+        'totalWeightSaved': FieldValue.increment(-weightToWithdraw),
+        'totalAmountInvested': FieldValue.increment(-investedToDeduct),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // 4. Create the savings transaction record
+      final txId = DateTime.now().millisecondsSinceEpoch.toString();
+      final stxRef = savingsRef.collection('transactions').doc('stx_$txId');
+      transaction.set(stxRef, {
+        'id': txId,
+        'amountInvested': 0.0,
+        'weightGained': -weightToWithdraw,
+        'buyPriceAtTransaction': currentBuyPricePerBaht,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': 'physical_withdrawal',
+      });
+
+      // 5. Create the physical Asset (Gold Bar)
+      final assetRef = userRef.collection('assets').doc(assetId);
+      transaction.set(assetRef, {
+        'id': assetId,
+        'name': 'ทองคำแท่ง ($weightToWithdraw บาท)',
+        'weight': weightToWithdraw,
+        'category': 'ทองคำแท่ง',
+        'acquisitionDate': FieldValue.serverTimestamp(),
+        'acquisitionPrice': weightToWithdraw * currentBuyPricePerBaht,
+        'status': 'owned',
+        'purity': 0.965,
+      });
+
+      // 7. Decrease Store Stock for the Gold Bar (Transactionally)
+      if (productDocRef != null) {
+        final productSnapshot = await transaction.get(productDocRef);
+        final currentStock = (productSnapshot.data()?['stock'] ?? 0 as num).toInt();
+        if (currentStock <= 0) {
+          throw Exception('ขออภัย ทองคำแท่งน้ำหนักนี้หมดสต็อกชั่วคราว');
+        }
+        transaction.update(productDocRef, {'stock': FieldValue.increment(-1)});
+      }
+
+      // 8. Add global transaction record
+      final formatter = NumberFormat('#,##0.00');
+      String displayName = 'Unknown User';
+      try {
+        final userProfile = await getUserProfile();
+        if (userProfile['firstName'] != null && userProfile['lastName'] != null) {
+          displayName = '${userProfile['firstName']} ${userProfile['lastName']}';
+        }
+      } catch (e) {}
+
+      final globalTxDoc = {
+        'assetId': assetId,
+        'type': TransactionType.savings_physical_withdraw.name,
+        'amount': premiumFee, 
+        'weight': weightToWithdraw,
+        'category': 'ทองคำแท่ง',
+        'timestamp': FieldValue.serverTimestamp(),
+        'details': 'SAVINGS: Withdrew physical gold bar ${weightToWithdraw} Baht',
+        'userId': uid,
+        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown Email',
+        'userDisplayName': displayName,
+      };
+
+      final globalTransactionsRef = FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(id);
+      transaction.set(globalTransactionsRef, globalTxDoc);
+
+      // 8. Add a notification
+      final notifId = await _idGeneratorService.generateId('notifications');
+      final notifRef = userRef.collection('notifications').doc(notifId);
+      transaction.set(notifRef, {
+        'id': notifId,
+        'title': 'ถอนทองแท่งสำเร็จ',
+        'message': 'คุณได้ถอนทองแท่งจำนวน ${weightToWithdraw} บาท จากบัญชีออมทองเรียบร้อยแล้ว กรุณานัดหมายวันรับสินค้า',
+        'type': 'savings',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    });
+
+    return assetId;
   }
 
   bool _pawnsRepaired = false;

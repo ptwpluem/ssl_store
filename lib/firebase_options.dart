@@ -25,10 +25,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return environment == 'dev' ? androidDev : android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return environment == 'dev' ? iosDev : ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -69,6 +66,15 @@ class DefaultFirebaseOptions {
     storageBucket: 'store-backend-93d66.firebasestorage.app',
   );
 
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAV89i1dgm1iVXrGpa3yc6_df7K7W1c02M',
+    appId: '1:199216913951:ios:9297edde2efcd21984ff2a',
+    messagingSenderId: '199216913951',
+    projectId: 'store-backend-93d66',
+    storageBucket: 'store-backend-93d66.firebasestorage.app',
+    iosBundleId: 'com.example.sslStore',
+  );
+
   static const FirebaseOptions webDev = FirebaseOptions(
     apiKey: 'REPLACE_WITH_YOUR_DEV_WEB_API_KEY', // WARNING: Placeholder key
     appId: 'REPLACE_WITH_YOUR_DEV_WEB_APP_ID',    // WARNING: Placeholder ID
@@ -84,5 +90,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'REPLACE_WITH_YOUR_DEV_SENDER_ID',
     projectId: 'store-backend-dev',
     storageBucket: 'store-backend-dev.firebasestorage.app',
+  );
+
+  static const FirebaseOptions iosDev = FirebaseOptions(
+    apiKey: 'REPLACE_WITH_YOUR_DEV_IOS_API_KEY', // WARNING: Placeholder key
+    appId: 'REPLACE_WITH_YOUR_DEV_IOS_APP_ID',   // WARNING: Placeholder ID
+    messagingSenderId: 'REPLACE_WITH_YOUR_DEV_SENDER_ID',
+    projectId: 'store-backend-dev',
+    storageBucket: 'store-backend-dev.firebasestorage.app',
+    iosBundleId: 'com.example.sslStoreDev',
   );
 }

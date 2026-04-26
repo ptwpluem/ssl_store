@@ -22,11 +22,11 @@ class _CatalogPageState extends State<CatalogPage> {
   String _selectedCategory = 'ทั้งหมด';
   final Map<String, String> _categories = {
     'ทั้งหมด': 'All', 
-    'สร้อยคอ': 'Necklace', 
-    'แหวน': 'Ring', 
-    'สร้อยข้อมือ': 'Bracelet', 
-    'ต่างหู': 'Earrings', 
-    'ทองคำแท่ง': 'Gold Bar'
+    'สร้อยคอ': 'สร้อยคอ', 
+    'แหวน': 'แหวน', 
+    'สร้อยข้อมือ': 'สร้อยข้อมือ', 
+    'ต่างหู': 'ต่างหู', 
+    'ทองคำแท่ง': 'ทองคำแท่ง'
   };
 
   @override

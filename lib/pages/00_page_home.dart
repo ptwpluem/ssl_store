@@ -5,17 +5,17 @@ import '../widgets/gold_rate_card.dart';
 import '../models/news_item.dart';
 import '../widgets/news_card.dart';
 import '../widgets/store_info_card.dart';
-import '10_page_catalog.dart';
-import '12_page_profile.dart';
-import '13_page_inquiry.dart';
-import '02_page_trading.dart';
-import '16_page_notifications.dart';
+import 'package:ssl_store/pages/10_page_catalog.dart';
+import 'package:ssl_store/pages/12_page_profile.dart';
+import 'package:ssl_store/pages/13_page_inquiry.dart';
+import 'package:ssl_store/pages/02_page_trading.dart';
+import 'package:ssl_store/pages/16_page_notifications.dart';
 import '../models/notification_item.dart';
-import '20_page_gold_savings.dart';
-import '09_page_buy_selection.dart';
+import 'package:ssl_store/pages/20_page_gold_savings.dart';
+import 'package:ssl_store/pages/09_page_buy_selection.dart';
 
 class HomePage extends StatefulWidget {
-  // Make the page is interactive
+  // Make the page is interactive such as gold prive updates, notifications, slide banner
   const HomePage({super.key});
 
   @override
@@ -38,9 +38,9 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => page));
   }
 
-  @override
+  @override // build UI for home page
   Widget build(BuildContext context) {
-    final menuItems = [
+    final menuItems = [ // menu items for home page
       {
         'title': 'ซื้อทองจากร้าน',
         'icon': Icons.shopping_bag_outlined,
@@ -71,12 +71,12 @@ class _HomePageState extends State<HomePage> {
       },
     ];
 
-    return Scaffold(
+    return Scaffold( // page main frame (top bar, main content, floating button)
       appBar: AppBar(
         title: const Text('ห้างทองสุ้นเซ่งหลี'),
         centerTitle: true,
         actions: [
-          StreamBuilder<List<NotificationItem>>(
+          StreamBuilder<List<NotificationItem>>( // notification icon with badge
             stream: _service.getNotificationsStream(),
             builder: (context, snapshot) {
               int unreadCount = 0;
@@ -163,7 +163,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
 
-              ListView.separated(
+              ListView.separated( // create a menu list
                 shrinkWrap: true, // Important for SingleChildScrollView
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: menuItems.length,
@@ -378,7 +378,7 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
         return Column(
           children: [
             Expanded(
-              child: PageView.builder(
+              child: PageView.builder( // slide banner
                 controller: _pageController, // create slide based on #promotion, change current location
                 itemCount: promotions.length,
                 onPageChanged: (index) {
@@ -390,8 +390,8 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                   final promo = promotions[index];
                   return GestureDetector(
                     onTap: () {
-                      final title = promo['title'] as String? ?? '';
-                      if (title.contains('Savings')) {
+                      final category = promo['category'] as String? ?? 'catalog';
+                      if (category == 'savings') {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const GoldSavingsPage()));
                       } else {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const CatalogPage()));

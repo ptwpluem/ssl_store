@@ -33,12 +33,17 @@ class ProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                     child: Container(
                       color: Colors.white,
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Icon(Icons.image, size: 50, color: Colors.grey[400]),
-                      ),
+                      child: product.imageUrl.startsWith('assets/')
+                          ? Image.asset(
+                              product.imageUrl,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.network(
+                              product.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(Icons.image, size: 50, color: Colors.grey[400]),
+                            ),
                     ),
                   ),
                   if (isOutOfStock)

@@ -5,6 +5,7 @@ class NewsItem {
   final String imageUrl;
   final DateTime date;
   final String content;
+  final String? url;
 
   NewsItem({
     required this.id,
@@ -13,5 +14,6 @@ class NewsItem {
     required this.imageUrl,
     required this.date,
     required this.content,
+    this.url,
   });
 }

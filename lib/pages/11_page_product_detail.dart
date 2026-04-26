@@ -171,12 +171,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               height: 350,
               width: double.infinity,
               color: Colors.white,
-              child: Image.network(
-                widget.product.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.image, size: 100, color: Colors.grey[400]),
-              ),
+              child: widget.product.imageUrl.startsWith('assets/')
+                  ? Image.asset(
+                      widget.product.imageUrl,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.network(
+                      widget.product.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Icon(Icons.image, size: 100, color: Colors.grey[400]),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(24.0),

@@ -1,4 +1,4 @@
-enum TransactionType { buy, sell, pawn, redeem, savings_deposit, savings_withdraw }
+enum TransactionType { buy, sell, pawn, redeem, savings_deposit, savings_withdraw, savings_physical_withdraw }
 
 class GoldTransaction {
   final String id;

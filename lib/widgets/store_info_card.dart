@@ -25,13 +25,17 @@ class StoreInfoCard extends StatelessWidget {
           // Interactive Map Image
           GestureDetector(
             onTap: () async {
-              final Uri url = Uri.parse('https://maps.app.goo.gl/zo5SvJGdGuUG2Ui27');
+              final Uri url = Uri.parse(
+                'https://maps.app.goo.gl/zo5SvJGdGuUG2Ui27',
+              );
               if (await canLaunchUrl(url)) {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
               }
             },
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Image.asset(
                 'assets/images/store_map.png',
                 height: 150,
@@ -52,7 +56,7 @@ class StoreInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Sung Seng Lee Gold',
+                  'ห้างทองสุ้นเซ่งหลี',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -66,7 +70,7 @@ class StoreInfoCard extends StatelessWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '999 Chandi Road, Chawang, Nakhon Si Thammarat, 10270',
+                        '999 ถนนจันดี-สวนขัน, อำเภอฉวาง, จังหวัดนครศรีธรรมราช, 80250',
                         style: TextStyle(color: Colors.black87),
                       ),
                     ),
@@ -78,7 +82,7 @@ class StoreInfoCard extends StatelessWidget {
                     Icon(Icons.access_time, color: Colors.orange, size: 20),
                     SizedBox(width: 8),
                     Text(
-                      'Mon - Sat: 09:00 - 17:00 (Closed Sunday)',
+                      'จันทร์ - เสาร์: 09:00 - 17:00 (ปิดทุกวันอาทิตย์)',
                       style: TextStyle(color: Colors.black87),
                     ),
                   ],
@@ -89,20 +93,22 @@ class StoreInfoCard extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          final Uri url = Uri.parse('tel:0999999999');
+                          final Uri url = Uri.parse('tel:0968688998');
                           try {
                             await launchUrl(url);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Could not launch dialer')),
+                                const SnackBar(
+                                  content: Text('Could not launch dialer'),
+                                ),
                               );
                             }
                           }
                         },
                         icon: const Icon(Icons.call, color: Color(0xFF800000)),
                         label: const Text(
-                          'Call',
+                          'โทร',
                           style: TextStyle(color: Color(0xFF800000)),
                         ),
                         style: OutlinedButton.styleFrom(
@@ -114,20 +120,27 @@ class StoreInfoCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final Uri url = Uri.parse('https://maps.app.goo.gl/zo5SvJGdGuUG2Ui27');
+                          final Uri url = Uri.parse(
+                            'https://maps.app.goo.gl/zo5SvJGdGuUG2Ui27',
+                          );
                           try {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            );
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Could not launch maps')),
+                                const SnackBar(
+                                  content: Text('Could not launch maps'),
+                                ),
                               );
                             }
                           }
                         },
                         icon: const Icon(Icons.map, color: Colors.black),
                         label: const Text(
-                          'Navigate',
+                          'แผนที่ร้าน',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
