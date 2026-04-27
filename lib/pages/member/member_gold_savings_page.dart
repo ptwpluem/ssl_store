@@ -35,7 +35,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     try {
       await _savingsService.depositToGoldSavings(amount, currentBuyPrice);
       
-      if (!context.mounted) return;
+      if (!mounted) return;
       
       _amountController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -47,7 +47,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
@@ -73,7 +73,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     try {
       await _savingsService.sellFromGoldSavings(weightToSell, currentSellPrice);
       
-      if (!context.mounted) return;
+      if (!mounted) return;
       
       _amountController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +85,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
@@ -111,7 +111,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     try {
       final assetId = await _savingsService.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
       
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       // Create a temporary asset object to pass to the scheduling page
       final newAsset = GoldAsset(
@@ -137,7 +137,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
       // Wait a bit for the snackbar to be seen
       await Future.delayed(const Duration(seconds: 1));
 
-      if (!context.mounted) return;
+      if (!mounted) return;
       
       Navigator.push(
         context,
@@ -147,7 +147,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ),
       );
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),

@@ -160,7 +160,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   final totalValue = totalWeight * (_currentRate?.buyPrice ?? 0);
                   
                   // Calculate Profit/Loss
-                  final assetsCost = assets.fold(0.0, (sum, item) => sum + (item.acquisitionPrice ?? 0.0));
+                  final assetsCost = assets.fold(0.0, (sum, item) => sum + item.acquisitionPrice);
                   final totalCost = assetsCost + savingsAccount.totalAmountInvested;
                   
                   final double pnl = totalValue - totalCost;

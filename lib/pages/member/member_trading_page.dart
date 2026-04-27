@@ -223,12 +223,19 @@ class _BuyTabState extends State<_BuyTab> {
               setState(() => _isProcessing = true);
                 try {
                   String? productId;
-                  if (_weight == 0.25) productId = 'p_bar_025';
-                  else if (_weight == 0.5) productId = 'p_bar_05';
-                  else if (_weight == 1.0) productId = 'p_bar_1';
-                  else if (_weight == 2.0) productId = 'p_bar_2';
-                  else if (_weight == 5.0) productId = 'p_bar_5';
-                  else if (_weight == 10.0) productId = 'p_bar_10';
+                  if (_weight == 0.25) {
+                    productId = 'p_bar_025';
+                  } else if (_weight == 0.5) {
+                    productId = 'p_bar_05';
+                  } else if (_weight == 1.0) {
+                    productId = 'p_bar_1';
+                  } else if (_weight == 2.0) {
+                    productId = 'p_bar_2';
+                  } else if (_weight == 5.0) {
+                    productId = 'p_bar_5';
+                  } else if (_weight == 10.0) {
+                    productId = 'p_bar_10';
+                  }
 
                   await widget.tradingService.createBuyTransaction(
                     assetName: 'ทองคำแท่ง ($_weight บาท)',

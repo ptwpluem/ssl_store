@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 // -- Pages / Widgets --
 import 'widgets/auth_gate.dart';
-import 'pages/main_screen.dart';
-import 'pages/member/member_home_page.dart';
 import 'pages/member/member_login_page.dart';
 import 'pages/member/member_appointment_page.dart';
 import 'pages/member/member_blank_page.dart';

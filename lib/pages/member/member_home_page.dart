@@ -7,8 +7,6 @@ import '../../models/news_item.dart';
 import '../../widgets/news_card.dart';
 import '../../widgets/store_info_card.dart';
 import 'package:ssl_store/pages/member/member_catalog_page.dart';
-import 'package:ssl_store/pages/member/member_profile_page.dart';
-import 'package:ssl_store/pages/member/member_inquiry_page.dart';
 import 'package:ssl_store/pages/member/member_trading_page.dart';
 import 'package:ssl_store/pages/member/member_notifications_page.dart';
 import '../../models/notification_item.dart';
