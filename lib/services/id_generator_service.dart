@@ -19,6 +19,13 @@ class IdGeneratorService {
     'news': 'NEW',
     'deposits': 'TOP',
     'withdrawals': 'WDL',
+    'pawn_loans': 'PLN',
+    'events': 'EVT',
+    'gold_rates': 'GRT',
+    'inventory_log': 'IVL',       // ← was INV — fixed: INV is reserved for invoices
+    'wallets': 'WAL',
+    'wallet_transactions': 'WTX',
+    'savings_transactions': 'STX',
   };
 
 

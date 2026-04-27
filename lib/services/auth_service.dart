@@ -19,30 +19,19 @@ class AuthService {
   // Sign in with email and password
   Future<UserCredential?> signInWithEmailAndPassword(String email, String password) async {
     try {
-      print('DEBUG: Attempting sign in for $email');
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
-      // Ensure user document exists in Firestore for console visibility
       if (credential.user != null) {
         try {
           await _syncUserDocument(credential.user!);
-        } catch (e) {
-          // Non-blocking sync error
-          print('WARNING: Background user sync failed: $e. The user is still authenticated.');
+        } catch (_) {
+          // Non-blocking — user is still authenticated even if sync fails.
         }
       }
-      
-      print('DEBUG: Sign in successful for ${credential.user?.email}');
       return credential;
-    } on FirebaseAuthException catch (e) {
-      // CRITICAL: Log exact error code to help diagnose "Network Error"
-      print('DEBUG: Firebase Auth Error [${e.code}]: ${e.message}');
-      rethrow;
-    } catch (e) {
-      print('DEBUG: Unexpected sign in error: $e');
+    } on FirebaseAuthException {
       rethrow;
     }
   }
@@ -97,11 +86,7 @@ class AuthService {
       }
       
       return credential;
-    } on FirebaseAuthException catch (e) {
-      print('DEBUG: Firebase Register Error [${e.code}]: ${e.message}');
-      rethrow;
-    } catch (e) {
-      print('DEBUG: Unexpected register error: $e');
+    } on FirebaseAuthException {
       rethrow;
     }
   }
@@ -113,20 +98,16 @@ class AuthService {
 
   // Private helper to ensure user doc exists with basics
   Future<void> _syncUserDocument(User user) async {
-    print('DEBUG: Syncing document for UID: ${user.uid}, Email: ${user.email}');
-    
-    // Determine the intended role
     final String intendedRole = _primaryOwners.contains(user.email) ? 'owner' : 'user';
-    print('DEBUG: Intended role for ${user.email} is: $intendedRole');
+
     var query = await FirebaseFirestore.instance
         .collection('users')
         .where('uid', isEqualTo: user.uid)
         .limit(1)
         .get();
 
-    // 2. Fallback: Try finding by email if UID fails (handles legacy users or missing UID fields)
+    // Fallback: try email if UID query returns nothing (handles legacy users)
     if (query.docs.isEmpty && user.email != null) {
-      print('DEBUG: No doc found by UID, trying email fallback for ${user.email}');
       query = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: user.email)
@@ -138,42 +119,40 @@ class AuthService {
       final doc = query.docs.first;
       final data = doc.data() as Map<String, dynamic>;
       final existingRole = data['role'];
-      
-      print('DEBUG: Found existing user document: ${doc.id}. Current role: $existingRole');
 
-      Map<String, dynamic> updates = {
-        'lastSeen': FieldValue.serverTimestamp(),
-      };
-
-      // Ensure UID is set if it was missing (e.g. found by email)
-      if (data['uid'] == null) {
-        updates['uid'] = user.uid;
-      }
-
-      // SELF-HEALING: If it's a primary owner and has the wrong role, fix it
-      if (existingRole != intendedRole) {
-        print('DEBUG: Role mismatch! Upgrading/Changing role for ${user.email} from $existingRole to $intendedRole');
-        updates['role'] = intendedRole;
-      }
+      final Map<String, dynamic> updates = {'lastSeen': FieldValue.serverTimestamp()};
+      if (data['uid'] == null) updates['uid'] = user.uid;
+      if (existingRole != intendedRole) updates['role'] = intendedRole;
 
       await doc.reference.update(updates);
-      print('DEBUG: Updated user document ${doc.id}');
+      // Mirror role to /roles/{authUID} for use in Firestore security rules.
+      await _syncRoleMirror(user.uid, intendedRole);
     } else {
       // 3. Document truly doesn't exist, create it
-      print('DEBUG: No document found for ${user.email}. Creating new $intendedRole document.');
       final customId = await _idGeneratorService.generateId('users');
       await FirebaseFirestore.instance.collection('users').doc(customId).set({
         'uid': user.uid,
         'email': user.email,
         'lastSeen': FieldValue.serverTimestamp(),
-        'role': intendedRole, 
+        'role': intendedRole,
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      print('DEBUG: Created new $intendedRole document: $customId');
+
+      // Mirror role to /roles/{authUID} for use in Firestore security rules.
+      await _syncRoleMirror(user.uid, intendedRole);
 
       // Ensure wallet document exists in 'wallets' collection
       await _walletService.createWalletForUser(user.uid);
     }
+  }
+
+  /// Writes a small mirror document at /roles/{authUID} so that Firestore
+  /// security rules can check the user role without a collection query.
+  Future<void> _syncRoleMirror(String uid, String role) async {
+    await FirebaseFirestore.instance.collection('roles').doc(uid).set(
+      {'role': role, 'updatedAt': FieldValue.serverTimestamp()},
+      SetOptions(merge: true),
+    );
   }
 
   // Sign out

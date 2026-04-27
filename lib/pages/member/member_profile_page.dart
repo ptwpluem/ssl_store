@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
-import '../services/auth_service.dart';
-import '../services/mock_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 import 'package:intl/intl.dart';
-import '01_page_login.dart';
-import '03_page_appointment.dart';
-import '14_page_edit_profile.dart';
-import '15_page_transactions.dart';
-import '18_page_security_settings.dart';
-import '19_page_help_support.dart';
+import 'member_login_page.dart';
+import 'member_appointment_page.dart';
+import 'member_edit_profile_page.dart';
+import 'member_transactions_page.dart';
+import 'member_security_settings_page.dart';
+import 'member_help_support_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -234,7 +234,7 @@ class _ProfileMemberView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 StreamBuilder<int>(
-                  stream: MockService().getRewardPointsStream(),
+                  stream: UserService().getRewardPointsStream(),
                   builder: (context, snapshot) {
                     final points = snapshot.data ?? 0;
                     return Container(

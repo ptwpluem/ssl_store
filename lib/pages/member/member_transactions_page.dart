@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_service.dart';
-import '../models/gold_transaction.dart';
+import '../../services/user_service.dart';
+import '../../models/gold_transaction.dart';
 
 class TransactionHistoryPage extends StatelessWidget {
   const TransactionHistoryPage({super.key});
@@ -16,7 +16,7 @@ class TransactionHistoryPage extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<GoldTransaction>>(
-        stream: MockService().getTransactionHistoryStream(),
+        stream: UserService().getTransactionHistoryStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

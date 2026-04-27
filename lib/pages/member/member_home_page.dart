@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/gold_rate.dart';
-import '../services/mock_service.dart';
-import '../widgets/gold_rate_card.dart';
-import '../models/news_item.dart';
-import '../widgets/news_card.dart';
-import '../widgets/store_info_card.dart';
-import 'package:ssl_store/pages/10_page_catalog.dart';
-import 'package:ssl_store/pages/12_page_profile.dart';
-import 'package:ssl_store/pages/13_page_inquiry.dart';
-import 'package:ssl_store/pages/02_page_trading.dart';
-import 'package:ssl_store/pages/16_page_notifications.dart';
-import '../models/notification_item.dart';
-import 'package:ssl_store/pages/20_page_gold_savings.dart';
-import 'package:ssl_store/pages/09_page_buy_selection.dart';
+import '../../models/gold_rate.dart';
+import '../../services/market_service.dart';
+import '../../services/notification_service.dart';
+import '../../widgets/gold_rate_card.dart';
+import '../../models/news_item.dart';
+import '../../widgets/news_card.dart';
+import '../../widgets/store_info_card.dart';
+import 'package:ssl_store/pages/member/member_catalog_page.dart';
+import 'package:ssl_store/pages/member/member_profile_page.dart';
+import 'package:ssl_store/pages/member/member_inquiry_page.dart';
+import 'package:ssl_store/pages/member/member_trading_page.dart';
+import 'package:ssl_store/pages/member/member_notifications_page.dart';
+import '../../models/notification_item.dart';
+import 'package:ssl_store/pages/member/member_gold_savings_page.dart';
+import 'package:ssl_store/pages/member/member_buy_selection_page.dart';
 
 class HomePage extends StatefulWidget {
   // Make the page is interactive such as gold prive updates, notifications, slide banner
@@ -23,14 +24,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final MockService _service = MockService(); // pull mock up data
+  final MarketService _marketService = MarketService();
+  final NotificationService _notificationService = NotificationService();
   late Stream<GoldRate> _goldRateStream;
 
   @override
   void initState() {
     // load data for home page when 1st open
     super.initState();
-    _goldRateStream = _service.getGoldRateStream();
+    _goldRateStream = _marketService.getGoldRateStream();
   }
 
   void _navigateTo(Widget page) {
@@ -77,7 +79,7 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         actions: [
           StreamBuilder<List<NotificationItem>>( // notification icon with badge
-            stream: _service.getNotificationsStream(),
+            stream: _notificationService.getNotificationsStream(),
             builder: (context, snapshot) {
               int unreadCount = 0;
               if (snapshot.hasData) {
@@ -274,7 +276,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 12),
 
               StreamBuilder<List<NewsItem>>(
-                stream: _service.getNewsStream(),
+                stream: _marketService.getNewsStream(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -357,12 +359,12 @@ class _PromotionCarousel extends StatefulWidget {
 class _PromotionCarouselState extends State<_PromotionCarousel> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final MockService _service = MockService();
+  final MarketService _marketService = MarketService();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _service.getPromotionsStream(),
+      stream: _marketService.getPromotionsStream(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());

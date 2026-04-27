@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import '../services/auth_service.dart';
-import '../services/mock_service.dart';
-import '../models/gold_asset.dart';
-import '../models/gold_savings.dart';
-import '../models/gold_transaction.dart';
-import '../models/gold_rate.dart';
+import '../../services/auth_service.dart';
+import '../../services/market_service.dart';
+import '../../services/user_service.dart';
+import '../../services/trading_service.dart';
+import '../../services/savings_service.dart';
+import '../../services/pawn_service.dart';
+import '../../models/gold_asset.dart';
+import '../../models/gold_savings.dart';
+import '../../models/gold_transaction.dart';
+import '../../models/gold_rate.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -16,7 +20,10 @@ class PortfolioPage extends StatefulWidget {
 }
 
 class _PortfolioPageState extends State<PortfolioPage> {
-  final MockService _service = MockService();
+  final MarketService _marketService = MarketService();
+  final UserService _userService = UserService();
+  final TradingService _tradingService = TradingService();
+  final SavingsService _savingsService = SavingsService();
   final AuthService _authService = AuthService();
   late Stream<GoldRate> _goldRateStream;
   GoldRate? _currentRate;
@@ -24,7 +31,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
   @override
   void initState() {
     super.initState();
-    _goldRateStream = _service.getGoldRateStream();
+    _goldRateStream = _marketService.getGoldRateStream();
     _goldRateStream.listen((rate) {
       if (mounted) setState(() => _currentRate = rate);
     });
@@ -48,7 +55,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
               onPressed: () async {
                 final amount = double.tryParse(amountController.text) ?? 0;
                 if (amount > 0) {
-                  await _service.addFunds(amount);
+                  await _userService.addFunds(amount);
                   if (mounted) Navigator.pop(context);
                 }
               },
@@ -79,7 +86,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
               onPressed: () async {
                 final amount = double.tryParse(amountController.text) ?? 0;
                 if (amount > 0 && amount <= maxBalance) {
-                  await _service.withdrawFunds(amount);
+                  await _userService.withdrawFunds(amount);
                   if (mounted) Navigator.pop(context);
                 } else if (amount > maxBalance) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยอดเงินไม่เพียงพอ')));
@@ -134,7 +141,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
           }
 
           return StreamBuilder<GoldSavingsAccount>(
-            stream: _service.getGoldSavingsAccountStream(),
+            stream: _savingsService.getGoldSavingsAccountStream(),
             builder: (context, savingsSnapshot) {
               if (savingsSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -142,7 +149,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
               final savingsAccount = savingsSnapshot.data ?? GoldSavingsAccount(totalWeightSaved: 0, totalAmountInvested: 0, lastUpdated: DateTime.now());
 
               return StreamBuilder<List<GoldAsset>>(
-                stream: _service.getMemberAssetsStream(),
+                stream: _tradingService.getMemberAssetsStream(),
                 builder: (context, assetSnapshot) {
                   if (assetSnapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -166,7 +173,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   final formatter = NumberFormat('#,##0');
 
                   return StreamBuilder<double>(
-                    stream: _service.getWalletBalanceStream(),
+                    stream: _userService.getWalletBalanceStream(),
                     builder: (context, walletSnapshot) {
                   final walletBalance = walletSnapshot.data ?? 0.0;
                   
@@ -323,7 +330,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     const SizedBox(height: 12),
                     
                     StreamBuilder<List<GoldTransaction>>(
-                      stream: _service.getTransactionHistoryStream(),
+                      stream: _userService.getTransactionHistoryStream(),
                       builder: (context, txSnapshot) {
                         if (txSnapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
@@ -463,7 +470,9 @@ class _AssetCard extends StatefulWidget {
 }
 
 class _AssetCardState extends State<_AssetCard> {
-  final MockService _service = MockService();
+  final UserService _userService = UserService();
+  final TradingService _tradingService = TradingService();
+  final PawnService _pawnService = PawnService();
   bool _isProcessing = false;
 
   void _showRedeemConfirmation(BuildContext context, double principal, double interest, double penalty, double totalOwed) {
@@ -477,7 +486,7 @@ class _AssetCardState extends State<_AssetCard> {
              return AlertDialog(
               title: const Text('ไถ่ถอนทองจำนำ'),
               content: StreamBuilder<double>(
-                stream: _service.getWalletBalanceStream(),
+                stream: _userService.getWalletBalanceStream(),
                 builder: (context, snapshot) {
                   final walletBalance = snapshot.data ?? 0.0;
                   final newBalance = walletBalance - totalOwed;
@@ -541,7 +550,7 @@ class _AssetCardState extends State<_AssetCard> {
                   child: const Text('Cancel'),
                 ),
                 StreamBuilder<double>(
-                  stream: _service.getWalletBalanceStream(),
+                  stream: _userService.getWalletBalanceStream(),
                   builder: (context, snapshot) {
                     final balance = snapshot.data ?? 0.0;
                     final hasEnoughFunds = balance >= totalOwed;
@@ -552,7 +561,7 @@ class _AssetCardState extends State<_AssetCard> {
                         setState(() => _isProcessing = true);
                         
                         try {
-                           await _service.redeemAsset(asset: widget.asset, totalOwed: totalOwed);
+                           await _pawnService.redeemAsset(asset: widget.asset, totalOwed: totalOwed);
                            if (mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไถ่ถอนสำเร็จ!')));
@@ -594,7 +603,7 @@ class _AssetCardState extends State<_AssetCard> {
              return AlertDialog(
               title: const Text('Confirm Sale'),
               content: StreamBuilder<double>(
-                stream: _service.getWalletBalanceStream(),
+                stream: _userService.getWalletBalanceStream(),
                 builder: (context, snapshot) {
                   final walletBalance = snapshot.data ?? 0.0;
                   final newBalance = walletBalance + estimatedValue;
@@ -627,7 +636,7 @@ class _AssetCardState extends State<_AssetCard> {
                     setState(() => _isProcessing = true);
                     
                     try {
-                       await _service.sellAsset(asset: widget.asset, sellPrice: estimatedValue);
+                       await _tradingService.sellAsset(asset: widget.asset, sellPrice: estimatedValue);
                        if (mounted) {
                           Navigator.of(context).pop(); // Close dialog
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset Sold Successfully!')));
@@ -706,7 +715,7 @@ class _AssetCardState extends State<_AssetCard> {
     DateTime dueDate = widget.asset.dueDate ?? DateTime.now().add(const Duration(days: 30));
     double rate = widget.asset.interestRate ?? 0.0125;
     
-    final owedData = _service.calculatePawnOwed(principal, pawnDate, dueDate, rate);
+    final owedData = _pawnService.calculatePawnOwed(principal, pawnDate, dueDate, rate);
     double totalOwed = owedData['totalOwed']!;
     double interest = owedData['standardInterest']!;
     double penalty = owedData['penaltyInterest']!;

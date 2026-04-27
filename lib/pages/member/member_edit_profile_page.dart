@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/mock_service.dart';
+import '../../services/user_service.dart';
 import 'dart:typed_data';
 
 class EditProfilePage extends StatefulWidget {
@@ -13,7 +13,7 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  final MockService _service = MockService();
+  final UserService _service = UserService();
   
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;

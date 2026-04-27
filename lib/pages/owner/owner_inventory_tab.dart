@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../../services/mock_service.dart';
+import '../../services/catalog_service.dart';
 
 class OwnerInventoryTab extends StatelessWidget {
   const OwnerInventoryTab({super.key});
@@ -180,7 +180,7 @@ class OwnerInventoryTab extends StatelessWidget {
               }
 
               try {
-                await MockService().restockProduct(
+                await CatalogService().restockProduct(
                   productId: productId,
                   productName: productName,
                   quantity: qty,

@@ -10,8 +10,7 @@ import 'owner_sales_qty_page.dart';
 import 'owner_inventory_cost_page.dart';
 import 'owner_sell_transactions_page.dart';
 import 'owner_savings_transactions_page.dart';
-import '../../services/mock_service.dart';
-import '../../models/gold_transaction.dart';
+import '../../services/trading_service.dart';
 import '../../widgets/owner_metric_card.dart';
 import '../../utils/date_formatters.dart';
 
@@ -29,13 +28,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   @override
   void initState() {
     super.initState();
-    // Repair/Sync pawn data on load
-    MockService().createTransaction(
-      assetName: '_SYSTEM_SYNC_',
-      weight: 0,
-      amount: 0,
-      type: TransactionType.buy,
-    ).catchError((_) {}); // Ignore sync errors
+    // Repair/Sync transaction data on load
+    TradingService().repairAllTransactions().catchError((_) {});
   }
 
   Stream<int> _getTypeCountStream(List<String> types) {

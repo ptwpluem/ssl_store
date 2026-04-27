@@ -6,12 +6,10 @@ import 'firebase_options.dart';
 // -- Pages / Widgets --
 import 'widgets/auth_gate.dart';
 import 'pages/main_screen.dart';
-import 'pages/00_page_home.dart';
-import 'pages/01_page_login.dart';
-// import 'pages/02_page_buysell.dart';
-import 'pages/03_page_appointment.dart';
-// import 'pages/04_page_history.dart';
-import 'pages/99_page_blank.dart';
+import 'pages/member/member_home_page.dart';
+import 'pages/member/member_login_page.dart';
+import 'pages/member/member_appointment_page.dart';
+import 'pages/member/member_blank_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

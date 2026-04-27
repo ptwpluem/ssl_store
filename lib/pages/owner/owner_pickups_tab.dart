@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/appointment.dart';
-import '../../services/mock_service.dart';
+import '../../services/appointment_service.dart';
 
 class OwnerPickupsTab extends StatefulWidget {
   const OwnerPickupsTab({super.key});
@@ -11,7 +11,7 @@ class OwnerPickupsTab extends StatefulWidget {
 }
 
 class _OwnerPickupsTabState extends State<OwnerPickupsTab> {
-  final MockService _service = MockService();
+  final AppointmentService _service = AppointmentService();
 
   Future<void> _completePickup(Appointment apt) async {
     try {

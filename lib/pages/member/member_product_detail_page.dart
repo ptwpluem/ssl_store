@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/product.dart';
-import '../models/gold_rate.dart';
-import '../models/gold_transaction.dart';
-import '../services/mock_service.dart';
+import '../../models/product.dart';
+import '../../models/gold_rate.dart';
+import '../../services/trading_service.dart';
+import '../../services/user_service.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -16,7 +16,8 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  final MockService _service = MockService();
+  final TradingService _tradingService = TradingService();
+  final UserService _userService = UserService();
   bool _isProcessing = false;
   int _quantity = 1;
 
@@ -31,7 +32,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return StreamBuilder<double>(
-              stream: _service.getWalletBalanceStream(),
+              stream: _userService.getWalletBalanceStream(),
               builder: (context, snapshot) {
                 final balance = snapshot.data ?? 0.0;
                 final hasEnoughFunds = balance >= totalPrice;
@@ -90,11 +91,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             : () async {
                           setModalState(() => _isProcessing = true);
                           try {
-                            await _service.createTransaction(
+                            await _tradingService.createBuyTransaction(
                               assetName: widget.product.name,
                               weight: widget.product.weight * _quantity,
                               amount: totalPrice,
-                              type: TransactionType.buy,
                               category: widget.product.category,
                               productId: widget.product.id,
                               quantity: _quantity,

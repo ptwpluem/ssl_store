@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '02_page_trading.dart';
-import '10_page_catalog.dart';
+import 'member_trading_page.dart';
+import 'member_catalog_page.dart';
 
 class BuySelectionPage extends StatelessWidget {
   const BuySelectionPage({super.key});

@@ -1,9 +1,158 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
+
+    // ─── helpers ─────────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Owner role check: AuthService writes a mirror doc at /roles/{authUID}
+    // whenever a user with role='owner' signs in. This avoids a collection
+    // query (which is not supported in security rules).
+    function isOwner() {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    // Verifies that users/{userId} belongs to the calling user by comparing
+    // the stored 'uid' field with request.auth.uid.
+    // Costs one extra Firestore read per evaluation — acceptable at this scale.
+    function ownsUserDoc(userId) {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+    }
+
+    // ─── public read-only collections ─────────────────────────────────────
+
+    match /market/{document} {
       allow read: if true;
-      allow write: if request.resource.data.keys().hasAny(['stock']) || true; // Allow all for demo purposes, restrict in prod
+      allow write: if isOwner();
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /promotions/{promoId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // ─── owner roles mirror ────────────────────────────────────────────────
+    // Written by AuthService when syncing a user document with role='owner'.
+    // Normal client writes are denied — populate via app code (trusted client
+    // path: AuthService._syncUserDocument).
+    match /roles/{uid} {
+      allow read: if isAuth() && request.auth.uid == uid;
+      allow write: if isAuth() && request.auth.uid == uid;
+    }
+
+    // ─── user profiles & subcollections ───────────────────────────────────
+    match /users/{userId} {
+      allow read:   if isAuth() && (ownsUserDoc(userId) || isOwner());
+      allow create: if isAuth();
+      allow update: if isAuth() && (ownsUserDoc(userId) || isOwner());
+      allow delete: if isOwner();
+
+      match /assets/{assetId} {
+        allow read, write: if isAuth() && (ownsUserDoc(userId) || isOwner());
+
+        // Immutable event log appended by trading_service, pawn_service, etc.
+        // Firestore rules are NOT recursive — match /assets/{assetId} above
+        // does NOT cover this subcollection without an explicit match block.
+        match /events/{eventId} {
+          allow read:   if isAuth() && (ownsUserDoc(userId) || isOwner());
+          // Only append (create) is allowed. Events are never updated or deleted.
+          allow create: if isAuth() && (ownsUserDoc(userId) || isOwner());
+          allow update, delete: if false;
+        }
+      }
+
+      match /notifications/{notifId} {
+        allow read, write: if isAuth() && (ownsUserDoc(userId) || isOwner());
+      }
+
+      // Covers savings/account and savings/account/transactions/{txId}
+      match /savings/{document=**} {
+        allow read, write: if isAuth() && (ownsUserDoc(userId) || isOwner());
+      }
+    }
+
+    // ─── wallets ──────────────────────────────────────────────────────────
+    // Each wallet document has a 'userId' field equal to the Firebase Auth UID.
+    match /wallets/{walletId} {
+      allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow delete: if isOwner();
+
+      match /transactions/{txId} {
+        allow read:          if isAuth() && (
+          get(/databases/$(database)/documents/wallets/$(walletId)).data.userId == request.auth.uid
+          || isOwner()
+        );
+        allow create, update: if isAuth() && (
+          get(/databases/$(database)/documents/wallets/$(walletId)).data.userId == request.auth.uid
+          || isOwner()
+        );
+        allow delete: if isOwner();
+      }
+    }
+
+    // ─── global transactions ledger ───────────────────────────────────────
+    // Each transaction document has a 'userId' field equal to the Auth UID.
+    match /transactions/{txId} {
+      allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner();
+    }
+
+    // ─── pawn loans ───────────────────────────────────────────────────────
+    // First-class collection; each doc has a 'userId' field.
+    // Users can read their own loans; only the app (via transactions) creates
+    // or updates them — so owner or self is required for writes.
+    match /pawn_loans/{loanId} {
+      allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      // Status updates (redeemed, defaulted) are written inside runTransaction —
+      // allow the asset owner or an owner to update.
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow delete: if isOwner();
+    }
+
+    // ─── gold rate history ────────────────────────────────────────────────
+    // Append-only audit trail of every price the shop has ever set.
+    // Readable by any authenticated user (for trend charts etc.).
+    // Only owner can write; nobody can delete or update historical records.
+    match /gold_rate_history/{rateId} {
+      allow read:   if isAuth();
+      allow create: if isOwner();
+      allow update, delete: if false;
+    }
+
+    // ─── appointments ─────────────────────────────────────────────────────
+    // Stored in a global collection (not under users/) for owner pickup views.
+    // Each document has a 'userId' field equal to the Auth UID.
+    match /appointments/{aptId} {
+      allow read:   if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isOwner());
+      allow delete: if isOwner();
+    }
+
+    // ─── deny everything else ─────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

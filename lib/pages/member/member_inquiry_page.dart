@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/product.dart';
+import '../../models/product.dart';
 
 class InquiryPage extends StatefulWidget {
   final Product? product;

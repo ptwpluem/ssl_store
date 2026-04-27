@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/mock_service.dart';
-import '../models/notification_item.dart';
+import '../../services/notification_service.dart';
+import '../../models/notification_item.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
@@ -20,9 +20,9 @@ class NotificationsPage extends StatelessWidget {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
               if (value == 'mark_read') {
-                await MockService().markAllNotificationsAsRead();
+                await NotificationService().markAllNotificationsAsRead();
               } else if (value == 'clear_all') {
-                await MockService().clearAllNotifications();
+                await NotificationService().clearAllNotifications();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('All notifications cleared')),
@@ -44,7 +44,7 @@ class NotificationsPage extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<NotificationItem>>(
-        stream: MockService().getNotificationsStream(),
+        stream: NotificationService().getNotificationsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFF800000)));
@@ -79,7 +79,7 @@ class NotificationsPage extends StatelessWidget {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (direction) async {
-                  await MockService().deleteNotification(notification.id);
+                  await NotificationService().deleteNotification(notification.id);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Notification removed'), duration: const Duration(seconds: 2)),
@@ -130,7 +130,7 @@ class NotificationsPage extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (!notification.isRead) {
-          MockService().markNotificationAsRead(notification.id);
+          NotificationService().markNotificationAsRead(notification.id);
         }
         // Potential navigation logic here based on type.
       },

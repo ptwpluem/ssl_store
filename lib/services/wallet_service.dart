@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wallet.dart';
 import '../models/wallet_transaction.dart';
+import 'id_generator_service.dart';
 
 class WalletService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final IdGeneratorService _ids = IdGeneratorService();
 
   // Get stream of user's wallet
   Stream<Wallet?> getWalletStream(String userId) {
@@ -43,7 +45,10 @@ class WalletService {
         .get();
 
     if (existing.docs.isEmpty) {
-      await _firestore.collection('wallets').add({
+      // Use WAL prefix so every wallet document is identifiable at a glance
+      // (e.g. WAL-xK9mL2... instead of a bare Firestore auto-ID).
+      final walletId = await _ids.generateId('wallets');
+      await _firestore.collection('wallets').doc(walletId).set({
         'userId': userId,
         'balance': 0.0,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -61,7 +66,11 @@ class WalletService {
     String? referenceId,
   }) async {
     final walletRef = _firestore.collection('wallets').doc(walletId);
-    final transactionRef = walletRef.collection('transactions').doc();
+
+    // Use WTX prefix for wallet transaction IDs so ledger entries are
+    // immediately distinguishable from global transaction IDs (BUY/SEL/etc).
+    final wtxId = await _ids.generateId('wallet_transactions');
+    final transactionRef = walletRef.collection('transactions').doc(wtxId);
 
     final walletSnapshot = await transaction.get(walletRef);
     if (!walletSnapshot.exists) {
@@ -69,7 +78,7 @@ class WalletService {
     }
 
     double currentBalance = (walletSnapshot.data()?['balance'] ?? 0.0).toDouble();
-    
+
     double newBalance = currentBalance;
     if (type == WalletTransactionType.deposit || type == WalletTransactionType.sale) {
       newBalance += amount;

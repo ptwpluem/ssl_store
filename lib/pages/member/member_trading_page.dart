@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import '../services/auth_service.dart';
-import '../models/gold_asset.dart';
-import '../models/gold_rate.dart';
-import '../models/gold_transaction.dart';
-import '../services/mock_service.dart';
-import '../widgets/gold_rate_card.dart';
+import '../../services/auth_service.dart';
+import '../../models/gold_asset.dart';
+import '../../models/gold_rate.dart';
+import '../../services/market_service.dart';
+import '../../services/user_service.dart';
+import '../../services/trading_service.dart';
+import '../../services/pawn_service.dart';
+import '../../widgets/gold_rate_card.dart';
 
 class TradingPage extends StatefulWidget {
   final int initialTabIndex;
@@ -18,7 +20,10 @@ class TradingPage extends StatefulWidget {
 
 class _TradingPageState extends State<TradingPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final MockService _service = MockService();
+  final MarketService _marketService = MarketService();
+  final UserService _userService = UserService();
+  final TradingService _tradingService = TradingService();
+  final PawnService _pawnService = PawnService();
   final AuthService _authService = AuthService();
   late Stream<GoldRate> _goldRateStream;
   GoldRate? _currentRate;
@@ -27,7 +32,7 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
-    _goldRateStream = _service.getGoldRateStream();
+    _goldRateStream = _marketService.getGoldRateStream();
     _goldRateStream.listen((rate) {
       if (mounted) setState(() => _currentRate = rate);
     });
@@ -99,9 +104,9 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _BuyTab(service: _service, currentRate: _currentRate),
-                    _SellTab(service: _service, currentRate: _currentRate),
-                    _PawnTab(service: _service, currentRate: _currentRate),
+                    _BuyTab(userService: _userService, tradingService: _tradingService, currentRate: _currentRate),
+                    _SellTab(userService: _userService, tradingService: _tradingService, currentRate: _currentRate),
+                    _PawnTab(userService: _userService, tradingService: _tradingService, pawnService: _pawnService, currentRate: _currentRate),
                   ],
                 ),
               ),
@@ -115,9 +120,10 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
 
 // -- Buy Tab --
 class _BuyTab extends StatefulWidget {
-  final MockService service;
+  final UserService userService;
+  final TradingService tradingService;
   final GoldRate? currentRate;
-  const _BuyTab({required this.service, this.currentRate});
+  const _BuyTab({required this.userService, required this.tradingService, this.currentRate});
 
   @override
   State<_BuyTab> createState() => _BuyTabState();
@@ -135,7 +141,7 @@ class _BuyTabState extends State<_BuyTab> {
     final formatter = NumberFormat('#,##0');
 
     return StreamBuilder<double>(
-      stream: widget.service.getWalletBalanceStream(),
+      stream: widget.userService.getWalletBalanceStream(),
       builder: (context, snapshot) {
         final balance = snapshot.data ?? 0.0;
         final hasEnoughFunds = balance >= total;
@@ -224,11 +230,10 @@ class _BuyTabState extends State<_BuyTab> {
                   else if (_weight == 5.0) productId = 'p_bar_5';
                   else if (_weight == 10.0) productId = 'p_bar_10';
 
-                  await widget.service.createTransaction(
+                  await widget.tradingService.createBuyTransaction(
                     assetName: 'ทองคำแท่ง ($_weight บาท)',
                     weight: _weight,
                     amount: total,
-                    type: TransactionType.buy,
                     category: 'Gold Bar',
                     productId: productId,
                   );
@@ -280,9 +285,10 @@ class _BuyTabState extends State<_BuyTab> {
 
 // -- Sell Tab --
 class _SellTab extends StatefulWidget {
-  final MockService service;
+  final UserService userService;
+  final TradingService tradingService;
   final GoldRate? currentRate;
-  const _SellTab({required this.service, this.currentRate});
+  const _SellTab({required this.userService, required this.tradingService, this.currentRate});
 
   @override
   State<_SellTab> createState() => _SellTabState();
@@ -302,7 +308,7 @@ class _SellTabState extends State<_SellTab> {
              return AlertDialog(
               title: const Text('ยืนยันการขาย'),
               content: StreamBuilder<double>(
-                stream: widget.service.getWalletBalanceStream(),
+                stream: widget.userService.getWalletBalanceStream(),
                 builder: (context, snapshot) {
                   final walletBalance = snapshot.data ?? 0.0;
                   final newBalance = walletBalance + estimatedValue;
@@ -341,7 +347,7 @@ class _SellTabState extends State<_SellTab> {
                     setState(() => _isProcessing = true); // Update underlying tab state too (optional, for safety)
                     
                     try {
-                       await widget.service.sellAsset(asset: asset, sellPrice: estimatedValue);
+                       await widget.tradingService.sellAsset(asset: asset, sellPrice: estimatedValue);
                        if (mounted) {
                           Navigator.of(context).pop(); // Close dialog
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')));
@@ -374,7 +380,7 @@ class _SellTabState extends State<_SellTab> {
   Widget build(BuildContext context) {
     final formatter = NumberFormat('#,##0');
     return StreamBuilder<List<GoldAsset>>(
-      stream: widget.service.getMemberAssetsStream(),
+      stream: widget.tradingService.getMemberAssetsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -382,7 +388,7 @@ class _SellTabState extends State<_SellTab> {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        
+
         final assets = snapshot.data ?? [];
         if (assets.isEmpty) {
           return const Center(
@@ -426,9 +432,11 @@ class _SellTabState extends State<_SellTab> {
 }
 
 class _PawnTab extends StatefulWidget {
-  final MockService service;
+  final UserService userService;
+  final TradingService tradingService;
+  final PawnService pawnService;
   final GoldRate? currentRate;
-  const _PawnTab({required this.service, this.currentRate});
+  const _PawnTab({required this.userService, required this.tradingService, required this.pawnService, this.currentRate});
 
   @override
   State<_PawnTab> createState() => _PawnTabState();
@@ -454,7 +462,7 @@ class _PawnTabState extends State<_PawnTab> {
              return AlertDialog(
               title: const Text('ยืนยันการจำนำ'),
               content: StreamBuilder<double>(
-                stream: widget.service.getWalletBalanceStream(),
+                stream: widget.userService.getWalletBalanceStream(),
                 builder: (context, snapshot) {
                   final walletBalance = snapshot.data ?? 0.0;
                   final newBalance = walletBalance + (isValid ? requestedLoan : 0);
@@ -525,7 +533,7 @@ class _PawnTabState extends State<_PawnTab> {
                     setState(() => _isProcessing = true);
                     
                     try {
-                       await widget.service.pawnAsset(asset: asset, loanAmount: requestedLoan);
+                       await widget.pawnService.pawnAsset(asset: asset, loanAmount: requestedLoan);
                        if (mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('จำนำสินค้าสำเร็จ! เพิ่มเงิน ฿${formatter.format(requestedLoan)} เข้าวอลเล็ตแล้ว')));
@@ -572,7 +580,7 @@ class _PawnTabState extends State<_PawnTab> {
         ),
         Expanded(
           child: StreamBuilder<List<GoldAsset>>(
-            stream: widget.service.getMemberAssetsStream(),
+            stream: widget.tradingService.getMemberAssetsStream(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -580,7 +588,7 @@ class _PawnTabState extends State<_PawnTab> {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
-              
+
               final allAssets = snapshot.data ?? [];
               final ownedAssets = allAssets.where((a) => a.status == 'owned').toList();
 
@@ -599,7 +607,7 @@ class _PawnTabState extends State<_PawnTab> {
                 itemBuilder: (context, index) {
                   final asset = ownedAssets[index];
                   final currentVal = asset.weight * (widget.currentRate?.buyPrice ?? 0);
-                  final maxLoan = widget.service.calculatePawnLoan(asset.weight, widget.currentRate?.buyPrice ?? 0);
+                  final maxLoan = widget.pawnService.calculatePawnLoan(asset.weight, widget.currentRate?.buyPrice ?? 0);
                   
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),

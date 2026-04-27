@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart'; // UI components
 import 'package:intl/intl.dart'; // format number
 import 'package:firebase_auth/firebase_auth.dart'; // authentication
-import '../services/auth_service.dart'; // authentication service
-import '../models/gold_rate.dart'; // gold rate model
-import '../models/gold_savings.dart'; // gold savings model
-import '../services/mock_service.dart';
-import '../models/gold_asset.dart';
-import '03_page_appointment.dart';
+import '../../services/auth_service.dart'; // authentication service
+import '../../models/gold_rate.dart'; // gold rate model
+import '../../models/gold_savings.dart'; // gold savings model
+import '../../services/market_service.dart';
+import '../../services/user_service.dart';
+import '../../services/savings_service.dart';
+import '../../models/gold_asset.dart';
+import 'member_appointment_page.dart';
 
 class GoldSavingsPage extends StatefulWidget {
   const GoldSavingsPage({super.key});
@@ -16,7 +18,9 @@ class GoldSavingsPage extends StatefulWidget {
 }
 
 class _GoldSavingsPageState extends State<GoldSavingsPage> {
-  final MockService _service = MockService();
+  final MarketService _marketService = MarketService();
+  final UserService _userService = UserService();
+  final SavingsService _savingsService = SavingsService();
   final AuthService _authService = AuthService();
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
@@ -29,7 +33,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     });
 
     try {
-      await _service.depositToGoldSavings(amount, currentBuyPrice);
+      await _savingsService.depositToGoldSavings(amount, currentBuyPrice);
       if (mounted) {
         _amountController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +71,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     });
 
     try {
-      await _service.sellFromGoldSavings(weightToSell, currentSellPrice);
+      await _savingsService.sellFromGoldSavings(weightToSell, currentSellPrice);
       if (mounted) {
         _amountController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,7 +109,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     });
 
     try {
-      final assetId = await _service.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
+      final assetId = await _savingsService.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
       
       if (mounted) {
         // Create a temporary asset object to pass to the scheduling page
@@ -698,7 +702,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         title: const Text('บัญชีออมทอง'),
         actions: [
           StreamBuilder<double>(
-            stream: _service.getWalletBalanceStream(),
+            stream: _userService.getWalletBalanceStream(),
             builder: (context, snapshot) {
               final balance = snapshot.data ?? 0.0;
               return Center(
@@ -761,10 +765,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
             slivers: [
               SliverToBoxAdapter(
                 child: StreamBuilder<GoldRate>(
-                  stream: _service.getGoldRateStream(),
+                  stream: _marketService.getGoldRateStream(),
                   builder: (context, rateSnapshot) {
                     return StreamBuilder<GoldSavingsAccount>(
-                      stream: _service.getGoldSavingsAccountStream(),
+                      stream: _savingsService.getGoldSavingsAccountStream(),
                       builder: (context, accountSnapshot) {
                         final currentBuyPrice =
                             rateSnapshot.data?.buyPrice ?? 40000.0;
@@ -944,7 +948,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
               ),
 
               StreamBuilder<List<GoldSavingsTransaction>>(
-                stream: _service.getGoldSavingsTransactionsStream(),
+                stream: _savingsService.getGoldSavingsTransactionsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SliverFillRemaining(

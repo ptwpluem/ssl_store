@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/product.dart';
-import '../models/gold_rate.dart';
-import '../services/mock_service.dart';
-import '../widgets/product_card.dart';
-import '11_page_product_detail.dart';
+import '../../models/product.dart';
+import '../../models/gold_rate.dart';
+import '../../services/catalog_service.dart';
+import '../../services/market_service.dart';
+import '../../widgets/product_card.dart';
+import 'member_product_detail_page.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key});
@@ -13,28 +14,29 @@ class CatalogPage extends StatefulWidget {
 }
 
 class _CatalogPageState extends State<CatalogPage> {
-  final MockService _service = MockService();
+  final CatalogService _catalogService = CatalogService();
+  final MarketService _marketService = MarketService();
   late Stream<GoldRate> _goldRateStream;
   late Stream<List<Product>> _productsStream;
   GoldRate? _currentRate;
-  
+
   String _searchQuery = '';
   String _selectedCategory = 'ทั้งหมด';
   final Map<String, String> _categories = {
-    'ทั้งหมด': 'All', 
-    'สร้อยคอ': 'สร้อยคอ', 
-    'แหวน': 'แหวน', 
-    'สร้อยข้อมือ': 'สร้อยข้อมือ', 
-    'ต่างหู': 'ต่างหู', 
+    'ทั้งหมด': 'All',
+    'สร้อยคอ': 'สร้อยคอ',
+    'แหวน': 'แหวน',
+    'สร้อยข้อมือ': 'สร้อยข้อมือ',
+    'ต่างหู': 'ต่างหู',
     'ทองคำแท่ง': 'ทองคำแท่ง'
   };
 
   @override
   void initState() {
     super.initState();
-    _productsStream = _service.getProductsStream();
-    
-    _goldRateStream = _service.getGoldRateStream();
+    _productsStream = _catalogService.getProductsStream();
+
+    _goldRateStream = _marketService.getGoldRateStream();
     _goldRateStream.listen((rate) {
       if (mounted) setState(() => _currentRate = rate);
     });

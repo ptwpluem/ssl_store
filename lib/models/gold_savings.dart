@@ -13,8 +13,10 @@ class GoldSavingsAccount {
 
   factory GoldSavingsAccount.fromMap(Map<String, dynamic> data) {
     return GoldSavingsAccount(
-      totalWeightSaved: (data['totalWeightSaved'] ?? 0.0 as num).toDouble(),
-      totalAmountInvested: (data['totalAmountInvested'] ?? 0.0 as num).toDouble(),
+      // Fix: parentheses around the null-coalescing expression before casting.
+      // Without them, `as num` binds only to the literal 0.0, not the whole expression.
+      totalWeightSaved: ((data['totalWeightSaved'] ?? 0.0) as num).toDouble(),
+      totalAmountInvested: ((data['totalAmountInvested'] ?? 0.0) as num).toDouble(),
       lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -46,9 +48,9 @@ class GoldSavingsTransaction {
   factory GoldSavingsTransaction.fromMap(String documentId, Map<String, dynamic> data) {
     return GoldSavingsTransaction(
       id: documentId,
-      amountInvested: (data['amountInvested'] ?? 0.0 as num).toDouble(),
-      weightGained: (data['weightGained'] ?? 0.0 as num).toDouble(),
-      buyPriceAtTransaction: (data['buyPriceAtTransaction'] ?? 0.0 as num).toDouble(),
+      amountInvested: ((data['amountInvested'] ?? 0.0) as num).toDouble(),
+      weightGained: ((data['weightGained'] ?? 0.0) as num).toDouble(),
+      buyPriceAtTransaction: ((data['buyPriceAtTransaction'] ?? 0.0) as num).toDouble(),
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

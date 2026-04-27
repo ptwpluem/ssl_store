@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class NotificationItem {
   final String id;
   final String title;
@@ -21,7 +23,8 @@ class NotificationItem {
       title: data['title'] ?? '',
       message: data['message'] ?? '',
       type: data['type'] ?? 'info',
-      timestamp: data['timestamp'] != null ? DateTime.parse(data['timestamp']) : DateTime.now(),
+      // Handle both Firestore Timestamp (new) and ISO string (legacy records).
+      timestamp: _parseTimestamp(data['timestamp']),
       isRead: data['isRead'] ?? false,
     );
   }
@@ -31,8 +34,17 @@ class NotificationItem {
       'title': title,
       'message': message,
       'type': type,
-      'timestamp': timestamp.toIso8601String(),
+      // Store as Firestore Timestamp — consistent with all other time fields
+      // and required for server-side ordering queries.
+      'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
     };
+  }
+
+  static DateTime _parseTimestamp(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    return DateTime.now();
   }
 }

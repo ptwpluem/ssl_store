@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '00_page_home.dart';
-import '02_page_portfolio.dart';
-import '02_page_trading.dart';
-import '12_page_profile.dart'; // Ensure profile page is imported
+import 'member/member_home_page.dart';
+import 'member/member_portfolio_page.dart';
+import 'member/member_trading_page.dart';
+import 'member/member_profile_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
