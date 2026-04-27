@@ -8,6 +8,7 @@ import '../models/notification_item.dart';
 import '../models/wallet_transaction.dart';
 import 'firestore_helper.dart';
 import 'id_generator_service.dart';
+import 'inventory_lot_service.dart';
 import 'wallet_service.dart';
 
 /// Handles buy and sell transactions and manages a user's asset portfolio.
@@ -18,6 +19,7 @@ class TradingService {
 
   final WalletService _walletService = WalletService();
   final IdGeneratorService _ids = IdGeneratorService();
+  final InventoryLotService _lotService = InventoryLotService();
 
   String? get _uid => FirebaseAuth.instance.currentUser?.uid;
 
@@ -61,6 +63,12 @@ class TradingService {
 
   /// Creates a buy transaction. Deducts funds from the wallet, creates the
   /// asset in the portfolio, and decrements product stock if [productId] is given.
+  ///
+  /// Cost resolution priority:
+  ///   1. If [productId] is given → FIFO from the product's inventory_lots subcollection.
+  ///      The profit reflects what the owner *actually paid* for that specific unit.
+  ///   2. If no [productId] (raw gold bar trade without catalog product) → falls back
+  ///      to the live market buy rate.
   Future<void> createBuyTransaction({
     required String assetName,
     required double weight,
@@ -78,19 +86,57 @@ class TradingService {
     final id = await _ids.generateId('transactions', prefixOverride: 'BUY');
     final displayName = await _getDisplayName(uid);
 
-    final rateDoc = await FirebaseFirestore.instance.collection('market').doc('gold_rate').get();
-    final buyRate = (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
-    final totalCost = weight * buyRate;
-    final profit = amount - totalCost;
+    // ── Resolve cost basis BEFORE the transaction ─────────────────────────
+    // We must do async work (query + ID generation) outside runTransaction
+    // because Firestore transactions cannot contain async gaps on their own.
 
+    double totalCost;
+    String? consumedLotId;
+    DocumentReference<Map<String, dynamic>>? lotRef;
+
+    if (productId != null) {
+      // FIFO: find the oldest lot with stock available.
+      final oldestLot = await _lotService.getOldestActiveLot(productId);
+      if (oldestLot != null) {
+        // Cost = per-unit acquisition cost × number of units purchased.
+        totalCost = oldestLot.unitCost * quantity;
+        consumedLotId = oldestLot.id;
+        lotRef = _lotService.lotDocRef(productId, oldestLot.id);
+      } else {
+        // No lot records exist yet (pre-existing stock before this feature
+        // was added). Gracefully fall back to live market rate.
+        final rateDoc = await FirebaseFirestore.instance
+            .collection('market').doc('gold_rate').get();
+        final buyRate =
+            (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
+        totalCost = weight * buyRate;
+      }
+    } else {
+      // No catalog product — raw gold trade. Use live market buy rate.
+      final rateDoc = await FirebaseFirestore.instance
+          .collection('market').doc('gold_rate').get();
+      final buyRate =
+          (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
+      totalCost = weight * buyRate;
+    }
+
+    final profit = amount - totalCost;
+    final eventId = await _ids.generateId('events');
+    final notifId = await _ids.generateId('notifications');
+
+    // ── Atomic Firestore transaction ──────────────────────────────────────
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
           .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
-      if (walletQuery.docs.isEmpty) throw Exception('Wallet not found. Please top up first.');
+      if (walletQuery.docs.isEmpty) {
+        throw Exception('Wallet not found. Please top up first.');
+      }
 
+      // Read and validate the product document inside the transaction.
       DocumentSnapshot? productDoc;
       if (productId != null) {
-        productDoc = await tx.get(FirebaseFirestore.instance.collection('products').doc(productId));
+        productDoc = await tx.get(
+            FirebaseFirestore.instance.collection('products').doc(productId));
         if (productDoc.exists) {
           if ((productDoc.data() as Map<String, dynamic>)['stock'] <= 0) {
             throw Exception('Product is out of stock.');
@@ -98,6 +144,17 @@ class TradingService {
         } else {
           productDoc = null;
         }
+      }
+
+      // Deduct from FIFO lot (re-reads inside tx for atomicity).
+      if (lotRef != null) {
+        // consumeFromLotWithTx re-reads the lot doc via tx.get() to lock it,
+        // then decrements remainingQuantity atomically.
+        await _lotService.consumeFromLotWithTx(
+          transaction: tx,
+          lotRef: lotRef!,
+          quantity: quantity,
+        );
       }
 
       await _walletService.performTransactionWithTx(
@@ -116,38 +173,49 @@ class TradingService {
       final userRef = await getUserDocRef(uid);
       final assetRef = userRef.collection('assets').doc(id);
       tx.set(assetRef, {
-        'name': assetName, 'weight': weight, 'category': category ?? 'General',
-        'acquisitionDate': FieldValue.serverTimestamp(), 'acquisitionPrice': amount,
-        'status': 'owned', 'purity': purity,
+        'name': assetName,
+        'weight': weight,
+        'category': category ?? 'General',
+        'acquisitionDate': FieldValue.serverTimestamp(),
+        'acquisitionPrice': amount,
+        'status': 'owned',
+        'purity': purity,
       });
 
-      // ── Asset lifecycle event (immutable audit trail) ──────────────────────
-      final buyEventId = await _ids.generateId('events');
-      tx.set(assetRef.collection('events').doc(buyEventId), {
+      // ── Asset lifecycle event (immutable audit trail) ────────────────────
+      tx.set(assetRef.collection('events').doc(eventId), {
         'type': 'acquired',
         'timestamp': FieldValue.serverTimestamp(),
         'transactionId': id,
         'actorId': uid,
       });
 
-      // ── Increment reward points and total buy amount on user document ──────
+      // ── Reward points and lifetime buy total ─────────────────────────────
       tx.set(userRef, {
         'rewardPoints': FieldValue.increment(amount ~/ 1000),
         'totalBuyAmount': FieldValue.increment(amount),
       }, SetOptions(merge: true));
 
       tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
-        'assetId': id, 'type': TransactionType.buy.name, 'amount': amount,
-        'weight': weight, 'category': category ?? 'General',
+        'assetId': id,
+        'type': TransactionType.buy.name,
+        'amount': amount,
+        'weight': weight,
+        'category': category ?? 'General',
         'timestamp': FieldValue.serverTimestamp(),
         'details': 'ซื้อ: $assetName ($weight บาท x$quantity)',
-        'cost': totalCost, 'profit': profit, 'purity': purity, 'laborFee': laborFee,
+        'cost': totalCost,
+        'profit': profit,
+        'purity': purity,
+        'laborFee': laborFee,
+        // Audit trail: which lot was consumed for this sale's cost basis.
+        if (consumedLotId != null) 'lotId': consumedLotId,
+        'costMethod': consumedLotId != null ? 'fifo' : 'market_rate',
         'userId': uid,
         'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
-      final notifId = await _ids.generateId('notifications');
       tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
         id: notifId,
         title: 'ทำรายการสำเร็จ',
@@ -255,10 +323,22 @@ class TradingService {
       final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
       final cost = (data['cost'] as num?)?.toDouble();
       final profit = (data['profit'] as num?)?.toDouble();
+
+      // Skip transactions that already have a valid cost/profit pair,
+      // INCLUDING those resolved via FIFO lot cost (costMethod == 'fifo').
+      // Only repair truly missing or corrupted legacy records.
+      final costMethod = data['costMethod'] as String?;
+      if (costMethod == 'fifo') continue; // FIFO cost is authoritative — never overwrite.
+
       if (cost == null || profit == null || (amount - (cost + profit)).abs() > 1.0) {
         double weight = (data['weight'] as num?)?.toDouble() ?? 0.0;
         if (weight <= 0 && amount > 0) weight = amount / (buyRate * 1.04);
-        batch.update(doc.reference, {'cost': weight * buyRate, 'profit': amount - (weight * buyRate), 'weight': weight});
+        batch.update(doc.reference, {
+          'cost': weight * buyRate,
+          'profit': amount - (weight * buyRate),
+          'weight': weight,
+          'costMethod': 'market_rate_repair',
+        });
         needed = true;
       }
     }

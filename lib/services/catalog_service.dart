@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/product.dart';
 import 'id_generator_service.dart';
+import 'inventory_lot_service.dart';
 import 'price_calculation_service.dart';
 
 /// Manages the gold product catalog (ornaments and gold bars).
@@ -13,6 +14,7 @@ class CatalogService {
   CatalogService._internal();
 
   final IdGeneratorService _ids = IdGeneratorService();
+  final InventoryLotService _lots = InventoryLotService();
   bool _isGenerating = false;
 
   // ─── Products Stream ──────────────────────────────────────────────────────
@@ -59,11 +61,14 @@ class CatalogService {
     required String productName,
     required int quantity,
     required double totalCost,
+    String? note,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final id = await _ids.generateId('transactions', prefixOverride: 'RSK');
+    // Generate IDs before the transaction (async work must happen outside).
+    final restockTxId = await _ids.generateId('transactions', prefixOverride: 'RSK');
+    final lotId = await _ids.generateId('inventory_lots', prefixOverride: 'LOT');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final productRef = FirebaseFirestore.instance.collection('products').doc(productId);
@@ -75,6 +80,9 @@ class CatalogService {
           ((productDoc.data() as Map<String, dynamic>)['costBasis'] as num?)?.toDouble() ?? 0.0;
       final newTotalStock = currentStock + quantity;
       final unitCost = totalCost / quantity;
+
+      // Keep the weighted-average costBasis on the product for display purposes.
+      // Actual per-sale cost resolution uses the inventory_lots FIFO subcollection.
       final newCostBasis =
           ((currentStock * currentCostBasis) + (quantity * unitCost)) / newTotalStock;
 
@@ -84,17 +92,34 @@ class CatalogService {
         'inStock': true,
       });
 
+      // ── Create per-lot record ─────────────────────────────────────────────
+      // Each restock creates an immutable lot so FIFO cost resolution is
+      // possible at the time of customer purchase.
+      _lots.createLotWithTx(
+        transaction: tx,
+        lotId: lotId,
+        productId: productId,
+        productName: productName,
+        quantity: quantity,
+        unitCost: unitCost,
+        restockTransactionId: restockTxId,
+        note: note,
+      );
+
       tx.set(
-        FirebaseFirestore.instance.collection('transactions').doc(id),
+        FirebaseFirestore.instance.collection('transactions').doc(restockTxId),
         {
           'type': 'restock',
           'amount': totalCost,
           'quantity': quantity,
+          'unitCost': unitCost,
+          'lotId': lotId,
           'productId': productId,
           'timestamp': FieldValue.serverTimestamp(),
-          'details': 'เพิ่มสต็อก: $productName ($quantity ชิ้น @ ฿${unitCost.toStringAsFixed(0)})',
+          'details': 'เพิ่มสต็อก: $productName ($quantity ชิ้น @ ฿${unitCost.toStringAsFixed(0)}/ชิ้น)',
           'userId': uid,
           'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Owner',
+          if (note != null) 'note': note,
         },
       );
     });

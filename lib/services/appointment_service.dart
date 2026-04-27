@@ -37,16 +37,16 @@ class AppointmentService {
   }
 
   /// Owner-facing stream of all scheduled appointments, sorted by date.
+  /// Filters status in Dart so only a single-field index on 'date' is needed —
+  /// avoids the composite (status, date) index that may not be deployed yet.
   Stream<List<Appointment>> getAllScheduledAppointmentsStream() {
     return FirebaseFirestore.instance
         .collection('appointments')
-        .where('status', isEqualTo: 'scheduled')
-        // Server-side ordering backed by the composite index:
-        // appointments: (status ASC, date ASC) in firestore.indexes.json
         .orderBy('date', descending: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Appointment.fromMap(doc.id, doc.data()))
+            .where((apt) => apt.status == 'scheduled')
             .toList());
   }
 
@@ -164,7 +164,10 @@ class AppointmentService {
     required String assetId,
     required String assetName,
   }) async {
+    // Resolve all async work BEFORE entering the transaction —
+    // async I/O inside runTransaction breaks atomicity guarantees.
     final userRef = await getUserDocRef(userId);
+    final notifId = await _ids.generateId('notifications');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       tx.update(
@@ -172,8 +175,6 @@ class AppointmentService {
         {'status': 'completed'},
       );
       tx.update(userRef.collection('assets').doc(assetId), {'status': 'collected'});
-
-      final notifId = await _ids.generateId('notifications');
       tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
         id: notifId,
         title: 'รับสินค้าสำเร็จ',
@@ -183,5 +184,19 @@ class AppointmentService {
         isRead: false,
       ).toMap());
     });
+  }
+
+  // ─── History stream (owner) ───────────────────────────────────────────────
+
+  /// All appointments (any status), most recent first — used for the history tab.
+  /// Single-field orderBy needs no composite index.
+  Stream<List<Appointment>> getAllAppointmentsStream() {
+    return FirebaseFirestore.instance
+        .collection('appointments')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Appointment.fromMap(doc.id, doc.data()))
+            .toList());
   }
 }
