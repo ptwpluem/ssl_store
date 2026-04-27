@@ -111,11 +111,11 @@ class _SelectionCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: const Color(0xFFFFD700).withOpacity(0.3),
+            color: const Color(0xFFFFD700).withValues(alpha: 0.3),
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF800000).withOpacity(0.08),
+              color: const Color(0xFF800000).withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),

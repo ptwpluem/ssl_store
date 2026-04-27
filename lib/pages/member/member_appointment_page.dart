@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/gold_asset.dart';
 import '../../models/appointment.dart';
 import '../../services/appointment_service.dart';
-import '../utils/date_formatters.dart';
+import '../../utils/date_formatters.dart';
 
 class AppointmentPage extends StatefulWidget {
   final Appointment? editingAppointment;
@@ -209,11 +209,11 @@ class _AppointmentPageState extends State<AppointmentPage> {
               Navigator.pop(context); // close dialog
               try {
                 await _service.cancelAppointment(apt.id, apt.assetId);
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยกเลิกนัดหมายแล้ว')));
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }

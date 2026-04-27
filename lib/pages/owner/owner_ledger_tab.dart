@@ -166,7 +166,7 @@ class _OwnerLedgerTabState extends State<OwnerLedgerTab> {
               margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: iconColor.withOpacity(0.1),
+                  backgroundColor: iconColor.withValues(alpha: 0.1),
                   child: Icon(icon, color: iconColor),
                 ),
                 title: Text(

@@ -25,8 +25,9 @@ class OwnerSalesThbPage extends StatelessWidget {
             .where('type', isEqualTo: 'buy')
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           var docs = snapshot.data?.docs ?? [];
 
@@ -35,14 +36,18 @@ class OwnerSalesThbPage extends StatelessWidget {
               final timestamp =
                   (doc.data() as Map<String, dynamic>)['timestamp']
                       as Timestamp?;
-              if (timestamp == null) return false;
+              if (timestamp == null) {
+                return false;
+              }
               final date = timestamp.toDate();
               return date.isAfter(dateRange!.start) &&
                   date.isBefore(dateRange!.end);
             }).toList();
           }
 
-          if (docs.isEmpty) return const Center(child: Text('ไม่พบข้อมูลการขาย'));
+          if (docs.isEmpty) {
+            return const Center(child: Text('ไม่พบข้อมูลการขาย'));
+          }
 
           // Sort descending locally to bypass composite index issues
           final sortedDocs = docs.toList()
@@ -51,7 +56,9 @@ class OwnerSalesThbPage extends StatelessWidget {
                   (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
               final t2 =
                   (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-              if (t1 == null || t2 == null) return 0;
+              if (t1 == null || t2 == null) {
+                return 0;
+              }
               return t2.compareTo(t1);
             });
 

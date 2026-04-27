@@ -17,7 +17,7 @@ class GoldRateCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFFFD700), width: 3), // Gold Border
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

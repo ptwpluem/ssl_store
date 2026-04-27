@@ -75,7 +75,7 @@ class OwnerSavingsTransactionsPage extends StatelessWidget {
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: amountColor.withOpacity(0.1),
+                    backgroundColor: amountColor.withValues(alpha: 0.1),
                     child: Icon(icon, color: amountColor, size: 20),
                   ),
                   title: Text(

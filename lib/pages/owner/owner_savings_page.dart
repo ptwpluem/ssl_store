@@ -15,8 +15,9 @@ class OwnerSavingsPage extends StatelessWidget {
             .doc('gold_rate')
             .get(),
         builder: (context, rateSnapshot) {
-          if (rateSnapshot.connectionState == ConnectionState.waiting)
+          if (rateSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final sellPrice =
               (rateSnapshot.data?.data() as Map<String, dynamic>?)?['sellPrice']
@@ -33,10 +34,12 @@ class OwnerSavingsPage extends StatelessWidget {
                       snap.docs.where((doc) => doc.id == 'account').toList(),
                 ),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
-              if (!snapshot.hasData || snapshot.data!.isEmpty)
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
                 return const Center(child: Text('No gold savings found.'));
+              }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),

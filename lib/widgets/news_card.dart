@@ -23,7 +23,7 @@ class NewsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shadowColor: const Color(0xFF800000).withOpacity(0.2),
+      shadowColor: const Color(0xFF800000).withValues(alpha: 0.2),
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(

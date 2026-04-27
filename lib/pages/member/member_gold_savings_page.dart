@@ -34,26 +34,26 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
     try {
       await _savingsService.depositToGoldSavings(amount, currentBuyPrice);
-      if (mounted) {
-        _amountController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'ออมทองสำเร็จ จำนวน ฿${NumberFormat('#,##0').format(amount)}!',
-            ),
-            backgroundColor: Colors.green,
+      
+      if (!context.mounted) return;
+      
+      _amountController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ออมทองสำเร็จ จำนวน ฿${NumberFormat('#,##0').format(amount)}!',
           ),
-        );
-      }
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -72,26 +72,26 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
     try {
       await _savingsService.sellFromGoldSavings(weightToSell, currentSellPrice);
-      if (mounted) {
-        _amountController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'ขายทองสำเร็จ จำนวน ${weightToSell.toStringAsFixed(4)} บาท',
-            ),
-            backgroundColor: Colors.green,
+      
+      if (!context.mounted) return;
+      
+      _amountController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ขายทองสำเร็จ จำนวน ${weightToSell.toStringAsFixed(4)} บาท',
           ),
-        );
-      }
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -111,43 +111,43 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     try {
       final assetId = await _savingsService.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
       
-      if (mounted) {
-        // Create a temporary asset object to pass to the scheduling page
-        final newAsset = GoldAsset(
-          id: assetId,
-          name: 'ทองคำแท่ง ($weightToWithdraw บาท)',
-          weight: weightToWithdraw,
-          category: 'ทองคำแท่ง',
-          acquisitionDate: DateTime.now(),
-          acquisitionPrice: weightToWithdraw * currentBuyPrice,
-          status: 'owned',
-          purity: 0.965,
-        );
+      if (!context.mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'ถอนทองแท่ง ${weightToWithdraw.toStringAsFixed(4)} บาท สำเร็จ! กำลังพาไปหน้านัดหมาย...',
-            ),
-            backgroundColor: Colors.green,
+      // Create a temporary asset object to pass to the scheduling page
+      final newAsset = GoldAsset(
+        id: assetId,
+        name: 'ทองคำแท่ง ($weightToWithdraw บาท)',
+        weight: weightToWithdraw,
+        category: 'ทองคำแท่ง',
+        acquisitionDate: DateTime.now(),
+        acquisitionPrice: weightToWithdraw * currentBuyPrice,
+        status: 'owned',
+        purity: 0.965,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ถอนทองแท่ง ${weightToWithdraw.toStringAsFixed(4)} บาท สำเร็จ! กำลังพาไปหน้านัดหมาย...',
           ),
-        );
+          backgroundColor: Colors.green,
+        ),
+      );
 
-        // Wait a bit for the snackbar to be seen
-        await Future.delayed(const Duration(seconds: 1));
+      // Wait a bit for the snackbar to be seen
+      await Future.delayed(const Duration(seconds: 1));
 
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AppointmentPage(),
-              settings: RouteSettings(arguments: newAsset),
-            ),
-          );
-        }
-      }
+      if (!context.mounted) return;
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AppointmentPage(),
+          settings: RouteSettings(arguments: newAsset),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
@@ -265,7 +265,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             color: const Color(0xFFFFF8E1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFFFD700).withOpacity(0.5),
+                              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -493,7 +493,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             border: Border.all(
                               color: isOverLimit
                                   ? Colors.red
-                                  : const Color(0xFF64B5F6).withOpacity(0.5),
+                                  : const Color(0xFF64B5F6).withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -807,7 +807,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                         elevation: 4,
                                         shadowColor: const Color(
                                           0xFF800000,
-                                        ).withOpacity(0.4),
+                                        ).withValues(alpha: 0.4),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             16,
@@ -840,7 +840,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                           vertical: 16,
                                         ),
                                         elevation: 4,
-                                        shadowColor: Colors.black.withOpacity(
+                                        shadowColor: Colors.black.withValues(alpha: 
                                           0.1,
                                         ),
                                         shape: RoundedRectangleBorder(
@@ -968,7 +968,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             Icon(
                               Icons.savings_outlined,
                               size: 64,
-                              color: Colors.grey.withOpacity(0.5),
+                              color: Colors.grey.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -999,7 +999,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
+                                color: Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -1112,7 +1112,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF800000).withOpacity(0.1),
+            color: const Color(0xFF800000).withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1192,7 +1192,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         border: Border.all(color: const Color(0xFFF0F0F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),

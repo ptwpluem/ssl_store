@@ -194,7 +194,7 @@ class _BuyTabState extends State<_BuyTab> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF800000).withOpacity(0.2)),
+              border: Border.all(color: const Color(0xFF800000).withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -237,11 +237,11 @@ class _BuyTabState extends State<_BuyTab> {
                     category: 'Gold Bar',
                     productId: productId,
                   );
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('การสั่งซื้อสำเร็จ!')));
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
                   );
@@ -346,14 +346,14 @@ class _SellTabState extends State<_SellTab> {
                     setStateDialog(() => _isProcessing = true);
                     setState(() => _isProcessing = true); // Update underlying tab state too (optional, for safety)
                     
-                    try {
+                     try {
                        await widget.tradingService.sellAsset(asset: asset, sellPrice: estimatedValue);
-                       if (mounted) {
+                       if (context.mounted) {
                           Navigator.of(context).pop(); // Close dialog
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')));
                        }
                     } catch (e) {
-                      if (mounted) {
+                      if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาดในการขายสินค้า: $e')));
                       }
                     } finally {
@@ -449,7 +449,6 @@ class _PawnTabState extends State<_PawnTab> {
     double requestedLoan = maxLoan;
     final formatter = NumberFormat('#,##0');
     final TextEditingController _loanController = TextEditingController(text: maxLoan.toStringAsFixed(0));
-    final String errorMsg = 'วงเงินต้องอยู่ระหว่าง 1 ถึง ${formatter.format(maxLoan)}';
 
     showDialog(
       context: context,
@@ -534,12 +533,12 @@ class _PawnTabState extends State<_PawnTab> {
                     
                     try {
                        await widget.pawnService.pawnAsset(asset: asset, loanAmount: requestedLoan);
-                       if (mounted) {
+                       if (context.mounted) {
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('จำนำสินค้าสำเร็จ! เพิ่มเงิน ฿${formatter.format(requestedLoan)} เข้าวอลเล็ตแล้ว')));
                        }
                     } catch (e) {
-                      if (mounted) {
+                      if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error pawning asset: $e')));
                       }
                     } finally {

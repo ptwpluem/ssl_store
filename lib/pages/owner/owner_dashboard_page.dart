@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'owner/owner_overview_tab.dart';
-import 'owner/owner_inventory_tab.dart';
-import 'owner/owner_ledger_tab.dart';
-import 'owner/owner_pickups_tab.dart';
+import 'owner_overview_tab.dart';
+import 'owner_inventory_tab.dart';
+import 'owner_ledger_tab.dart';
+import 'owner_pickups_tab.dart';
 
 class OwnerDashboardPage extends StatefulWidget {
   const OwnerDashboardPage({super.key});

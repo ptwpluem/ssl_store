@@ -53,7 +53,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5)),
                           ],
                         ),
                         child: Column(
@@ -100,7 +100,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               quantity: _quantity,
                             );
 
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context); // Close bottom sheet
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('ซื้อสำเร็จแล้ว! ตรวจสอบได้ที่พอร์ตโฟลิโอของคุณ')),
@@ -108,7 +108,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               Navigator.pop(context); // Go back to catalog
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
                               );

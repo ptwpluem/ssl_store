@@ -15,10 +15,12 @@ class OwnerWalletsPage extends StatelessWidget {
             .orderBy('balance', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('ไม่พบกระเป๋าเงินวอลเล็ต'));
+          }
 
           final formatter = NumberFormat('#,##0.00');
 

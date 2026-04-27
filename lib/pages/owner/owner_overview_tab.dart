@@ -6,7 +6,6 @@ import 'owner_pawns_page.dart';
 import 'owner_products_page.dart';
 import 'owner_savings_page.dart';
 import 'owner_sales_thb_page.dart';
-import 'owner_sales_qty_page.dart';
 import 'owner_inventory_cost_page.dart';
 import 'owner_sell_transactions_page.dart';
 import 'owner_savings_transactions_page.dart';
@@ -54,52 +53,6 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     });
   }
 
-  Stream<Map<String, int>> _getPawnStatsStream() {
-    return _firestore
-        .collectionGroup('assets')
-        .where('status', isEqualTo: 'pawned')
-        .snapshots()
-        .map((snap) {
-      int active = 0;
-      int dueSoon = 0;
-      int overdue = 0;
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final soonThreshold = today.add(const Duration(days: 7));
-
-      for (var doc in snap.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final dueDateRaw = data['dueDate'] as Timestamp?;
-        if (dueDateRaw == null) {
-          active++;
-          continue;
-        }
-
-        final dueDateDisp = dueDateRaw.toDate();
-        final dueDateDay = DateTime(dueDateDisp.year, dueDateDisp.month, dueDateDisp.day);
-        
-        active++;
-        if (dueDateDay.isBefore(today)) {
-          overdue++;
-        } else if (dueDateDay.isBefore(soonThreshold) || dueDateDay.isAtSameMomentAs(soonThreshold)) {
-          dueSoon++;
-        }
-      }
-      return {
-        'active': active,
-        'dueSoon': dueSoon,
-        'overdue': overdue,
-      };
-    }).handleError((error) {
-      debugPrint('Error in _getPawnStatsStream: $error');
-      return {
-        'active': 0,
-        'dueSoon': 0,
-        'overdue': 0,
-        'error': 1,
-      };
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -504,7 +457,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 double totalWeight = 0.0;
                 for (var doc in snap.docs) {
                   if (doc.id == 'account') {
-                    final data = doc.data() as Map<String, dynamic>;
+                    final data = doc.data();
                     totalWeight += (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
                   }
                 }
@@ -580,7 +533,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -588,7 +541,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: iconColor.withOpacity(0.1),
+                  backgroundColor: iconColor.withValues(alpha: 0.1),
                   child: Icon(icon, color: iconColor, size: 20),
                 ),
                 title: Text(

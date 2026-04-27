@@ -198,11 +198,11 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: const Color(0xFFFFD700).withOpacity(0.5),
+                          color: const Color(0xFFFFD700).withValues(alpha: 0.5),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF800000).withOpacity(0.1),
+                            color: const Color(0xFF800000).withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -409,7 +409,7 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                                 image: NetworkImage(promo['image'] as String),
                                 fit: BoxFit.cover,
                                 colorFilter: ColorFilter.mode(
-                                  Colors.black.withOpacity(0.3),
+                                  Colors.black.withValues(alpha: 0.3),
                                   BlendMode.darken,
                                 ),
                               )
@@ -452,7 +452,7 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                   decoration: BoxDecoration(
                     color: _currentPage == index
                         ? const Color(0xFF800000)
-                        : Colors.grey.withOpacity(0.5),
+                        : Colors.grey.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );

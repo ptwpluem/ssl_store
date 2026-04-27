@@ -156,7 +156,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Column(
@@ -167,7 +167,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF800000).withOpacity(0.1),
+                          color: const Color(0xFF800000).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.password, color: Color(0xFF800000)),
@@ -182,7 +182,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF800000).withOpacity(0.1),
+                          color: const Color(0xFF800000).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.fingerprint, color: Color(0xFF800000)),
@@ -216,7 +216,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: ListTile(
@@ -225,7 +225,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.delete_forever, color: Colors.red),

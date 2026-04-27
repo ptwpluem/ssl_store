@@ -56,7 +56,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                 final amount = double.tryParse(amountController.text) ?? 0;
                 if (amount > 0) {
                   await _userService.addFunds(amount);
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               child: const Text('ยืนยัน'),
@@ -87,7 +87,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                 final amount = double.tryParse(amountController.text) ?? 0;
                 if (amount > 0 && amount <= maxBalance) {
                   await _userService.withdrawFunds(amount);
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 } else if (amount > maxBalance) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยอดเงินไม่เพียงพอ')));
                 }
@@ -197,7 +197,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
                             ],
                           ),
                           child: Column(
@@ -243,7 +243,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
                             ],
                           ),
                           child: Column(
@@ -265,7 +265,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     )
@@ -562,12 +562,12 @@ class _AssetCardState extends State<_AssetCard> {
                         
                         try {
                            await _pawnService.redeemAsset(asset: widget.asset, totalOwed: totalOwed);
-                           if (mounted) {
+                           if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไถ่ถอนสำเร็จ!')));
                            }
                         } catch (e) {
-                          if (mounted) {
+                          if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error redeeming asset: $e')));
                           }
                         } finally {
@@ -593,7 +593,6 @@ class _AssetCardState extends State<_AssetCard> {
   }
 
   void _showSellConfirmation(BuildContext context, double estimatedValue) {
-    final formatter = NumberFormat('#,##0');
     showDialog(
       context: context,
       barrierDismissible: !_isProcessing,
@@ -637,12 +636,12 @@ class _AssetCardState extends State<_AssetCard> {
                     
                     try {
                        await _tradingService.sellAsset(asset: widget.asset, sellPrice: estimatedValue);
-                       if (mounted) {
+                       if (context.mounted) {
                           Navigator.of(context).pop(); // Close dialog
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asset Sold Successfully!')));
                        }
                     } catch (e) {
-                      if (mounted) {
+                      if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error selling asset: $e')));
                       }
                     } finally {
@@ -747,7 +746,7 @@ class _AssetCardState extends State<_AssetCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isPawned ? pawnColor.withOpacity(0.1) : const Color(0xFFFFF8E1), 
+                  color: isPawned ? pawnColor.withValues(alpha: 0.1) : const Color(0xFFFFF8E1), 
                   borderRadius: BorderRadius.circular(10)
                 ),
                 child: Icon(

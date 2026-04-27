@@ -31,7 +31,7 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
                     label: Text(f),
                     selected: isSelected,
                     onSelected: (val) => setState(() => _filter = f),
-                    selectedColor: Colors.orange.withOpacity(0.2),
+                    selectedColor: Colors.orange.withValues(alpha: 0.2),
                     checkmarkColor: Colors.orange,
                   ),
                 );
@@ -172,14 +172,14 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: statusColor.withOpacity(0.3),
+              color: statusColor.withValues(alpha: 0.3),
               width: isOverdue ? 2 : 1,
             ),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(12),
             leading: CircleAvatar(
-              backgroundColor: statusColor.withOpacity(0.1),
+              backgroundColor: statusColor.withValues(alpha: 0.1),
               child: Icon(Icons.real_estate_agent, color: statusColor),
             ),
             title: Row(
@@ -196,7 +196,7 @@ class _OwnerPawnsPageState extends State<OwnerPawnsPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.2),
+                    color: statusColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

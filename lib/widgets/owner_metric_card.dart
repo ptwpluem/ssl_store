@@ -28,7 +28,7 @@ class OwnerMetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(isHero ? 0.3 : 0.1),
+            color: color.withValues(alpha: isHero ? 0.3 : 0.1),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -57,7 +57,7 @@ class OwnerMetricCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: (isHero ? Colors.white : color).withOpacity(0.2),
+                        color: (isHero ? Colors.white : color).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -69,7 +69,7 @@ class OwnerMetricCard extends StatelessWidget {
                     if (onTap != null)
                       Icon(
                         Icons.chevron_right,
-                        color: (isHero ? Colors.white : Colors.grey).withOpacity(0.5),
+                        color: (isHero ? Colors.white : Colors.grey).withValues(alpha: 0.5),
                         size: 16,
                       ),
                   ],
@@ -106,15 +106,18 @@ class OwnerMetricCard extends StatelessWidget {
                           if (text.isEmpty) return const SizedBox.shrink();
                           
                           Color textColor = Colors.grey[600]!;
-                          if (text.contains('ค้างชำระ')) textColor = Colors.red[700]!;
-                          else if (text.contains('ใกล้ครบกำหนด')) textColor = Colors.orange[800]!;
+                          if (text.contains('ค้างชำระ')) {
+                            textColor = Colors.red[700]!;
+                          } else if (text.contains('ใกล้ครบกำหนด')) {
+                            textColor = Colors.orange[800]!;
+                          }
 
                           return Text(
                             text,
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: isHero ? Colors.white.withOpacity(0.9) : textColor,
+                              color: isHero ? Colors.white.withValues(alpha: 0.9) : textColor,
                             ),
                           );
                         },
@@ -126,7 +129,7 @@ class OwnerMetricCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: isHero ? 13 : 11,
                         fontWeight: FontWeight.w600,
-                        color: (isHero ? Colors.white : Colors.grey[600])!.withOpacity(0.8),
+                        color: (isHero ? Colors.white : Colors.grey[600])!.withValues(alpha: 0.8),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
