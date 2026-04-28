@@ -1,4 +1,6 @@
+// lib/pages/member/member_portfolio_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
@@ -11,6 +13,12 @@ import '../../models/gold_asset.dart';
 import '../../models/gold_savings.dart';
 import '../../models/gold_transaction.dart';
 import '../../models/gold_rate.dart';
+
+// ─── Design tokens (matches owner dashboard) ──────────────────────────────────
+const Color _portPrimary     = Color(0xFF800000);
+const Color _portPrimaryDark = Color(0xFF5C0000);
+const Color _portGold        = Color(0xFFFFD700);
+const Color _portBg          = Color(0xFFF5F7FA);
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -102,39 +110,79 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('พอร์ตทองของฉัน'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => setState(() {}),
-          )
-        ],
-      ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: _portBg,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          shadowColor: Colors.black.withValues(alpha: 0.08),
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          titleSpacing: 16,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_portPrimary, _portPrimaryDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(Icons.pie_chart_rounded, color: _portGold, size: 17),
+              ),
+              const SizedBox(width: 10),
+              const Text('พอร์ตทองของฉัน',
+                  style: TextStyle(color: _portPrimary, fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: _portPrimary),
+              onPressed: () => setState(() {}),
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(color: const Color(0xFFE9EAEC), height: 1),
+          ),
+        ),
       body: StreamBuilder<User?>(
         stream: _authService.user,
         builder: (context, authSnapshot) {
           if (authSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: _portPrimary));
           }
           if (!authSnapshot.hasData) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   const Icon(Icons.lock_outline, size: 64, color: Colors.grey),
-                   const SizedBox(height: 16),
-                   const Text('กรุณาเข้าสู่ระบบเพื่อดูพอร์ตทองของคุณ', style: TextStyle(fontSize: 18)),
-                   const SizedBox(height: 24),
-                   ElevatedButton(
-                     onPressed: () => Navigator.pushNamed(context, '/login'),
-                     style: ElevatedButton.styleFrom(
-                       backgroundColor: const Color(0xFF800000),
-                       foregroundColor: Colors.white,
-                     ),
-                     child: const Text('เข้าสู่ระบบ / สมัครสมาชิก'),
-                   )
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6))],
+                    ),
+                    child: const Icon(Icons.lock_rounded, size: 52, color: _portPrimary),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('กรุณาเข้าสู่ระบบ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _portPrimary)),
+                  const SizedBox(height: 8),
+                  Text('เพื่อดูพอร์ตทองของคุณ', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _portPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('เข้าสู่ระบบ / สมัครสมาชิก', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             );
@@ -182,111 +230,115 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   final pawnedAssets = assets.where((a) => a.status == 'pawned').toList();
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Wallet Card
+                        // ── Wallet card ───────────────────────────────────
                         Container(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                              colors: [Color(0xFF1B5E20), Color(0xFF388E3C)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 6))
                             ],
                           ),
                           child: Column(
                             children: [
-                              const Text('My Wallet Balance', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.account_balance_wallet_rounded, color: Colors.white70, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text('ยอดเงินในวอลเล็ต', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+                                ],
+                              ),
                               const SizedBox(height: 8),
-                              Text('฿ ${formatter.format(walletBalance)}', 
-                                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                              Text('฿ ${formatter.format(walletBalance)}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                               const SizedBox(height: 16),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () => _showTopUpDialog(context),
-                                    icon: const Icon(Icons.add, size: 18),
+                                    icon: const Icon(Icons.add_rounded, size: 16),
                                     label: const Text('เติมเงิน'),
                                     style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white, foregroundColor: Colors.green),
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: const Color(0xFF2E7D32),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 12),
                                   OutlinedButton.icon(
                                     onPressed: () => _showWithdrawDialog(context, walletBalance),
-                                    icon: const Icon(Icons.remove, size: 18),
+                                    icon: const Icon(Icons.remove_rounded, size: 16),
                                     label: const Text('ถอนเงิน'),
                                     style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
+                                        foregroundColor: Colors.white,
+                                        side: const BorderSide(color: Colors.white),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        
-                        // Summary Card
+                        const SizedBox(height: 16),
+
+                        // ── Gold summary card ─────────────────────────────
                         Container(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF800000), Color(0xFFA00000)],
+                              colors: [_portPrimary, _portPrimaryDark],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 6))
                             ],
                           ),
                           child: Column(
                             children: [
-                              const Text('น้ำหนักทองสะสมรวม', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.scale_rounded, color: Colors.white70, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text('น้ำหนักทองสะสมรวม', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+                                ],
+                              ),
                               const SizedBox(height: 8),
-                              Text('${totalWeight.toStringAsFixed(2)} บาท', 
-                                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                              const Divider(color: Colors.white24, height: 32),
-                              const Text('มูลค่าประเมินรวม', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                              const SizedBox(height: 8),
-                              Text('฿ ${formatter.format(totalValue)}', 
-                                style: const TextStyle(color: Color(0xFFFFD700), fontSize: 28, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 16),
+                              Text('${totalWeight.toStringAsFixed(2)} บาท',
+                                  style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                              const Divider(color: Colors.white24, height: 28),
+                              Text('มูลค่าประเมินรวม', style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+                              const SizedBox(height: 6),
+                              Text('฿ ${formatter.format(totalValue)}',
+                                  style: const TextStyle(color: _portGold, fontSize: 26, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 14),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                 decoration: BoxDecoration(
-                                  color: pnlBgColor, 
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ],
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))],
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      isProfit ? Icons.trending_up : Icons.trending_down,
-                                      color: pnlColor,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
+                                    Icon(isProfit ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: pnlColor, size: 18),
+                                    const SizedBox(width: 6),
                                     Text(
                                       '${isProfit ? 'กำไร' : 'ขาดทุน'}: $pnlSign฿${formatter.format(pnl.abs())} ($pnlSign${pnlPercentage.toStringAsFixed(2)}%)',
-                                      style: TextStyle(
-                                        color: pnlColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
+                                      style: TextStyle(color: pnlColor, fontWeight: FontWeight.bold, fontSize: 14),
                                     ),
                                   ],
                                 ),
@@ -294,7 +346,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
                     
                     if (assets.isEmpty && savingsAccount.totalWeightSaved == 0) ...[
                       const _SectionHeader(title: 'สินทรัพย์ของฉัน (0)'),
@@ -374,17 +426,18 @@ class _PortfolioPageState extends State<PortfolioPage> {
                         );
                       }
                     ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  );
+                },
               );
-            }
+            },
           );
-        }
+        },
       );
-            }
-          );
-        }
+    },
+  ),
       ),
     );
   }
@@ -456,7 +509,20 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF800000)));
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(color: _portGold, borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _portPrimary),
+        ),
+      ],
+    );
   }
 }
 

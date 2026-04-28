@@ -1,4 +1,6 @@
+// lib/pages/member/member_home_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/gold_rate.dart';
 import '../../services/market_service.dart';
 import '../../services/notification_service.dart';
@@ -12,6 +14,12 @@ import 'package:ssl_store/pages/member/member_notifications_page.dart';
 import '../../models/notification_item.dart';
 import 'package:ssl_store/pages/member/member_gold_savings_page.dart';
 import 'package:ssl_store/pages/member/member_buy_selection_page.dart';
+
+// ─── Design tokens (matches owner dashboard) ──────────────────────────────────
+const Color _homePrimary     = Color(0xFF800000);
+const Color _homePrimaryDark = Color(0xFF5C0000);
+const Color _homeGold        = Color(0xFFFFD700);
+const Color _homeBg          = Color(0xFFF5F7FA);
 
 class HomePage extends StatefulWidget {
   // Make the page is interactive such as gold prive updates, notifications, slide banner
@@ -71,23 +79,239 @@ class _HomePageState extends State<HomePage> {
       },
     ];
 
-    return Scaffold( // page main frame (top bar, main content, floating button)
-      appBar: AppBar(
-        title: const Text('ห้างทองสุ้นเซ่งหลี'),
-        centerTitle: true,
-        actions: [
-          StreamBuilder<List<NotificationItem>>( // notification icon with badge
-            stream: _notificationService.getNotificationsStream(),
-            builder: (context, snapshot) {
-              int unreadCount = 0;
-              if (snapshot.hasData) {
-                unreadCount = snapshot.data!.where((n) => !n.isRead).length;
-              }
-              return IconButton(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: _homeBg,
+        appBar: _buildAppBar(),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Gold rate card ────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: StreamBuilder<GoldRate>(
+                  stream: _goldRateStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) return GoldRateCard(rate: snapshot.data!);
+                    return const Center(child: CircularProgressIndicator(color: _homePrimary));
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Promotional banner carousel ───────────────────────────────
+              SizedBox(height: 148, child: _PromotionCarousel()),
+              const SizedBox(height: 24),
+
+              // ── Section header: Menu ──────────────────────────────────────
+              _buildSectionHeader('บริการของเรา', Icons.apps_rounded),
+              const SizedBox(height: 12),
+
+              // ── Menu cards ────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: menuItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = menuItems[index];
+                    final iconColor = item['iconColor'] as Color? ?? _homePrimary;
+                    final bgColor  = item['color'] as Color? ?? const Color(0xFFFFF8E1);
+
+                    return Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        splashColor: _homePrimary.withValues(alpha: 0.05),
+                        onTap: () {
+                          if (item['page'] != null) {
+                            _navigateTo(item['page'] as Widget);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: _homePrimary,
+                                content: Text('ฟังก์ชัน ${item['title']} กำลังปรับปรุงเร็วๆ นี้!'),
+                              ),
+                            );
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3)),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              // Left gold stripe
+                              Container(
+                                width: 5,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  color: _homeGold,
+                                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              // Icon
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+                                child: Icon(item['icon'] as IconData, size: 24, color: iconColor),
+                              ),
+                              const SizedBox(width: 14),
+                              // Text
+                              Expanded(
+                                child: Text(
+                                  item['title'] as String,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: _homePrimary,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 14),
+                                child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // ── Section header: News ──────────────────────────────────────
+              const SizedBox(height: 28),
+              _buildSectionHeader('ข่าวสารและสาระน่ารู้', Icons.newspaper_rounded),
+              const SizedBox(height: 12),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: StreamBuilder<List<NewsItem>>(
+                  stream: _marketService.getNewsStream(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator(color: _homePrimary));
+                    }
+                    final newsList = snapshot.data!;
+                    if (newsList.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('ไม่มีข่าวสารในขณะนี้'),
+                      );
+                    }
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: newsList.length,
+                      itemBuilder: (context, index) {
+                        return NewsCard(
+                          newsItem: newsList[index],
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('กำลังอ่าน: ${newsList[index].title}')),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // ── Section header: Store info ────────────────────────────────
+              const SizedBox(height: 28),
+              _buildSectionHeader('ที่ตั้งร้านของเรา', Icons.location_on_rounded),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: StoreInfoCard(),
+              ),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('กำลังเปิด LINE Official Account...')),
+            );
+          },
+          backgroundColor: const Color(0xFF06C755),
+          elevation: 4,
+          icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+          label: const Text('พูดคุยกับเรา', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
+  }
+
+  // ─── AppBar ───────────────────────────────────────────────────────────────
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      titleSpacing: 16,
+      title: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_homePrimary, _homePrimaryDark],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.store_rounded, color: _homeGold, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'ห้างทองสุ้นเซ่งหลี',
+                style: TextStyle(color: _homePrimary, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2, height: 1.25),
+              ),
+              Text(
+                'ทองคำบริสุทธิ์ 96.5%',
+                style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.normal, height: 1.25),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        StreamBuilder<List<NotificationItem>>(
+          stream: _notificationService.getNotificationsStream(),
+          builder: (context, snapshot) {
+            final unreadCount = snapshot.hasData
+                ? snapshot.data!.where((n) => !n.isRead).length
+                : 0;
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: IconButton(
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_outlined),
+                    const Icon(Icons.notifications_rounded, color: _homePrimary),
                     if (unreadCount > 0)
                       Positioned(
                         right: -4,
@@ -97,252 +321,50 @@ class _HomePageState extends State<HomePage> {
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFF800000), width: 1.5),
+                            border: Border.all(color: Colors.white, width: 1.5),
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                           child: Text(
                             unreadCount > 99 ? '99+' : unreadCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ),
                   ],
                 ),
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage()));
-                },
-              );
-            },
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+              ),
+            );
+          },
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(color: const Color(0xFFE9EAEC), height: 1),
+      ),
+    );
+  }
+
+  // ─── Section header helper ────────────────────────────────────────────────
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(color: _homeGold, borderRadius: BorderRadius.circular(2)),
           ),
+          const SizedBox(width: 10),
+          Icon(icon, size: 18, color: _homePrimary),
           const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        // Changed to ScrollView to fit banner
-        child: Padding(
-          padding: const EdgeInsets.all(16), // page margin
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Real-time Gold Rate
-              StreamBuilder<GoldRate>(
-                stream: _goldRateStream,
-                builder: (context, snapshot) {
-                  // if has the value then shows, else load
-                  if (snapshot.hasData) {
-                    return GoldRateCard(rate: snapshot.data!);
-                  } else {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Promotional Banner Carousel
-              SizedBox(
-                height: 140, // Slightly increased height for indicators
-                child: _PromotionCarousel(),
-              ),
-              const SizedBox(height: 24),
-
-              const Text(
-                'เมนู',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF800000),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              ListView.separated( // create a menu list
-                shrinkWrap: true, // Important for SingleChildScrollView
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: menuItems.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final item = menuItems[index];
-                  final titleParts = (item['title'] as String).split('\n');
-                  
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      // When tab, go to new page, or shows "coming soon"
-                      if (item['page'] != null) {
-                        _navigateTo(item['page'] as Widget);
-                      } else {
-                        // For placeholder
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: const Color(0xFF800000),
-                            content: Text(
-                              'ฟังก์ชัน ${item['title']} กำลังปรับปรุงเร็วๆ นี้!',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF800000).withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: item['color'] as Color? ?? const Color(0xFFFFF8E1),
-                            ),
-                            child: Icon(
-                              item['icon'] as IconData,
-                              size: 28,
-                              color: item['iconColor'] as Color? ?? const Color(0xFF800000),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  titleParts[0],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Color(0xFF800000),
-                                  ),
-                                ),
-                                if (titleParts.length > 1) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    titleParts[1],
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF4A4A4A),
-                                    ),
-                                  ),
-                                ]
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              // News Section
-              const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.0),
-                child: Text(
-                  'ข่าวสารและสาระน่ารู้',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF800000),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              StreamBuilder<List<NewsItem>>(
-                stream: _marketService.getNewsStream(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  
-                  final newsList = snapshot.data!;
-                  
-                  if (newsList.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('ไม่มีข่าวสารในขณะนี้'),
-                    );
-                  }
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: newsList.length,
-                    itemBuilder: (context, index) {
-                      return NewsCard(
-                        newsItem: newsList[index], 
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('กำลังอ่าน: ${newsList[index].title}'),
-                            ), 
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-              //  Store Info
-              const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.0),
-                child: Text(
-                  'ที่ตั้งร้านของเรา',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF800000),
-                  ),
-                ),
-              ),
-              const StoreInfoCard(),
-
-              const SizedBox(
-                height: 80,
-              ), // Extra padding for FAB (FloatingActionButton)
-            ],
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: _homePrimary),
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        // Set Chat with Us Line at the bottom right
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('กำลังเปิด LINE Official Account...')),
-          );
-        },
-        backgroundColor: const Color(0xFF06C755), // LINE Green
-        icon: const Icon(Icons.chat_bubble, color: Colors.white),
-        label: const Text(
-          'พูดคุยกับเรา',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        ],
       ),
     );
   }

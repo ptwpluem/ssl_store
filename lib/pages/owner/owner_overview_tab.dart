@@ -1,3 +1,4 @@
+// lib/pages/owner/owner_overview_tab.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -24,12 +25,26 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   DateTimeRange? _selectedDateRange;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Design tokens
+  static const Color _primary = Color(0xFF800000);
+  static const Color _textDark = Color(0xFF1A1A2E);
+
+  // Thai date helpers
+  static const List<String> _thaiDays = [
+    'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'
+  ];
+  static const List<String> _thaiMonths = [
+    'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+    'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+  ];
+
   @override
   void initState() {
     super.initState();
-    // Repair/Sync transaction data on load
     TradingService().repairAllTransactions().catchError((_) {});
   }
+
+  // ─── Data helpers (logic unchanged) ──────────────────────────────────────
 
   Stream<int> _getTypeCountStream(List<String> types) {
     return _firestore
@@ -53,102 +68,226 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     });
   }
 
+  String _formatCurrency(double amount) {
+    bool isNegative = amount < 0;
+    double absAmount = amount.abs();
+    String prefix = isNegative ? '-฿' : '฿';
+    if (absAmount >= 1000000) {
+      return '$prefix${(absAmount / 1000000).toStringAsFixed(1)}M';
+    } else if (absAmount >= 1000) {
+      return '$prefix${(absAmount / 1000).toStringAsFixed(1)}k';
+    }
+    return '$prefix${absAmount.toStringAsFixed(0)}';
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    String dateRangeText = 'ทั้งหมด';
-    if (_selectedDateRange != null) {
-      dateRangeText =
-          '${FormatterUtils.formatThaiDateShort(_selectedDateRange!.start)} - ${FormatterUtils.formatThaiDateShort(_selectedDateRange!.end)}';
-    }
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'ภาพรวมธุรกิจ',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF800000),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final result = await showDateRangePicker(
-                    context: context,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                    initialDateRange: _selectedDateRange,
-                  );
-                  if (result != null) {
-                    setState(() {
-                      // Adjust end date to include the whole day
-                      _selectedDateRange = DateTimeRange(
-                        start: result.start,
-                        end: DateTime(
-                          result.end.year,
-                          result.end.month,
-                          result.end.day,
-                          23,
-                          59,
-                          59,
-                          59,
-                        ),
-                      );
-                    });
-                  }
-                },
-                icon: const Icon(Icons.calendar_today, size: 16),
-                label: Text(dateRangeText),
-              ),
-            ],
+          _buildHeaderBanner(),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMetricsGrid(context),
+                const SizedBox(height: 28),
+                _sectionHeader('ความเคลื่อนไหวล่าสุด',
+                    icon: Icons.history_rounded),
+                const SizedBox(height: 12),
+                _buildRecentActivityList(),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-
-          const SizedBox(height: 24),
-          _buildMetricsGrid(context),
-          const SizedBox(height: 32),
-          const Text(
-            'ความเคลื่อนไหวล่าสุด',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildRecentActivityList(),
         ],
       ),
     );
   }
 
+  // ─── Header Banner ────────────────────────────────────────────────────────
 
+  Widget _buildHeaderBanner() {
+    final now = DateTime.now();
+    final dateLabel =
+        'วัน${_thaiDays[now.weekday - 1]} ${now.day} ${_thaiMonths[now.month - 1]} ${now.year + 543}';
+
+    String dateRangeText = 'ทั้งหมด';
+    if (_selectedDateRange != null) {
+      dateRangeText =
+          '${FormatterUtils.formatThaiDateShort(_selectedDateRange!.start)} – '
+          '${FormatterUtils.formatThaiDateShort(_selectedDateRange!.end)}';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 16, 18),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF800000), Color(0xFF5C0000)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left: title + date
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ภาพรวมธุรกิจ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded,
+                        size: 12,
+                        color: Colors.white.withValues(alpha: 0.65)),
+                    const SizedBox(width: 5),
+                    Text(
+                      dateLabel,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Right: date range filter pill
+          GestureDetector(
+            onTap: () async {
+              final result = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                initialDateRange: _selectedDateRange,
+                builder: (context, child) => Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme:
+                        const ColorScheme.light(primary: Color(0xFF800000)),
+                  ),
+                  child: child!,
+                ),
+              );
+              if (result != null) {
+                setState(() {
+                  _selectedDateRange = DateTimeRange(
+                    start: result.start,
+                    end: DateTime(result.end.year, result.end.month,
+                        result.end.day, 23, 59, 59, 59),
+                  );
+                });
+              }
+            },
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.filter_list_rounded,
+                      size: 14,
+                      color: Colors.white.withValues(alpha: 0.90)),
+                  const SizedBox(width: 5),
+                  Text(
+                    dateRangeText,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.90),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (_selectedDateRange != null) ...[
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () =>
+                          setState(() => _selectedDateRange = null),
+                      child: Icon(Icons.close_rounded,
+                          size: 14,
+                          color: Colors.white.withValues(alpha: 0.80)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Section Header ───────────────────────────────────────────────────────
+
+  Widget _sectionHeader(String title, {IconData? icon}) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 20,
+          decoration: BoxDecoration(
+            color: _primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        if (icon != null) ...[
+          Icon(icon, size: 17, color: _primary),
+          const SizedBox(width: 6),
+        ],
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: _textDark,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Metrics Grid (data logic unchanged) ──────────────────────────────────
 
   Widget _buildMetricsGrid(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- HERO SECTION (Critical KPIs) ---
-        const Text(
-          'สรุปผลประกอบการ',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
-        ),
+        // ── HERO: KPIs ────────────────────────────────────────────────────
+        _sectionHeader('สรุปผลประกอบการ', icon: Icons.bar_chart_rounded),
         const SizedBox(height: 12),
         SizedBox(
-          height: 120, // Slightly reduced height for 3-card row
+          height: 120,
           child: Row(
             children: [
               Expanded(
                 child: OwnerMetricCard(
                   title: 'กำไร',
-                  icon: Icons.trending_up,
+                  icon: Icons.trending_up_rounded,
                   color: const Color(0xFF2E7D32),
                   isHero: true,
                   stream: FirebaseFirestore.instance
@@ -159,12 +298,11 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     double total = 0.0;
                     for (var doc in snap.docs) {
                       final data = doc.data();
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      final timestamp =
+                          (data['timestamp'] as Timestamp?)?.toDate();
                       if (_selectedDateRange != null && timestamp != null) {
                         if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) {
-                          continue;
-                        }
+                            timestamp.isAfter(_selectedDateRange!.end)) continue;
                       }
                       total += (data['profit'] as num?)?.toDouble() ?? 0.0;
                     }
@@ -176,13 +314,14 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               Expanded(
                 child: OwnerMetricCard(
                   title: 'รายได้',
-                  icon: Icons.monetization_on,
+                  icon: Icons.monetization_on_rounded,
                   color: const Color(0xFF1A237E),
                   isHero: true,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OwnerSalesThbPage(dateRange: _selectedDateRange),
+                      builder: (_) =>
+                          OwnerSalesThbPage(dateRange: _selectedDateRange),
                     ),
                   ),
                   stream: FirebaseFirestore.instance
@@ -194,14 +333,12 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     for (var doc in snap.docs) {
                       final data = doc.data();
                       final type = data['type'] as String?;
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      final timestamp =
+                          (data['timestamp'] as Timestamp?)?.toDate();
                       if (_selectedDateRange != null && timestamp != null) {
                         if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) {
-                          continue;
-                        }
+                            timestamp.isAfter(_selectedDateRange!.end)) continue;
                       }
-                      
                       if (type == 'buy') {
                         total += (data['amount'] as num?)?.toDouble() ?? 0.0;
                       } else if (type == 'redeem') {
@@ -216,7 +353,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
               Expanded(
                 child: OwnerMetricCard(
                   title: 'เงินต้น/ทุน',
-                  icon: Icons.payments,
+                  icon: Icons.payments_rounded,
                   color: const Color(0xFFC62828),
                   isHero: true,
                   stream: FirebaseFirestore.instance
@@ -227,12 +364,11 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     double total = 0.0;
                     for (var doc in snap.docs) {
                       final data = doc.data();
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      final timestamp =
+                          (data['timestamp'] as Timestamp?)?.toDate();
                       if (_selectedDateRange != null && timestamp != null) {
                         if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) {
-                          continue;
-                        }
+                            timestamp.isAfter(_selectedDateRange!.end)) continue;
                       }
                       total += (data['cost'] as num?)?.toDouble() ?? 0.0;
                     }
@@ -243,94 +379,92 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
 
-        // --- TRANSACTION ACTIVITY ---
-        const SizedBox(height: 32),
-        const Text(
-          'กิจกรรมรายการ',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
-        ),
+        // ── TRANSACTION ACTIVITY ──────────────────────────────────────────
+        const SizedBox(height: 28),
+        _sectionHeader('กิจกรรมรายการ', icon: Icons.swap_horiz_rounded),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
           childAspectRatio: 1.7,
           children: [
             OwnerMetricCard(
               title: 'รายการซื้อ',
-              icon: Icons.shopping_bag,
+              icon: Icons.shopping_bag_rounded,
               color: const Color(0xFF1976D2),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => OwnerSalesThbPage(dateRange: _selectedDateRange),
+                  builder: (_) =>
+                      OwnerSalesThbPage(dateRange: _selectedDateRange),
                 ),
               ),
-              stream: _getTypeCountStream(['buy']).map((c) => c.toString()),
+              stream:
+                  _getTypeCountStream(['buy']).map((c) => c.toString()),
             ),
             OwnerMetricCard(
               title: 'รายการขาย',
-              icon: Icons.storefront,
+              icon: Icons.storefront_rounded,
               color: const Color(0xFFC62828),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => OwnerSellTransactionsPage(dateRange: _selectedDateRange),
+                  builder: (_) => OwnerSellTransactionsPage(
+                      dateRange: _selectedDateRange),
                 ),
               ),
-              stream: _getTypeCountStream(['sell']).map((c) => c.toString()),
+              stream:
+                  _getTypeCountStream(['sell']).map((c) => c.toString()),
             ),
             OwnerMetricCard(
               title: 'รายการจำนำ',
-              icon: Icons.real_estate_agent,
+              icon: Icons.real_estate_agent_rounded,
               color: const Color(0xFFE65100),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
-              stream: _getTypeCountStream(['pawn']).map((c) => c.toString()),
+              stream:
+                  _getTypeCountStream(['pawn']).map((c) => c.toString()),
             ),
             OwnerMetricCard(
               title: 'รายการออมทอง',
-              icon: Icons.savings,
+              icon: Icons.savings_rounded,
               color: const Color(0xFF00695C),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => OwnerSavingsTransactionsPage(dateRange: _selectedDateRange),
+                  builder: (_) => OwnerSavingsTransactionsPage(
+                      dateRange: _selectedDateRange),
                 ),
               ),
-              stream: _getTypeCountStream(['savings_deposit', 'savings_withdraw']).map((c) => c.toString()),
+              stream: _getTypeCountStream(
+                      ['savings_deposit', 'savings_withdraw'])
+                  .map((c) => c.toString()),
             ),
           ],
         ),
 
-        // --- STORE EQUITY ---
-        const SizedBox(height: 32),
-        const Text(
-          'สินทรัพย์และเงินหมุนเวียน',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        // ── STORE EQUITY ──────────────────────────────────────────────────
+        const SizedBox(height: 28),
+        _sectionHeader('สินทรัพย์และเงินหมุนเวียน',
+            icon: Icons.account_balance_rounded),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
           childAspectRatio: 1.7,
           children: [
             OwnerMetricCard(
               title: 'ยอดเงินในวอลเล็ตลูกค้า',
-              icon: Icons.account_balance_wallet,
+              icon: Icons.account_balance_wallet_rounded,
               color: const Color(0xFF6A1B9A),
               onTap: () => Navigator.push(
                 context,
@@ -342,18 +476,20 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                   .map((snap) {
                 double total = 0.0;
                 for (var doc in snap.docs) {
-                  total += (doc.data()['balance'] as num?)?.toDouble() ?? 0.0;
+                  total +=
+                      (doc.data()['balance'] as num?)?.toDouble() ?? 0.0;
                 }
                 return _formatCurrency(total);
               }),
             ),
             OwnerMetricCard(
               title: 'มูลค่าสต็อก (ราคาขาย)',
-              icon: Icons.auto_graph,
+              icon: Icons.auto_graph_rounded,
               color: const Color(0xFFEF6C00),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const OwnerInventoryCostPage()),
+                MaterialPageRoute(
+                    builder: (_) => const OwnerInventoryCostPage()),
               ),
               stream: FirebaseFirestore.instance
                   .collection('market')
@@ -361,16 +497,19 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                   .snapshots()
                   .asyncMap((rateDoc) async {
                 final data = rateDoc.data();
-                final sellRate = (data?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
-                final productSnap = await FirebaseFirestore.instance.collection('products').get();
+                final sellRate =
+                    (data?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
+                final productSnap = await FirebaseFirestore.instance
+                    .collection('products')
+                    .get();
                 double totalValue = 0.0;
                 for (var doc in productSnap.docs) {
                   final pData = doc.data();
                   final stock = (pData['stock'] as num?)?.toInt() ?? 0;
-                  final weight = (pData['weight'] as num?)?.toDouble() ?? 0.0;
-                  final laborFee = (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
-                  
-                  // Retail Value = (Weight * Sell Rate) + Labor Fee (per unit)
+                  final weight =
+                      (pData['weight'] as num?)?.toDouble() ?? 0.0;
+                  final laborFee =
+                      (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
                   totalValue += stock * ((weight * sellRate) + laborFee);
                 }
                 return _formatCurrency(totalValue);
@@ -378,13 +517,14 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
             ),
             OwnerMetricCard(
               title: 'เงินลงทุนในสต็อก',
-              icon: Icons.inventory,
+              icon: Icons.inventory_rounded,
               color: const Color(0xFF4E342E),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const OwnerInventoryCostPage()),
+                MaterialPageRoute(
+                    builder: (_) => const OwnerInventoryCostPage()),
               ),
-               stream: FirebaseFirestore.instance
+              stream: FirebaseFirestore.instance
                   .collection('products')
                   .snapshots()
                   .map((productSnap) {
@@ -392,9 +532,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 for (var doc in productSnap.docs) {
                   final pData = doc.data();
                   final stock = (pData['stock'] as num?)?.toInt() ?? 0;
-                  final costBasis = (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
-                  
-                  // Stable Historical Investment = Stock * Cost Basis
+                  final costBasis =
+                      (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
                   totalInvestment += stock * costBasis;
                 }
                 return _formatCurrency(totalInvestment);
@@ -402,7 +541,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
             ),
             OwnerMetricCard(
               title: 'ประเภทสินค้า',
-              icon: Icons.inventory_2,
+              icon: Icons.inventory_2_rounded,
               color: const Color(0xFF2E7D32),
               onTap: () => Navigator.push(
                 context,
@@ -417,38 +556,38 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           ],
         ),
 
-        // --- LIABILITIES ---
-        const SizedBox(height: 32),
-        const Text(
-          'หนี้สิน/ภาระผูกพัน',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        // ── LIABILITIES ───────────────────────────────────────────────────
+        const SizedBox(height: 28),
+        _sectionHeader('หนี้สิน/ภาระผูกพัน',
+            icon: Icons.account_balance_wallet_outlined),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
           childAspectRatio: 1.7,
           children: [
             OwnerMetricCard(
               title: 'ทองรับจำนำ (ใช้งาน)',
-              icon: Icons.real_estate_agent,
+              icon: Icons.real_estate_agent_rounded,
               color: const Color(0xFFE65100),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
-              stream: _getTypeCountStream(['pawn']).map((c) => c.toString()),
+              stream:
+                  _getTypeCountStream(['pawn']).map((c) => c.toString()),
             ),
             OwnerMetricCard(
               title: 'หนี้สินออมทอง',
-              icon: Icons.savings,
+              icon: Icons.savings_rounded,
               color: const Color(0xFF00695C),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const OwnerSavingsPage()),
+                MaterialPageRoute(
+                    builder: (_) => const OwnerSavingsPage()),
               ),
               stream: FirebaseFirestore.instance
                   .collectionGroup('savings')
@@ -458,11 +597,17 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 for (var doc in snap.docs) {
                   if (doc.id == 'account') {
                     final data = doc.data();
-                    totalWeight += (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
+                    totalWeight +=
+                        (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
                   }
                 }
-                final rateDoc = await FirebaseFirestore.instance.collection('market').doc('gold_rate').get();
-                final sellPrice = (rateDoc.data()?['sellPrice'] as num?)?.toDouble() ?? 40000.0;
+                final rateDoc = await FirebaseFirestore.instance
+                    .collection('market')
+                    .doc('gold_rate')
+                    .get();
+                final sellPrice =
+                    (rateDoc.data()?['sellPrice'] as num?)?.toDouble() ??
+                        40000.0;
                 return _formatCurrency(totalWeight * sellPrice);
               }),
             ),
@@ -472,17 +617,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     );
   }
 
-  String _formatCurrency(double amount) {
-    bool isNegative = amount < 0;
-    double absAmount = amount.abs();
-    String prefix = isNegative ? '-฿' : '฿';
-    if (absAmount >= 1000000) {
-      return '$prefix${(absAmount / 1000000).toStringAsFixed(1)}M';
-    } else if (absAmount >= 1000) {
-      return '$prefix${(absAmount / 1000).toStringAsFixed(1)}k';
-    }
-    return '$prefix${absAmount.toStringAsFixed(0)}';
-  }
+  // ─── Recent Activity List ─────────────────────────────────────────────────
 
   Widget _buildRecentActivityList() {
     return StreamBuilder<QuerySnapshot>(
@@ -493,91 +628,180 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(
+                  color: _primary, strokeWidth: 2.5),
+            ),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('ไม่พบกิจกรรมล่าสุด'));
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF0F1F3)),
+            ),
+            child: const Center(
+              child: Text('ไม่พบกิจกรรมล่าสุด',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          );
         }
 
         final formatter = NumberFormat('#,##0.00');
+        const typeLabels = <String, String>{
+          'buy': 'ซื้อ',
+          'sell': 'ขาย',
+          'pawn': 'จำนำ',
+          'redeem': 'ไถ่ถอน',
+          'savings_deposit': 'ออมทอง',
+          'savings_withdraw': 'ถอนออมทอง',
+          'deposit': 'เติมเงิน',
+          'withdrawal': 'ถอนเงิน',
+        };
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
-            final data = doc.data() as Map<String, dynamic>;
+        final docs = snapshot.data!.docs;
+
+        return Column(
+          children: List.generate(docs.length, (index) {
+            final data = docs[index].data() as Map<String, dynamic>;
             final typeStr = data['type'] as String? ?? 'unknown';
             final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
             final email = data['userEmail'] as String? ?? 'Unknown User';
             final details = data['details'] as String? ?? '';
+            final purity = (data['purity'] as num?)?.toDouble();
 
-            IconData icon;
-            Color iconColor;
-            if (['buy', 'redeem', 'savings_deposit'].contains(typeStr)) {
-              icon = Icons.arrow_downward;
-              iconColor = Colors.green;
-            } else if (['sell', 'pawn', 'savings_withdraw'].contains(typeStr)) {
-              icon = Icons.arrow_upward;
-              iconColor = Colors.red;
-            } else {
-              icon = Icons.swap_horiz;
-              iconColor = Colors.grey;
-            }
+            final isIncoming = [
+              'buy', 'redeem', 'savings_deposit', 'deposit'
+            ].contains(typeStr);
+
+            final accentColor = isIncoming
+                ? const Color(0xFF059669)
+                : const Color(0xFFDC2626);
+
+            final typeLabel = typeLabels[typeStr] ?? typeStr;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: EdgeInsets.only(bottom: index < docs.length - 1 ? 10 : 0),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFF0F1F3)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: iconColor.withValues(alpha: 0.1),
-                  child: Icon(icon, color: iconColor, size: 20),
-                ),
-                title: Text(
-                  details,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Row(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                child: Row(
                   children: [
-                    Text(email, style: const TextStyle(fontSize: 12)),
-                    const SizedBox(width: 8),
+                    // Direction icon circle
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(4),
+                        color: accentColor.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
                       ),
-                      child: Text(
-                        (data['purity'] as num?)?.toDouble() == 0.9999 ? '99.99%' : '96.5%',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      child: Icon(
+                        isIncoming
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded,
+                        color: accentColor,
+                        size: 18,
                       ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            details.isNotEmpty ? details : typeLabel,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: _textDark,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      accentColor.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  typeLabel,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: accentColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  email,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[500],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Amount + purity
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${isIncoming ? '+' : '-'}฿${formatter.format(amount)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: accentColor,
+                          ),
+                        ),
+                        if (purity != null)
+                          Text(
+                            purity == 0.9999 ? '99.99%' : '96.5%',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[400],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
-                trailing: Text(
-                  '฿${formatter.format(amount)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: iconColor,
-                  ),
-                ),
               ),
             );
-          },
+          }),
         );
       },
     );

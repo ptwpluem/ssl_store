@@ -1,3 +1,4 @@
+// lib/widgets/owner_metric_card.dart
 import 'package:flutter/material.dart';
 
 class OwnerMetricCard extends StatelessWidget {
@@ -20,91 +21,159 @@ class OwnerMetricCard extends StatelessWidget {
     this.isHero = false,
   });
 
+  // Slightly darken a color for gradient end-stop
+  Color _darken(Color c, [double amount = 0.18]) {
+    final hsl = HSLColor.fromColor(c);
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isHero ? color : Colors.white,
+        gradient: isHero
+            ? LinearGradient(
+                colors: [color, _darken(color)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        color: isHero ? null : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: isHero ? 0.3 : 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: isHero
+                ? color.withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: isHero ? 16 : 10,
+            offset: Offset(0, isHero ? 8 : 4),
           ),
         ],
-        border: !isHero ? Border.all(color: Colors.grey[200]!) : null,
+        border: isHero
+            ? null
+            : Border.all(color: const Color(0xFFF0F1F3), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
+          splashColor: isHero
+              ? Colors.white.withValues(alpha: 0.10)
+              : color.withValues(alpha: 0.05),
+          highlightColor: isHero
+              ? Colors.white.withValues(alpha: 0.05)
+              : color.withValues(alpha: 0.03),
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: isHero ? 16.0 : 8.0,
+              horizontal: 14.0,
+              vertical: isHero ? 14.0 : 10.0,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isHero 
-                  ? MainAxisAlignment.spaceBetween 
+              mainAxisAlignment: isHero
+                  ? MainAxisAlignment.spaceBetween
                   : MainAxisAlignment.center,
               children: [
+                // ── Top row: icon + optional arrow ──
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: (isHero ? Colors.white : color).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
+                        color: isHero
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         icon,
                         color: isHero ? Colors.white : color,
-                        size: isHero ? 24 : 18,
+                        size: isHero ? 22 : 17,
                       ),
                     ),
                     if (onTap != null)
-                      Icon(
-                        Icons.chevron_right,
-                        color: (isHero ? Colors.white : Colors.grey).withValues(alpha: 0.5),
-                        size: 16,
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: isHero
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : const Color(0xFFF5F7FA),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: isHero
+                              ? Colors.white.withValues(alpha: 0.80)
+                              : Colors.grey[400],
+                        ),
                       ),
                   ],
                 ),
-                SizedBox(height: isHero ? 0 : 4),
+
+                SizedBox(height: isHero ? 0 : 6),
+
+                // ── Bottom: value + subtitle + label ──
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Main value stream
                     if (stream != null) ...[
                       StreamBuilder<String>(
                         stream: stream,
                         builder: (context, snapshot) {
-                          String data = snapshot.data ?? '0';
-                          if (snapshot.hasError) data = 'Error';
+                          final isLoading =
+                              snapshot.connectionState ==
+                              ConnectionState.waiting;
+
+                          if (isLoading) {
+                            // Skeleton placeholder while loading
+                            return Container(
+                              height: isHero ? 26 : 22,
+                              width: 64,
+                              decoration: BoxDecoration(
+                                color: isHero
+                                    ? Colors.white.withValues(alpha: 0.25)
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            );
+                          }
+
+                          final value = snapshot.hasError
+                              ? 'Error'
+                              : (snapshot.data ?? '—');
+
                           return Text(
-                            data,
+                            value,
                             style: TextStyle(
                               fontSize: isHero ? 22 : 18,
                               fontWeight: FontWeight.bold,
-                              color: isHero ? Colors.white : Colors.black87,
+                              color: isHero
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A2E),
                               letterSpacing: -0.5,
                               height: 1.1,
                             ),
                           );
                         },
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 2),
                     ],
+
+                    // Subtitle stream (e.g. overdue/near-due alerts)
                     if (subtitleStream != null) ...[
                       StreamBuilder<String>(
                         stream: subtitleStream,
                         builder: (context, snapshot) {
                           final text = snapshot.data ?? '';
                           if (text.isEmpty) return const SizedBox.shrink();
-                          
+
                           Color textColor = Colors.grey[600]!;
                           if (text.contains('ค้างชำระ')) {
                             textColor = Colors.red[700]!;
@@ -112,24 +181,33 @@ class OwnerMetricCard extends StatelessWidget {
                             textColor = Colors.orange[800]!;
                           }
 
-                          return Text(
-                            text,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: isHero ? Colors.white.withValues(alpha: 0.9) : textColor,
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text(
+                              text,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: isHero
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : textColor,
+                              ),
                             ),
                           );
                         },
                       ),
-                      const SizedBox(height: 1),
                     ],
+
+                    // Card title / label
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: isHero ? 13 : 11,
-                        fontWeight: FontWeight.w600,
-                        color: (isHero ? Colors.white : Colors.grey[600])!.withValues(alpha: 0.8),
+                        fontSize: isHero ? 12 : 11,
+                        fontWeight: FontWeight.w500,
+                        color: isHero
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : Colors.grey[500],
+                        letterSpacing: 0.1,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
