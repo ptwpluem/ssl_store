@@ -162,7 +162,7 @@ This is a **loss of temporal data**. In database theory, this is called losing *
 
 This is particularly serious for a financial auditing context.
 
-**Fix:** Create a `/gold_rate_history` collection where each update creates a new immutable document. The live `/market/gold_rate` document remains for real-time reads.
+**Fix:** Create a `/markethistory` collection where each update creates a new immutable document. The live `/market/gold_rate` document remains for real-time reads.
 
 ---
 
@@ -350,7 +350,7 @@ ROOT COLLECTIONS (proposed)
 │   ├── totalInterestPaid?: number      ← Populated on redemption
 │   └── overdueNoticeSentAt?: Timestamp ← For automated reminder tracking
 │
-├── gold_rate_history/{rateId}           ← NEW COLLECTION (append-only)
+├── markethistory/{rateId}           ← NEW COLLECTION (append-only)
 │   ├── buyPrice, sellPrice
 │   ├── timestamp: Timestamp
 │   ├── recordedBy: string              ← Owner UID
@@ -441,8 +441,8 @@ market/gold_rate  { buyPrice: 41500, sellPrice: 41600 }
 ```
 market/gold_rate  { buyPrice: 41500, sellPrice: 41600, currentRateId: 'GRT-abc' }
 
-gold_rate_history/GRT-abc  { buyPrice: 41500, sellPrice: 41600, timestamp: ..., recordedBy: uid }
-gold_rate_history/GRT-xyz  { buyPrice: 41200, sellPrice: 41300, timestamp: ..., recordedBy: uid }
+markethistory/GRT-abc  { buyPrice: 41500, sellPrice: 41600, timestamp: ..., recordedBy: uid }
+markethistory/GRT-xyz  { buyPrice: 41200, sellPrice: 41300, timestamp: ..., recordedBy: uid }
 (Each update appends a new document — the history is never lost)
 
 transactions/BUY-xxx  { ..., goldRateSnapshotId: 'GRT-abc' }
@@ -515,7 +515,7 @@ A: The key composite indexes needed are:
 - `transactions: (userId ASC, timestamp DESC)` — user transaction history
 - `pawn_loans: (status ASC, dueDate ASC)` — overdue loan monitoring
 - `appointments: (status ASC, date ASC)` — daily appointment calendar
-- `gold_rate_history: (timestamp DESC)` — rate trend display
+- `markethistory: (timestamp DESC)` — rate trend display
 
 These should be declared in `firestore.indexes.json` to ensure they are provisioned before deployment.
 
@@ -530,7 +530,7 @@ These should be declared in `firestore.indexes.json` to ensure they are provisio
 | Soft-delete assets (`status: 'sold'`) | Preserves financial history, fixes dangling references |
 | `/users/{uid}/assets/{id}/events/` | Immutable asset lifecycle audit trail |
 | `/pawn_loans/{loanId}` collection | First-class pawn entity, enables overdue monitoring |
-| `/gold_rate_history/{rateId}` | Preserves price history, enables transaction audit |
+| `/markethistory/{rateId}` | Preserves price history, enables transaction audit |
 | `/products/{id}/inventory_log/` | Inventory audit trail |
 | `appointments.purpose` field | Disambiguates appointment types |
 | `appointments.linkedTransactionId` | Closes the traceability loop |

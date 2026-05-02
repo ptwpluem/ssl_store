@@ -125,7 +125,7 @@ class NotificationsPage extends StatelessWidget {
         iconColor = Colors.grey;
     }
 
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'th');
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return InkWell(
       onTap: () {

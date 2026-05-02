@@ -53,7 +53,9 @@ class _InquiryPageState extends State<InquiryPage> {
                 child: ListTile(
                   leading: const Icon(Icons.shopping_bag, color: Colors.amber),
                   title: const Text('สินค้าที่เลือก'),
-                  subtitle: Text('฿${NumberFormat('#,##0').format(widget.product!.price)}'),
+                  subtitle: Text(
+                    '${widget.product!.weight} บาทน้ำหนัก · ค่ากำเหน็จ ฿${NumberFormat('#,##0').format(widget.product!.laborFee)}',
+                  ),
                   trailing: const Icon(Icons.check_circle, color: Colors.green),
                 ),
               ),

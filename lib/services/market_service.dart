@@ -17,7 +17,7 @@ class MarketService {
   // ─── Gold Rate ────────────────────────────────────────────────────────────
 
   /// Updates the live gold rate AND appends an immutable record to
-  /// gold_rate_history so no historical price data is ever overwritten.
+  /// markethistory so no historical price data is ever overwritten.
   /// Called from the owner dashboard whenever the rate changes.
   Future<void> updateGoldRate({
     required double buyPrice,
@@ -49,14 +49,13 @@ class MarketService {
         'sellPrice': sellPrice,
         'timestamp': FieldValue.serverTimestamp(),
         'trend': trend,
-        'currentRateId': rateId, // cross-reference to the history record
       },
     );
 
     // Append an immutable history record — never deleted, never overwritten.
     // This means every price the shop has ever set is auditable.
     batch.set(
-      FirebaseFirestore.instance.collection('gold_rate_history').doc(rateId),
+      FirebaseFirestore.instance.collection('markethistory').doc(rateId),
       {
         'buyPrice': buyPrice,
         'sellPrice': sellPrice,
@@ -73,7 +72,7 @@ class MarketService {
   /// Returns the most recent gold rate records for trend display.
   Stream<List<Map<String, dynamic>>> getGoldRateHistoryStream({int limit = 30}) {
     return FirebaseFirestore.instance
-        .collection('gold_rate_history')
+        .collection('markethistory')
         .orderBy('timestamp', descending: true)
         .limit(limit)
         .snapshots()

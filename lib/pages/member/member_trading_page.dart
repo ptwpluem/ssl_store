@@ -16,6 +16,15 @@ import '../../widgets/gold_rate_card.dart';
 // Shared formatter — avoids per-build or per-dialog construction
 final _fmt = NumberFormat('#,##0');
 
+// Snap a slider double to the nearest 0.25 multiple and format it cleanly
+// (e.g. 6.5000000000000001 → "6.5",  7.9999999999999999 → "8")
+double _snapWeight(double val) => (val * 4).round() / 4.0;
+
+String _fmtWeight(double w) {
+  final s = w.toStringAsFixed(2);
+  return s.replaceAll(RegExp(r'\.?0+$'), ''); // "8.00" → "8", "6.50" → "6.5"
+}
+
 // ─── Design tokens (matches owner dashboard) ──────────────────────────────────
 const Color _primary     = Color(0xFF800000);
 const Color _primaryDark = Color(0xFF5C0000);
@@ -317,8 +326,8 @@ class _BuyTabState extends State<_BuyTab> {
                         min: 0.25,
                         max: 10,
                         divisions: 39,
-                        label: '$_weight บาท',
-                        onChanged: (val) => setState(() => _weight = val),
+                        label: '${_fmtWeight(_weight)} บาท',
+                        onChanged: (val) => setState(() => _weight = _snapWeight(val)),
                       ),
                     ),
                     Center(
@@ -329,7 +338,7 @@ class _BuyTabState extends State<_BuyTab> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '$_weight บาท',
+                          '${_fmtWeight(_weight)} บาท',
                           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primary),
                         ),
                       ),
@@ -410,7 +419,7 @@ class _BuyTabState extends State<_BuyTab> {
                     else if (_weight == 10.0) { productId = 'p_bar_10'; }
 
                     await widget.tradingService.createBuyTransaction(
-                      assetName: 'ทองคำแท่ง ($_weight บาท)',
+                      assetName: 'ทองคำแท่ง (${_fmtWeight(_weight)} บาท)',
                       weight: _weight,
                       amount: total,
                       category: 'Gold Bar',

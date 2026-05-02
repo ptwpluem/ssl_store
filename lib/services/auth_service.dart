@@ -95,6 +95,7 @@ class AuthService {
   // Hardcoded list of users who should have the 'owner' role
   static const List<String> _primaryOwners = [
     'owner_account@gmail.com',
+    'owner_account2@test.com',
   ];
 
   // Private helper to ensure user doc exists with basics
@@ -123,7 +124,11 @@ class AuthService {
 
       final Map<String, dynamic> updates = {'lastSeen': FieldValue.serverTimestamp()};
       if (data['uid'] == null) updates['uid'] = user.uid;
-      if (existingRole != intendedRole) updates['role'] = intendedRole;
+      // Never downgrade a manually-elevated 'owner' back to 'user'.
+      // Only update role if: promoting to owner, OR the user isn't already an owner.
+      if (existingRole != intendedRole && !(existingRole == 'owner' && intendedRole == 'user')) {
+        updates['role'] = intendedRole;
+      }
 
       await doc.reference.update(updates);
       // Mirror role to /roles/{authUID} for use in Firestore security rules.

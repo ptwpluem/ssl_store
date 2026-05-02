@@ -1,6 +1,8 @@
 // lib/pages/owner/owner_overview_tab.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'owner_wallets_page.dart';
 import 'owner_pawns_page.dart';
@@ -11,6 +13,7 @@ import 'owner_inventory_cost_page.dart';
 import 'owner_sell_transactions_page.dart';
 import 'owner_savings_transactions_page.dart';
 import '../../services/trading_service.dart';
+import '../../services/market_service.dart';
 import '../../widgets/owner_metric_card.dart';
 import '../../utils/date_formatters.dart';
 
@@ -110,6 +113,10 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildGoldRateCard(),
+                const SizedBox(height: 14),
+                _buildRateHistoryCard(),
+                const SizedBox(height: 24),
                 _buildMetricsGrid(context),
                 const SizedBox(height: 28),
                 _sectionHeader('ความเคลื่อนไหวล่าสุด',
@@ -284,6 +291,641 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           ),
         ),
       ],
+    );
+  }
+
+  // ─── Gold Rate Card ───────────────────────────────────────────────────────
+
+  Widget _buildGoldRateCard() {
+    final numFmt = NumberFormat('#,##0');
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('market')
+          .doc('gold_rate')
+          .snapshots(),
+      builder: (context, snapshot) {
+        double buyPrice = 0;
+        double sellPrice = 0;
+        String trend = 'stable';
+        DateTime? updatedAt;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          buyPrice = (data['buyPrice'] as num?)?.toDouble() ?? 0;
+          sellPrice = (data['sellPrice'] as num?)?.toDouble() ?? 0;
+          trend = data['trend'] as String? ?? 'stable';
+          updatedAt = (data['timestamp'] as Timestamp?)?.toDate();
+        }
+
+        final trendIcon = trend == 'up'
+            ? Icons.trending_up_rounded
+            : trend == 'down'
+                ? Icons.trending_down_rounded
+                : Icons.trending_flat_rounded;
+        final trendColor = trend == 'up'
+            ? const Color(0xFF2E7D32)
+            : trend == 'down'
+                ? const Color(0xFFC62828)
+                : const Color(0xFF757575);
+
+        final timeLabel = updatedAt != null
+            ? 'อัปเดต ${DateFormat('d MMM HH:mm').format(updatedAt)}'
+            : 'ยังไม่มีข้อมูลราคา';
+
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6D1A1A), Color(0xFF800000)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF800000).withValues(alpha: 0.30),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row
+                Row(
+                  children: [
+                    const Icon(Icons.bar_chart_rounded,
+                        color: Colors.white70, size: 16),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'ราคาทองวันนี้',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(trendIcon, color: trendColor, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeLabel,
+                      style: const TextStyle(
+                          color: Colors.white54, fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Price row
+                Row(
+                  children: [
+                    // Buy price
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ราคารับซื้อ',
+                            style: TextStyle(
+                                color: Colors.white60, fontSize: 11),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            buyPrice > 0
+                                ? '฿${numFmt.format(buyPrice)}'
+                                : '—',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const Text(
+                            'ต่อบาทน้ำหนัก',
+                            style: TextStyle(
+                                color: Colors.white38, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 48,
+                      color: Colors.white24,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    // Sell price
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'ราคาขาย',
+                            style: TextStyle(
+                                color: Colors.white60, fontSize: 11),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            sellPrice > 0
+                                ? '฿${numFmt.format(sellPrice)}'
+                                : '—',
+                            style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const Text(
+                            'ต่อบาทน้ำหนัก',
+                            style: TextStyle(
+                                color: Colors.white38, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Update button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => _showGoldRateUpdateDialog(
+                        context, buyPrice, sellPrice),
+                    icon: const Icon(Icons.edit_rounded,
+                        size: 16, color: Colors.white),
+                    label: const Text(
+                      'อัปเดตราคาทอง',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.30)),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── Gold Rate Update Dialog ──────────────────────────────────────────────
+
+  Future<void> _showGoldRateUpdateDialog(
+      BuildContext context, double currentBuy, double currentSell) async {
+    final formKey = GlobalKey<FormState>();
+    final buyCtrl = TextEditingController(
+        text: currentBuy > 0 ? currentBuy.toStringAsFixed(0) : '');
+    final sellCtrl = TextEditingController(
+        text: currentSell > 0 ? currentSell.toStringAsFixed(0) : '');
+
+    bool isLoading = false;
+    final numFmt = NumberFormat('#,##0');
+
+    await showDialog(
+      context: context,
+      barrierDismissible: !isLoading,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            // Live spread — recomputed every rebuild triggered by onChanged
+            final buyVal   = double.tryParse(buyCtrl.text)  ?? 0.0;
+            final sellVal  = double.tryParse(sellCtrl.text) ?? 0.0;
+            final spread   = sellVal - buyVal;
+            final showSpread = buyVal > 0 && sellVal > 0;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.bar_chart_rounded,
+                        color: _primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'อัปเดตราคาทอง',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ราคาต่อบาทน้ำหนัก (บาท)',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 14),
+                    // Buy price field
+                    TextFormField(
+                      controller: buyCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'ราคารับซื้อ (บาท)',
+                        prefixIcon: const Icon(Icons.arrow_downward_rounded,
+                            color: Color(0xFF2E7D32), size: 20),
+                        prefixText: '฿ ',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: _primary, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFFAFAFA),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'กรุณาใส่ราคารับซื้อ';
+                        }
+                        final val = double.tryParse(v);
+                        if (val == null || val <= 0) {
+                          return 'ราคาต้องมากกว่า 0';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    // Sell price field
+                    TextFormField(
+                      controller: sellCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'ราคาขาย (บาท)',
+                        prefixIcon: const Icon(Icons.arrow_upward_rounded,
+                            color: Color(0xFF800000), size: 20),
+                        prefixText: '฿ ',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: _primary, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFFAFAFA),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'กรุณาใส่ราคาขาย';
+                        }
+                        final val = double.tryParse(v);
+                        if (val == null || val <= 0) {
+                          return 'ราคาต้องมากกว่า 0';
+                        }
+                        final buyVal = double.tryParse(buyCtrl.text) ?? 0;
+                        if (val < buyVal) {
+                          return 'ราคาขายต้องไม่ต่ำกว่าราคารับซื้อ';
+                        }
+                        return null;
+                      },
+                    ),
+                    // ── Live spread indicator ──────────────────────────────
+                    if (showSpread) ...[
+                      const SizedBox(height: 12),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: spread >= 0
+                              ? const Color(0xFFF0FDF4)
+                              : const Color(0xFFFFF0F0),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: spread >= 0
+                                ? const Color(0xFF86EFAC)
+                                : const Color(0xFFFCA5A5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.swap_vert_rounded,
+                              size: 16,
+                              color: spread >= 0
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFDC2626),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'ส่วนต่าง (Spread)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '฿${numFmt.format(spread.abs())}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: spread >= 0
+                                    ? const Color(0xFF16A34A)
+                                    : const Color(0xFFDC2626),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actionsPadding:
+                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              actions: [
+                TextButton(
+                  onPressed:
+                      isLoading ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('ยกเลิก',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+
+                          setDialogState(() => isLoading = true);
+
+                          try {
+                            final uid = FirebaseAuth
+                                    .instance.currentUser?.uid ??
+                                'unknown';
+                            await MarketService().updateGoldRate(
+                              buyPrice:
+                                  double.parse(buyCtrl.text),
+                              sellPrice:
+                                  double.parse(sellCtrl.text),
+                              updatedByUid: uid,
+                            );
+
+                            if (dialogContext.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      '✅ อัปเดตราคาทองสำเร็จ'),
+                                  backgroundColor:
+                                      Color(0xFF2E7D32),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() => isLoading = false);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      '❌ เกิดข้อผิดพลาด: $e'),
+                                  backgroundColor:
+                                      const Color(0xFFC62828),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('บันทึก',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    buyCtrl.dispose();
+    sellCtrl.dispose();
+  }
+
+  // ─── Rate History Card ────────────────────────────────────────────────────
+
+  Widget _buildRateHistoryCard() {
+    final numFmt = NumberFormat('#,##0');
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: MarketService().getGoldRateHistoryStream(limit: 5),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFF0F1F3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.history_rounded,
+                          color: _primary, size: 15),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'ประวัติอัตราล่าสุด',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: _textDark,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${items.length} รายการล่าสุด',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFF0F1F3)),
+
+              // History rows
+              ...List.generate(items.length, (index) {
+                final item    = items[index];
+                final buy     = (item['buyPrice']  as num?)?.toDouble() ?? 0;
+                final sell    = (item['sellPrice'] as num?)?.toDouble() ?? 0;
+                final trend   = item['trend'] as String? ?? 'stable';
+                final ts      = item['timestamp'] as DateTime? ?? DateTime.now();
+
+                final trendIcon  = trend == 'up'
+                    ? Icons.trending_up_rounded
+                    : trend == 'down'
+                        ? Icons.trending_down_rounded
+                        : Icons.trending_flat_rounded;
+                final trendColor = trend == 'up'
+                    ? const Color(0xFF16A34A)
+                    : trend == 'down'
+                        ? const Color(0xFFDC2626)
+                        : Colors.grey;
+
+                final isLast = index == items.length - 1;
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      child: Row(
+                        children: [
+                          // Trend icon
+                          Icon(trendIcon, size: 16, color: trendColor),
+                          const SizedBox(width: 10),
+
+                          // Timestamp
+                          Expanded(
+                            child: Text(
+                              DateFormat('d MMM HH:mm').format(ts),
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[600]),
+                            ),
+                          ),
+
+                          // Buy
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '฿${numFmt.format(buy)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _textDark,
+                                ),
+                              ),
+                              Text('รับซื้อ',
+                                  style: TextStyle(
+                                      fontSize: 9, color: Colors.grey[400])),
+                            ],
+                          ),
+                          Container(
+                            width: 1,
+                            height: 24,
+                            color: const Color(0xFFE9EAEC),
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+
+                          // Sell
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '฿${numFmt.format(sell)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF800000),
+                                ),
+                              ),
+                              Text('ขาย',
+                                  style: TextStyle(
+                                      fontSize: 9, color: Colors.grey[400])),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isLast)
+                      const Divider(
+                          height: 1,
+                          indent: 42,
+                          color: Color(0xFFF5F5F5)),
+                  ],
+                );
+              }),
+
+              const SizedBox(height: 4),
+            ],
+          ),
+        );
+      },
     );
   }
 

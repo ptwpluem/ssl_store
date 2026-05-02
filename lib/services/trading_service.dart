@@ -333,6 +333,7 @@ class TradingService {
   Future<void> _runRepairs() async {
     if (_repairsRun) return;
     _repairsRun = true;
+    await _cleanupPhantomPawnAssets(); // Must run before repair to avoid false-negatives
     await _repairMissingPawnAssets();
     await repairAllTransactions();
   }
@@ -387,16 +388,26 @@ class TradingService {
   }
 
   Future<void> _repairMissingPawnAssets() async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    // Only repair pawn assets that belong to the CURRENT user.
+    // Previously this queried all pawn transactions globally, which — combined
+    // with the getUserDocRef email-fallback bug — caused every user's phantom
+    // pawn assets to be written into the first user who triggered the repair.
     final query = await FirebaseFirestore.instance
-        .collection('transactions').where('type', isEqualTo: 'pawn').get();
+        .collection('transactions')
+        .where('type', isEqualTo: 'pawn')
+        .where('userId', isEqualTo: uid)
+        .get();
     if (query.docs.isEmpty) return;
+
+    final userRef = await getUserDocRef(uid);
     final batch = FirebaseFirestore.instance.batch();
+    bool needed = false;
     for (var txDoc in query.docs) {
       final data = txDoc.data();
-      final uid = data['userId'] as String?;
-      if (uid == null) continue;
       final txId = txDoc.id.replaceAll(RegExp(r'[^0-9]'), '');
-      final userRef = await getUserDocRef(uid);
       final assetRef = userRef.collection('assets').doc('a$txId');
       final assetDoc = await assetRef.get();
       if (!assetDoc.exists) {
@@ -405,14 +416,53 @@ class TradingService {
           'name': data['details']?.toString().split(':').last.trim() ?? 'Pawned Item',
           'weight': (data['weight'] as num?)?.toDouble() ?? 1.0,
           'category': 'General',
-          'acquisitionDate': ts, 'acquisitionPrice': (data['amount'] as num?)?.toDouble() ?? 0.0,
-          'status': 'pawned', 'loanAmount': (data['amount'] as num?)?.toDouble() ?? 0.0,
+          'acquisitionDate': ts,
+          'acquisitionPrice': (data['amount'] as num?)?.toDouble() ?? 0.0,
+          'status': 'pawned',
+          'loanAmount': (data['amount'] as num?)?.toDouble() ?? 0.0,
           'pawnDate': ts,
           'dueDate': Timestamp.fromDate(ts.toDate().add(const Duration(days: 30))),
         });
+        needed = true;
       }
     }
-    await batch.commit();
+    if (needed) await batch.commit();
+  }
+
+  /// Removes phantom pawn-asset documents that were incorrectly written to the
+  /// current user's assets subcollection by the old global repair function.
+  ///
+  /// A phantom asset has the ID pattern `a{digits}` (e.g. a000004, a1772512076877)
+  /// and has no corresponding pawn transaction owned by this user.
+  Future<void> _cleanupPhantomPawnAssets() async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    final userRef = await getUserDocRef(uid);
+
+    // Build the set of legitimate 'a{digits}' suffixes from own pawn transactions
+    final ownPawnSnap = await FirebaseFirestore.instance
+        .collection('transactions')
+        .where('type', isEqualTo: 'pawn')
+        .where('userId', isEqualTo: uid)
+        .get();
+    final validSuffixes = ownPawnSnap.docs
+        .map((tx) => tx.id.replaceAll(RegExp(r'[^0-9]'), ''))
+        .toSet();
+
+    final assetsSnap = await userRef.collection('assets').get();
+    final batch = FirebaseFirestore.instance.batch();
+    bool needed = false;
+    for (var assetDoc in assetsSnap.docs) {
+      // Phantom assets follow the pattern 'a' + digits only (no letters after 'a')
+      if (!RegExp(r'^a\d+$').hasMatch(assetDoc.id)) continue;
+      final suffix = assetDoc.id.substring(1);
+      if (!validSuffixes.contains(suffix)) {
+        batch.delete(assetDoc.reference);
+        needed = true;
+      }
+    }
+    if (needed) await batch.commit();
   }
 
   Future<String> _getDisplayName(String uid) async {

@@ -32,7 +32,6 @@ class CatalogService {
               id: doc.id,
               name: data['name'] ?? 'ไม่ทราบชื่อสินค้า',
               description: data['description'] ?? '',
-              price: (data['price'] ?? 0 as num).toDouble(),
               weight: (data['weight'] ?? 0 as num).toDouble(),
               laborFee: (data['laborFee'] ?? 0 as num).toDouble(),
               costBasis: (data['costBasis'] ?? 0 as num).toDouble(),
@@ -133,11 +132,27 @@ class CatalogService {
     bool needed = false;
     for (var doc in snap.docs) {
       final data = doc.data();
+      final Map<String, dynamic> updates = {};
+
+      // Backfill costBasis for legacy docs that are missing it
       if (data['costBasis'] == null) {
-        final price = (data['price'] as num?)?.toDouble() ?? 0.0;
         final weight = (data['weight'] as num?)?.toDouble() ?? 0.0;
-        final cost = (weight > 0 && price == 0) ? weight * 40000.0 : price * 0.9;
-        batch.update(doc.reference, {'costBasis': cost});
+        updates['costBasis'] = weight * 40000.0; // fallback estimate at ฿40,000/บาท
+      }
+
+      // Backfill inStock for legacy docs (derive from current stock count)
+      if (data['inStock'] == null) {
+        final stock = (data['stock'] as num?)?.toInt() ?? 0;
+        updates['inStock'] = stock > 0;
+      }
+
+      // Backfill createdAt for legacy docs (use a sentinel — exact date unknown)
+      if (data['createdAt'] == null) {
+        updates['createdAt'] = FieldValue.serverTimestamp();
+      }
+
+      if (updates.isNotEmpty) {
+        batch.update(doc.reference, updates);
         needed = true;
       }
     }
@@ -180,35 +195,38 @@ class CatalogService {
     final ref = FirebaseFirestore.instance.collection('products');
     final items = [
       // สร้อยคอ
-      {'name': 'สร้อยคอทองคำ ลายสี่เสา', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายสี่เสา ดีไซน์คลาสสิก', 'price': 42000.0, 'weight': 1.0, 'costBasis': 40000.0, 'stock': 15, 'imageUrl': 'assets/images/prod_necklace_si_sao.png', 'category': 'สร้อยคอ'},
-      {'name': 'สร้อยคอทองคำ ลายเบนซ์', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายเบนซ์ เรียบหรู', 'price': 21500.0, 'weight': 0.5, 'costBasis': 20000.0, 'stock': 10, 'imageUrl': 'assets/images/prod_necklace_benz.png', 'category': 'สร้อยคอ'},
-      {'name': 'สร้อยคอทองคำ ลายคดกริช', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายคดกริช งานละเอียด', 'price': 11000.0, 'weight': 0.25, 'costBasis': 10000.0, 'stock': 20, 'imageUrl': 'assets/images/prod_necklace_kod_grit.png', 'category': 'สร้อยคอ'},
+      {'name': 'สร้อยคอทองคำ ลายสี่เสา', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายสี่เสา ดีไซน์คลาสสิก', 'weight': 1.0, 'laborFee': 2000.0, 'costBasis': 40000.0, 'stock': 15, 'imageUrl': 'assets/images/prod_necklace_si_sao.png', 'category': 'สร้อยคอ'},
+      {'name': 'สร้อยคอทองคำ ลายเบนซ์', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายเบนซ์ เรียบหรู', 'weight': 0.5, 'laborFee': 1500.0, 'costBasis': 20000.0, 'stock': 10, 'imageUrl': 'assets/images/prod_necklace_benz.png', 'category': 'สร้อยคอ'},
+      {'name': 'สร้อยคอทองคำ ลายคดกริช', 'description': 'สร้อยคอทองคำแท้ 96.5% ลายคดกริช งานละเอียด', 'weight': 0.25, 'laborFee': 1000.0, 'costBasis': 10000.0, 'stock': 20, 'imageUrl': 'assets/images/prod_necklace_kod_grit.png', 'category': 'สร้อยคอ'},
       // แหวน
-      {'name': 'แหวนทองคำ ลายมังกร', 'description': 'แหวนทองคำแท้ 96.5% แกะสลักลายมังกร', 'price': 21500.0, 'weight': 0.5, 'costBasis': 20000.0, 'stock': 8, 'imageUrl': 'assets/images/prod_ring_dragon.png', 'category': 'แหวน'},
-      {'name': 'แหวนทองคำ ลายเกลี้ยง', 'description': 'แหวนทองคำแท้ 96.5% แบบเรียบเกลี้ยง', 'price': 10800.0, 'weight': 0.25, 'costBasis': 10000.0, 'stock': 25, 'imageUrl': 'assets/images/prod_ring_plain.png', 'category': 'แหวน'},
-      {'name': 'แหวนทองคำ ลายหัวใจ', 'description': 'แหวนทองคำแท้ 96.5% รูปหัวใจ น่ารัก', 'price': 6500.0, 'weight': 0.125, 'costBasis': 5500.0, 'stock': 30, 'imageUrl': 'assets/images/prod_ring_heart.png', 'category': 'แหวน'},
+      {'name': 'แหวนทองคำ ลายมังกร', 'description': 'แหวนทองคำแท้ 96.5% แกะสลักลายมังกร', 'weight': 0.5, 'laborFee': 1500.0, 'costBasis': 20000.0, 'stock': 8, 'imageUrl': 'assets/images/prod_ring_dragon.png', 'category': 'แหวน'},
+      {'name': 'แหวนทองคำ ลายเกลี้ยง', 'description': 'แหวนทองคำแท้ 96.5% แบบเรียบเกลี้ยง', 'weight': 0.25, 'laborFee': 800.0, 'costBasis': 10000.0, 'stock': 25, 'imageUrl': 'assets/images/prod_ring_plain.png', 'category': 'แหวน'},
+      {'name': 'แหวนทองคำ ลายหัวใจ', 'description': 'แหวนทองคำแท้ 96.5% รูปหัวใจ น่ารัก', 'weight': 0.125, 'laborFee': 500.0, 'costBasis': 5500.0, 'stock': 30, 'imageUrl': 'assets/images/prod_ring_heart.png', 'category': 'แหวน'},
       // สร้อยข้อมือ
-      {'name': 'สร้อยข้อมือ ลายมีนา', 'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายมีนา', 'price': 42500.0, 'weight': 1.0, 'costBasis': 40000.0, 'stock': 12, 'imageUrl': 'assets/images/prod_bracelet_meena.png', 'category': 'สร้อยข้อมือ'},
-      {'name': 'สร้อยข้อมือ ลายพิกุล', 'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายพิกุล งานไทยโบราณ', 'price': 85000.0, 'weight': 2.0, 'costBasis': 80000.0, 'stock': 5, 'imageUrl': 'assets/images/prod_bracelet_pikul.png', 'category': 'สร้อยข้อมือ'},
-      {'name': 'กำไลทองคำ เกลี้ยงกลม', 'description': 'กำไลทองคำแท้ 96.5% แบบกลมเรียบ', 'price': 21800.0, 'weight': 0.5, 'costBasis': 20000.0, 'stock': 15, 'imageUrl': 'assets/images/prod_bracelet_plain_bangle.png', 'category': 'สร้อยข้อมือ'},
+      {'name': 'สร้อยข้อมือ ลายมีนา', 'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายมีนา', 'weight': 1.0, 'laborFee': 2500.0, 'costBasis': 40000.0, 'stock': 12, 'imageUrl': 'assets/images/prod_bracelet_meena.png', 'category': 'สร้อยข้อมือ'},
+      {'name': 'สร้อยข้อมือ ลายพิกุล', 'description': 'สร้อยข้อมือทองคำแท้ 96.5% ลายพิกุล งานไทยโบราณ', 'weight': 2.0, 'laborFee': 5000.0, 'costBasis': 80000.0, 'stock': 5, 'imageUrl': 'assets/images/prod_bracelet_pikul.png', 'category': 'สร้อยข้อมือ'},
+      {'name': 'กำไลทองคำ เกลี้ยงกลม', 'description': 'กำไลทองคำแท้ 96.5% แบบกลมเรียบ', 'weight': 0.5, 'laborFee': 1800.0, 'costBasis': 20000.0, 'stock': 15, 'imageUrl': 'assets/images/prod_bracelet_plain_bangle.png', 'category': 'สร้อยข้อมือ'},
       // ต่างหู
-      {'name': 'ต่างหูทองคำ ลายพิกุล', 'description': 'ต่างหูทองคำแท้ 96.5% ลายพิกุล', 'price': 5800.0, 'weight': 0.125, 'costBasis': 5000.0, 'stock': 20, 'imageUrl': 'assets/images/prod_earring_pikul.png', 'category': 'ต่างหู'},
-      {'name': 'ต่างหูทองคำ ห่วงกลม', 'description': 'ต่างหูทองคำแท้ 96.5% แบบห่วง', 'price': 10800.0, 'weight': 0.25, 'costBasis': 9500.0, 'stock': 18, 'imageUrl': 'assets/images/prod_earring_hoop.png', 'category': 'ต่างหู'},
-      {'name': 'ต่างหูทองคำ แป้นหัวใจ', 'description': 'ต่างหูทองคำแท้ 96.5% แป้นรูปหัวใจ', 'price': 5500.0, 'weight': 0.125, 'costBasis': 4800.0, 'stock': 22, 'imageUrl': 'assets/images/prod_earring_heart.png', 'category': 'ต่างหู'},
+      {'name': 'ต่างหูทองคำ ลายพิกุล', 'description': 'ต่างหูทองคำแท้ 96.5% ลายพิกุล', 'weight': 0.125, 'laborFee': 800.0, 'costBasis': 5000.0, 'stock': 20, 'imageUrl': 'assets/images/prod_earring_pikul.png', 'category': 'ต่างหู'},
+      {'name': 'ต่างหูทองคำ ห่วงกลม', 'description': 'ต่างหูทองคำแท้ 96.5% แบบห่วง', 'weight': 0.25, 'laborFee': 1300.0, 'costBasis': 9500.0, 'stock': 18, 'imageUrl': 'assets/images/prod_earring_hoop.png', 'category': 'ต่างหู'},
+      {'name': 'ต่างหูทองคำ แป้นหัวใจ', 'description': 'ต่างหูทองคำแท้ 96.5% แป้นรูปหัวใจ', 'weight': 0.125, 'laborFee': 700.0, 'costBasis': 4800.0, 'stock': 22, 'imageUrl': 'assets/images/prod_earring_heart.png', 'category': 'ต่างหู'},
       // ทองคำแท่ง (used by savings physical withdrawal — not shown in customer catalog)
-      {'name': 'ทองคำแท่ง 0.25 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.25 บาท', 'price': 10250.0, 'weight': 0.25, 'costBasis': 10000.0, 'stock': 100, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
-      {'name': 'ทองคำแท่ง 0.5 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.5 บาท', 'price': 20500.0, 'weight': 0.5, 'costBasis': 20000.0, 'stock': 50, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
-      {'name': 'ทองคำแท่ง 1 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 1 บาท', 'price': 41000.0, 'weight': 1.0, 'costBasis': 40000.0, 'stock': 30, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
+      {'name': 'ทองคำแท่ง 0.25 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.25 บาท', 'weight': 0.25, 'laborFee': 0.0, 'costBasis': 10000.0, 'stock': 100, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
+      {'name': 'ทองคำแท่ง 0.5 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 0.5 บาท', 'weight': 0.5, 'laborFee': 0.0, 'costBasis': 20000.0, 'stock': 50, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
+      {'name': 'ทองคำแท่ง 1 บาท', 'description': 'ทองคำแท่งแท้ 96.5% น้ำหนัก 1 บาท', 'weight': 1.0, 'laborFee': 0.0, 'costBasis': 40000.0, 'stock': 30, 'imageUrl': 'assets/images/prod_gold_bar.png', 'category': 'ทองคำแท่ง'},
     ];
 
     for (var item in items) {
       final id = await _ids.generateId('products');
       final weight = (item['weight'] as num).toDouble();
       final category = item['category'] as String;
+      final stock = (item['stock'] as num?)?.toInt() ?? 0;
       await ref.doc(id).set({
         ...item,
         'id': id,
         'laborFee': PriceCalculationService.calculateLaborFee(category, weight),
+        'inStock': stock > 0,
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
   }

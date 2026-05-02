@@ -130,11 +130,11 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // ─── gold rate history ────────────────────────────────────────────────
+    // ─── market history ───────────────────────────────────────────────────
     // Append-only audit trail of every price the shop has ever set.
     // Readable by any authenticated user (for trend charts etc.).
     // Only owner can write; nobody can delete or update historical records.
-    match /gold_rate_history/{rateId} {
+    match /markethistory/{rateId} {
       allow read:   if isAuth();
       allow create: if isOwner();
       allow update, delete: if false;

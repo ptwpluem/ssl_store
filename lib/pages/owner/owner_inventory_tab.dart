@@ -1,5 +1,6 @@
 // lib/pages/owner/owner_inventory_tab.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../services/catalog_service.dart';
@@ -274,7 +275,7 @@ class OwnerInventoryTab extends StatelessWidget {
                   color: const Color(0xFF1976D2),
                   bgColor: const Color(0xFFEFF6FF),
                   tooltip: 'เติมสินค้า',
-                  onTap: () => _showRestockDialog(context, docId, name),
+                  onTap: () => _showRestockDialog(context, docId, name, weight),
                 ),
                 const SizedBox(height: 6),
                 _actionButton(
@@ -339,150 +340,215 @@ class OwnerInventoryTab extends StatelessWidget {
   // ─── Restock Dialog ───────────────────────────────────────────────────────
 
   void _showRestockDialog(
-      BuildContext context, String productId, String productName) {
-    final qtyController = TextEditingController(text: '1');
-    final costController = TextEditingController();
+      BuildContext context, String productId, String productName, double weight) {
+    final qtyCtrl = TextEditingController(text: '1');
+    final unitCostCtrl = TextEditingController();
+    final fmt = NumberFormat('#,##0');
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-        contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.add_box_rounded,
-                  color: Color(0xFF1976D2), size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('เติมสินค้า',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(
-                    productName,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                        fontWeight: FontWeight.normal),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final qty = int.tryParse(qtyCtrl.text) ?? 0;
+          final unitCost = double.tryParse(unitCostCtrl.text) ?? 0.0;
+          final totalCost = qty * unitCost;
+          final hasTotal = qty > 0 && unitCost > 0;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            TextField(
-              controller: qtyController,
-              decoration: InputDecoration(
-                labelText: 'จำนวนที่เติม',
-                prefixIcon: const Icon(Icons.add_shopping_cart_rounded,
-                    size: 20),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: const Color(0xFFF5F7FA),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: costController,
-              decoration: InputDecoration(
-                labelText: 'ราคาทุนรวม (บาท)',
-                prefixIcon:
-                    const Icon(Icons.payments_rounded, size: 20),
-                prefixText: '฿ ',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: const Color(0xFFF5F7FA),
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('ยกเลิก'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.check_rounded, size: 16),
-            label: const Text('ยืนยัน'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976D2),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              final qty = int.tryParse(qtyController.text) ?? 0;
-              final cost =
-                  double.tryParse(costController.text) ?? 0.0;
-              if (qty <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('กรุณาระบุจำนวนที่ถูกต้อง'),
-                    behavior: SnackBarBehavior.floating,
+                  child: const Icon(Icons.add_box_rounded,
+                      color: Color(0xFF1976D2), size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('เติมสินค้า',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                        productName,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                            fontWeight: FontWeight.normal),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                );
-                return;
-              }
-              try {
-                await CatalogService().restockProduct(
-                  productId: productId,
-                  productName: productName,
-                  quantity: qty,
-                  totalCost: cost,
-                );
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'อัปเดตสต็อกและบันทึกข้อมูลต้นทุนเรียบร้อยแล้ว'),
-                      behavior: SnackBarBehavior.floating,
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+
+                // ── Quantity ──────────────────────────────────────────
+                TextField(
+                  controller: qtyCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'จำนวนที่เติม (ชิ้น)',
+                    prefixIcon: const Icon(
+                        Icons.add_shopping_cart_rounded, size: 20),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FA),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+                const SizedBox(height: 12),
+
+                // ── Unit cost ─────────────────────────────────────────
+                TextField(
+                  controller: unitCostCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'ต้นทุนต่อชิ้น (฿)',
+                    prefixIcon:
+                        const Icon(Icons.payments_rounded, size: 20),
+                    prefixText: '฿ ',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FA),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d*')),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // ── Total cost summary ────────────────────────────────
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: hasTotal
+                        ? const Color(0xFFEFF6FF)
+                        : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasTotal
+                          ? const Color(0xFF1976D2).withValues(alpha: 0.3)
+                          : Colors.grey[200]!,
                     ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        ],
+                  ),
+                  child: hasTotal
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'รวมต้นทุนทั้งหมด',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '฿${fmt.format(totalCost)}',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1976D2),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$qty ชิ้น × ฿${fmt.format(unitCost.round())} = ฿${fmt.format(totalCost)}',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[500]),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'กรอกจำนวนและต้นทุนต่อชิ้นเพื่อดูยอดรวม',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[400]),
+                        ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('ยกเลิก'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.check_rounded, size: 16),
+                label: const Text('ยืนยัน'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: !hasTotal
+                    ? null // disable until both fields are filled
+                    : () async {
+                        try {
+                          await CatalogService().restockProduct(
+                            productId: productId,
+                            productName: productName,
+                            quantity: qty,
+                            totalCost: totalCost,
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '✅ เพิ่ม $qty ชิ้น · ต้นทุนรวม ฿${fmt.format(totalCost)}',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xFF2E7D32),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('❌ เกิดข้อผิดพลาด: $e'),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
