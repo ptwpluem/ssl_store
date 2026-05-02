@@ -27,13 +27,17 @@ class AppointmentService {
     return FirebaseFirestore.instance
         .collection('appointments')
         .where('userId', isEqualTo: uid)
-        // Server-side ordering backed by the composite index:
-        // appointments: (userId ASC, date ASC) in firestore.indexes.json
-        .orderBy('date', descending: false)
+        // Note: orderBy is intentionally omitted here to avoid requiring a
+        // composite Firestore index (userId + date) that may not yet be
+        // deployed. Results are sorted client-side below instead.
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Appointment.fromMap(doc.id, doc.data()))
-            .toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => Appointment.fromMap(doc.id, doc.data()))
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date)); // ascending — soonest first
+          return list;
+        });
   }
 
   /// Owner-facing stream of all scheduled appointments, sorted by date.

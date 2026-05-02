@@ -121,10 +121,20 @@ class TradingService {
     }
 
     final profit = amount - totalCost;
-    final eventId = await _ids.generateId('events');
     final notifId = await _ids.generateId('notifications');
 
+    // Pre-generate one asset ID and one event ID per unit purchased.
+    // IDs must be created outside runTransaction because async calls are not
+    // permitted inside a Firestore transaction.
+    final assetIds = <String>[];
+    final assetEventIds = <String>[];
+    for (int i = 0; i < quantity; i++) {
+      assetIds.add(i == 0 ? id : await _ids.generateId('transactions', prefixOverride: 'BUY'));
+      assetEventIds.add(await _ids.generateId('events'));
+    }
+
     // ── Atomic Firestore transaction ──────────────────────────────────────
+    final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
           .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
@@ -170,25 +180,34 @@ class TradingService {
         tx.update(productDoc.reference, {'stock': FieldValue.increment(-quantity)});
       }
 
-      final userRef = await getUserDocRef(uid);
-      final assetRef = userRef.collection('assets').doc(id);
-      tx.set(assetRef, {
-        'name': assetName,
-        'weight': weight,
-        'category': category ?? 'General',
-        'acquisitionDate': FieldValue.serverTimestamp(),
-        'acquisitionPrice': amount,
-        'status': 'owned',
-        'purity': purity,
-      });
+      // ── Create one asset document per unit purchased ─────────────────────
+      // Buying N units produces N individual portfolio entries, each with
+      // per-unit weight and per-unit acquisition price, so the customer's
+      // portfolio correctly shows N separate items they can sell individually.
+      final unitWeight = weight / quantity;
+      final unitPrice  = amount / quantity;
 
-      // ── Asset lifecycle event (immutable audit trail) ────────────────────
-      tx.set(assetRef.collection('events').doc(eventId), {
-        'type': 'acquired',
-        'timestamp': FieldValue.serverTimestamp(),
-        'transactionId': id,
-        'actorId': uid,
-      });
+      for (int i = 0; i < quantity; i++) {
+        final assetRef = userRef.collection('assets').doc(assetIds[i]);
+        tx.set(assetRef, {
+          'name': assetName,
+          'weight': unitWeight,
+          'category': category ?? 'General',
+          'acquisitionDate': FieldValue.serverTimestamp(),
+          'acquisitionPrice': unitPrice,
+          'status': 'owned',
+          'purity': purity,
+        });
+
+        // ── Asset lifecycle event (immutable audit trail) ──────────────────
+        // All per-unit events link back to the same purchase transaction ID.
+        tx.set(assetRef.collection('events').doc(assetEventIds[i]), {
+          'type': 'acquired',
+          'timestamp': FieldValue.serverTimestamp(),
+          'transactionId': id,
+          'actorId': uid,
+        });
+      }
 
       // ── Reward points and lifetime buy total ─────────────────────────────
       tx.set(userRef, {
@@ -197,13 +216,17 @@ class TradingService {
       }, SetOptions(merge: true));
 
       tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
-        'assetId': id,
+        // Primary asset ID (first unit); assetIds contains the full list when
+        // quantity > 1, allowing reconciliation of every portfolio entry.
+        'assetId': assetIds[0],
+        if (quantity > 1) 'assetIds': assetIds,
         'type': TransactionType.buy.name,
         'amount': amount,
         'weight': weight,
+        'quantity': quantity,
         'category': category ?? 'General',
         'timestamp': FieldValue.serverTimestamp(),
-        'details': 'ซื้อ: $assetName ($weight บาท x$quantity)',
+        'details': 'ซื้อ: $assetName (${weight / quantity} บาท x$quantity)',
         'cost': totalCost,
         'profit': profit,
         'purity': purity,
@@ -216,10 +239,14 @@ class TradingService {
         'userDisplayName': displayName,
       });
 
+      final unitWeightForNotif = weight / quantity;
+      final unitLabel = quantity > 1
+          ? '$quantity ชิ้น (${unitWeightForNotif.toStringAsFixed(2)} บาท/ชิ้น)'
+          : '${unitWeightForNotif.toStringAsFixed(2)} บาท';
       tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
         id: notifId,
         title: 'ทำรายการสำเร็จ',
-        message: 'ซื้อ $assetName (${weight.toStringAsFixed(2)} บาท) สำเร็จแล้ว',
+        message: 'ซื้อ $assetName $unitLabel สำเร็จแล้ว',
         type: 'store',
         timestamp: DateTime.now(),
         isRead: false,
@@ -236,12 +263,12 @@ class TradingService {
     final id = await _ids.generateId('transactions', prefixOverride: 'SEL');
     final displayName = await _getDisplayName(uid);
 
+    final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
           .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
       if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
 
-      final userRef = await getUserDocRef(uid);
       final assetRef = userRef.collection('assets').doc(asset.id);
       final assetDoc = await tx.get(assetRef);
       if (!assetDoc.exists) throw Exception('Asset not found in portfolio.');

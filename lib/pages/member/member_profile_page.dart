@@ -52,6 +52,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
+// ─── Design tokens (matches owner dashboard) ──────────────────────────────────
+const Color _guestPrimary     = Color(0xFF800000);
+const Color _guestPrimaryDark = Color(0xFF5C0000);
+const Color _guestGold        = Color(0xFFFFD700);
+
 // ── Guest View (Landing) ─────────────────────────────────────────────────────
 class _ProfileGuestView extends StatelessWidget {
   final VoidCallback onLoginRequest;
@@ -64,95 +69,281 @@ class _ProfileGuestView extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF800000), Color(0xFF330000)], // Deep Brand Maroon to Dark Red
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_guestPrimary, _guestPrimaryDark],
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
-              child: Container(
-                padding: const EdgeInsets.all(32.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          child: Column(
+            children: [
+              // ── Branded header ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                     Container(
-                      padding: const EdgeInsets.all(16),
+                    Container(
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8E1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFFFD700), width: 2),
+                        color: _guestGold.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _guestGold.withValues(alpha: 0.5), width: 1),
                       ),
-                      child: const Icon(Icons.workspace_premium, size: 64, color: Color(0xFF800000)),
+                      child: const Icon(Icons.store_rounded, color: _guestGold, size: 22),
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'ยินดีต้อนรับสู่\nห้างทองสุ้นเซ่งหลี',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'Georgia', // Elegant serif fallback
-                        fontSize: 26, 
-                        fontWeight: FontWeight.bold, 
-                        color: Color(0xFF800000)
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'เข้าสู่ระบบเพื่อดูพอร์ตการลงทุน จัดการการนัดหมาย และติดตามยอดคงเหลือของคุณ',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
-                    ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onLoginRequest,
-                        icon: const Icon(Icons.login),
-                        label: const Text('เข้าสู่ระบบ', style: TextStyle(fontSize: 16)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF800000),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ห้างทองสุ้นเซ่งหลี',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: onSignUpRequest,
-                        icon: const Icon(Icons.person_add),
-                        label: const Text('สมัครสมาชิก', style: TextStyle(fontSize: 16)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF800000),
-                          side: const BorderSide(color: Color(0xFF800000), width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        Text(
+                          'ทองคำบริสุทธิ์ 96.5%',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
+
+              // ── Card ───────────────────────────────────────────────────
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // ── Card header stripe ────────────────────────
+                          Container(
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [_guestPrimary, _guestGold],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+                            child: Column(
+                              children: [
+                                // ── Logo icon ───────────────────────────
+                                Container(
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [_guestPrimary, _guestPrimaryDark],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _guestPrimary.withValues(alpha: 0.35),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.workspace_premium_rounded, size: 48, color: _guestGold),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // ── Title ───────────────────────────────
+                                const Text(
+                                  'ยินดีต้อนรับสู่',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF888888),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'ห้างทองสุ้นเซ่งหลี',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: _guestPrimary,
+                                    letterSpacing: 0.3,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                // ── Feature highlights ──────────────────
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F7FA),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    children: const [
+                                      _FeatureRow(
+                                        icon: Icons.pie_chart_rounded,
+                                        iconColor: Color(0xFF1565C0),
+                                        text: 'ดูพอร์ตการลงทุนและมูลค่าทองของคุณ',
+                                      ),
+                                      SizedBox(height: 10),
+                                      _FeatureRow(
+                                        icon: Icons.account_balance_wallet_rounded,
+                                        iconColor: Color(0xFF2E7D32),
+                                        text: 'ติดตามยอดวอลเล็ตและประวัติรายการ',
+                                      ),
+                                      SizedBox(height: 10),
+                                      _FeatureRow(
+                                        icon: Icons.calendar_month_rounded,
+                                        iconColor: Color(0xFFF57C00),
+                                        text: 'จัดการนัดหมายรับทองที่หน้าร้าน',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+
+                                // ── Login button ────────────────────────
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: onLoginRequest,
+                                    icon: const Icon(Icons.login_rounded, size: 18),
+                                    label: const Text(
+                                      'เข้าสู่ระบบ',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _guestPrimary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      elevation: 2,
+                                      shadowColor: _guestPrimary.withValues(alpha: 0.4),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // ── Register button ─────────────────────
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: onSignUpRequest,
+                                    icon: const Icon(Icons.person_add_rounded, size: 18),
+                                    label: const Text(
+                                      'สมัครสมาชิก',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: _guestPrimary,
+                                      side: const BorderSide(color: _guestPrimary, width: 1.5),
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // ── Footer note ─────────────────────────
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 4, height: 4,
+                                      decoration: BoxDecoration(
+                                        color: _guestGold,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'ราคาทองอ้างอิงจากสมาคมค้าทองคำ',
+                                      style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: 4, height: 4,
+                                      decoration: BoxDecoration(
+                                        color: _guestGold,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Feature row helper ───────────────────────────────────────────────────────
+class _FeatureRow extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String text;
+  const _FeatureRow({required this.icon, required this.iconColor, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF444444), height: 1.4),
+          ),
+        ),
+      ],
     );
   }
 }

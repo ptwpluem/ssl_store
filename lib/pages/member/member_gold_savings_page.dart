@@ -25,6 +25,36 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
 
+  // ── Streams created ONCE in initState ─────────────────────────────────────
+  // Calling getXxxStream() inside build() creates a NEW Firestore listener on
+  // every rebuild.  When setState() fires (e.g. toggling _isLoading) while a
+  // Firestore update is in flight, StreamBuilder cancels the old listener and
+  // subscribes to the new one.  The old listener's final event is delivered
+  // into a widget that is being deactivated, which triggers Flutter's debug
+  // assertion '_dependents.isEmpty is not true'.  Keeping stream objects stable
+  // across rebuilds eliminates that race entirely.
+  late final Stream<User?> _authStream;
+  late final Stream<double> _walletStream;
+  late final Stream<GoldRate> _goldRateStream;
+  late final Stream<GoldSavingsAccount> _savingsAccountStream;
+  late final Stream<List<GoldSavingsTransaction>> _savingsTransactionStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStream              = _authService.user;
+    _walletStream            = _userService.getWalletBalanceStream();
+    _goldRateStream          = _marketService.getGoldRateStream();
+    _savingsAccountStream    = _savingsService.getGoldSavingsAccountStream();
+    _savingsTransactionStream = _savingsService.getGoldSavingsTransactionsStream();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
   void _deposit(double currentBuyPrice, double amount) async { // deposit gold to savings
     if (amount <= 0) return;
 
@@ -165,16 +195,16 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   }
 
   void _showDepositSheet(double currentBuyPrice) { // show deposit sheet
-    showModalBottomSheet(
+    showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetCtx) {
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (sheetCtx, setSheetState) {
             return Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
               ),
               child: Container(
                 decoration: const BoxDecoration(
@@ -201,7 +231,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                           icon: const Icon(Icons.close),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(sheetCtx),
                         ),
                       ],
                     ),
@@ -303,8 +333,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   ) ??
                                   0;
                               if (amount > 0) {
-                                Navigator.pop(context); // close sheet
-                                _deposit(currentBuyPrice, amount);
+                                // Return amount to .then() handler — sheet must fully
+                                // close before _deposit is called to avoid the
+                                // '_dependents.isEmpty' InheritedElement assertion.
+                                Navigator.pop(sheetCtx, amount);
                               }
                             },
                       child: _isLoading
@@ -331,7 +363,14 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           },
         );
       },
-    );
+    ).then((amount) {
+      // Sheet is now fully dismissed — safe to mutate state without racing
+      // against the sheet route's InheritedElement deactivation.
+      _amountController.clear();
+      if (amount != null && amount > 0) {
+        _deposit(currentBuyPrice, amount);
+      }
+    });
   }
 
   Widget _buildQuickAmountButton(double amount, StateSetter setSheetState) {
@@ -362,16 +401,16 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   }
 
   void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) { // show withdraw sheet
-    showModalBottomSheet(
+    showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetCtx) {
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (sheetCtx, setSheetState) {
             return Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
               ),
               child: Container(
                 decoration: const BoxDecoration(
@@ -398,7 +437,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                           icon: const Icon(Icons.close),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(sheetCtx),
                         ),
                       ],
                     ),
@@ -536,10 +575,11 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   ) ??
                                   0;
                               if (val > 0 && val <= currentSavedWeight) {
-                                Navigator.pop(context); // close sheet
-                                _withdraw(currentSellPrice, val);
-                              } else if (val > currentSavedWeight && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                // Return weight to .then() handler — sheet must
+                                // fully close before _withdraw is called.
+                                Navigator.pop(sheetCtx, val);
+                              } else if (val > currentSavedWeight) {
+                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
                                   const SnackBar(
                                     content: Text(
                                       'ไม่สามารถขายเกินจำนวนทองที่มีได้',
@@ -572,7 +612,13 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           },
         );
       },
-    );
+    ).then((weight) {
+      // Sheet is now fully dismissed — safe to mutate state.
+      _amountController.clear();
+      if (weight != null && weight > 0) {
+        _withdraw(currentSellPrice, weight);
+      }
+    });
   }
 
   Widget _buildQuickWeightButton(double weight, StateSetter setSheetState) {
@@ -594,11 +640,11 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   }
 
   void _showPhysicalWithdrawSheet(double currentBuyPrice, double currentSavedWeight) {
-    showModalBottomSheet(
+    showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetCtx) {
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -622,7 +668,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(sheetCtx),
                   ),
                 ],
               ),
@@ -637,7 +683,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
-              
+
               // Withdrawal Options
               Wrap(
                 spacing: 12,
@@ -645,12 +691,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                 children: [0.25, 0.5, 1.0, 2.0].where((w) => w <= currentSavedWeight).map((w) {
                   final fee = w * 300;
                   return InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                      _withdrawPhysical(currentBuyPrice, w);
-                    },
+                    onTap: () => Navigator.pop(sheetCtx, w), // Return weight; .then() calls _withdrawPhysical
                     child: Container(
-                      width: (MediaQuery.of(context).size.width - 60) / 2,
+                      width: (MediaQuery.of(sheetCtx).size.width - 60) / 2,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         border: Border.all(color: const Color(0xFFE65100)),
@@ -692,7 +735,12 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           ),
         );
       },
-    );
+    ).then((weight) {
+      // Sheet is now fully dismissed — safe to call _withdrawPhysical.
+      if (weight != null) {
+        _withdrawPhysical(currentBuyPrice, weight);
+      }
+    });
   }
 
   @override // build UI for gold savings page
@@ -702,7 +750,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         title: const Text('บัญชีออมทอง'),
         actions: [
           StreamBuilder<double>(
-            stream: _userService.getWalletBalanceStream(),
+            stream: _walletStream,
             builder: (context, snapshot) {
               final balance = snapshot.data ?? 0.0;
               return Center(
@@ -724,7 +772,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
       ),
       backgroundColor: const Color(0xFFF5F5F7),
       body: StreamBuilder<User?>( // check user login
-        stream: _authService.user,
+        stream: _authStream,
         builder: (context, authSnapshot) {
           if (authSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -765,10 +813,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
             slivers: [
               SliverToBoxAdapter(
                 child: StreamBuilder<GoldRate>(
-                  stream: _marketService.getGoldRateStream(),
+                  stream: _goldRateStream,
                   builder: (context, rateSnapshot) {
                     return StreamBuilder<GoldSavingsAccount>(
-                      stream: _savingsService.getGoldSavingsAccountStream(),
+                      stream: _savingsAccountStream,
                       builder: (context, accountSnapshot) {
                         final currentBuyPrice =
                             rateSnapshot.data?.buyPrice ?? 40000.0;
@@ -948,7 +996,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
               ),
 
               StreamBuilder<List<GoldSavingsTransaction>>(
-                stream: _savingsService.getGoldSavingsTransactionsStream(),
+                stream: _savingsTransactionStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SliverFillRemaining(

@@ -33,22 +33,13 @@ class _HomePageState extends State<HomePage> {
   final MarketService _marketService = MarketService();
   final NotificationService _notificationService = NotificationService();
   late Stream<GoldRate> _goldRateStream;
+  late final List<Map<String, Object>> _menuItems;
 
   @override
   void initState() {
-    // load data for home page when 1st open
     super.initState();
     _goldRateStream = _marketService.getGoldRateStream();
-  }
-
-  void _navigateTo(Widget page) {
-    // add "back" button on the top left
-    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-  }
-
-  @override // build UI for home page
-  Widget build(BuildContext context) {
-    final menuItems = [ // menu items for home page
+    _menuItems = [
       {
         'title': 'ซื้อทองจากร้าน',
         'icon': Icons.shopping_bag_outlined,
@@ -78,7 +69,15 @@ class _HomePageState extends State<HomePage> {
         'iconColor': const Color(0xFF8E24AA),
       },
     ];
+  }
 
+  void _navigateTo(Widget page) {
+    // add "back" button on the top left
+    Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
@@ -115,10 +114,10 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: menuItems.length,
+                  itemCount: _menuItems.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final item = menuItems[index];
+                    final item = _menuItems[index];
                     final iconColor = item['iconColor'] as Color? ?? _homePrimary;
                     final bgColor  = item['color'] as Color? ?? const Color(0xFFFFF8E1);
 
@@ -380,6 +379,12 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final MarketService _marketService = MarketService();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

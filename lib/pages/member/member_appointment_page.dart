@@ -304,7 +304,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                    Text(isEditing ? 'กำลังแก้ไขรายการ' : 'สินค้าที่ต้องการรับ', style: const TextStyle(fontSize: 14, color: Colors.grey)),
                   const SizedBox(height: 8),
                   Text(assetName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF800000))),
-                  if (!isEditing) Text('Weight: ${_passedAsset!.weight} Baht', style: const TextStyle(fontSize: 14)),
+                  if (!isEditing) Text('น้ำหนัก: ${_passedAsset!.weight} บาท', style: const TextStyle(fontSize: 14)),
                 ],
               ),
             ),

@@ -18,7 +18,7 @@ class _InquiryPageState extends State<InquiryPage> {
   void initState() {
     super.initState();
     if (widget.product != null) {
-      _messageController.text = 'I am interested in the ${widget.product!.name} (Weight: ${widget.product!.weight}g). Is it available?';
+      _messageController.text = 'ฉันสนใจสินค้า ${widget.product!.name} (น้ำหนัก: ${widget.product!.weight} บาท) มีสินค้าอยู่ไหมคะ/ครับ?';
     }
   }
 
@@ -32,7 +32,7 @@ class _InquiryPageState extends State<InquiryPage> {
      if (_messageController.text.isNotEmpty) {
       // In real app, send to API
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message Sent! We will contact you shortly.')),
+        const SnackBar(content: Text('ส่งข้อความแล้ว! เราจะติดต่อกลับหาคุณเร็วๆ นี้')),
       );
       Navigator.pop(context);
     }
@@ -41,7 +41,7 @@ class _InquiryPageState extends State<InquiryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Inquiry')),
+      appBar: AppBar(title: const Text('สอบถามข้อมูล')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -52,13 +52,13 @@ class _InquiryPageState extends State<InquiryPage> {
                 color: Colors.amber[50],
                 child: ListTile(
                   leading: const Icon(Icons.shopping_bag, color: Colors.amber),
-                  title: const Text('Product Selection'),
+                  title: const Text('สินค้าที่เลือก'),
                   subtitle: Text('฿${NumberFormat('#,##0').format(widget.product!.price)}'),
                   trailing: const Icon(Icons.check_circle, color: Colors.green),
                 ),
               ),
             const Text(
-              'How can we help you today?',
+              'เราจะช่วยคุณได้อย่างไร?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -66,7 +66,7 @@ class _InquiryPageState extends State<InquiryPage> {
               controller: _messageController,
               maxLines: 5,
               decoration: const InputDecoration(
-                hintText: 'Type your message here...',
+                hintText: 'พิมพ์ข้อความของคุณที่นี่...',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -75,18 +75,18 @@ class _InquiryPageState extends State<InquiryPage> {
               spacing: 8,
               children: [
                 ActionChip(
-                  label: const Text('Check Availability'),
+                  label: const Text('สอบถามสินค้าในสต็อก'),
                   onPressed: () {
                     setState(() {
-                      _messageController.text = 'Is this item currently in stock?';
+                      _messageController.text = 'มีสินค้านี้ในสต็อกตอนนี้ไหมคะ/ครับ?';
                     });
                   },
                 ),
                 ActionChip(
-                  label: const Text('Request Customization'),
+                  label: const Text('ขอสั่งทำพิเศษ'),
                   onPressed: () {
-                     setState(() {
-                      _messageController.text = 'I would like to request a custom modification for this item.';
+                    setState(() {
+                      _messageController.text = 'ฉันต้องการสั่งทำสินค้าชิ้นนี้แบบพิเศษตามที่ต้องการครับ/ค่ะ';
                     });
                   },
                 ),
@@ -96,7 +96,7 @@ class _InquiryPageState extends State<InquiryPage> {
             ElevatedButton.icon(
               onPressed: _sendMessage,
               icon: const Icon(Icons.send),
-              label: const Text('Send Message'),
+              label: const Text('ส่งข้อความ'),
                style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
                   backgroundColor: Theme.of(context).primaryColor,

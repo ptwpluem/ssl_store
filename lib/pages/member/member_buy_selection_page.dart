@@ -134,7 +134,6 @@ class BuySelectionPage extends StatelessWidget {
   // ─── Decorative header banner ─────────────────────────────────────────────
   Widget _buildHeaderBanner() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -205,27 +204,32 @@ class _SelectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
+    // Shadow lives on the outer Container (not inside Material which clips children).
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        splashColor: accentColor.withValues(alpha: 0.06),
-        highlightColor: accentColor.withValues(alpha: 0.03),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: Row(
+        ],
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          splashColor: accentColor.withValues(alpha: 0.06),
+          highlightColor: accentColor.withValues(alpha: 0.03),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE8E8E8)),
+            ),
+            child: Row(
             children: [
               // Left gold accent stripe
               Container(
@@ -309,6 +313,7 @@ class _SelectionCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

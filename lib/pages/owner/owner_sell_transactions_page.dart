@@ -34,11 +34,13 @@ class OwnerSellTransactionsPage extends StatelessWidget {
           var docs = snapshot.data?.docs ?? [];
 
           if (dateRange != null) {
+            final startDay = DateTime(dateRange!.start.year, dateRange!.start.month, dateRange!.start.day);
+            final endDay = DateTime(dateRange!.end.year, dateRange!.end.month, dateRange!.end.day, 23, 59, 59, 999);
             docs = docs.where((doc) {
               final ts = (doc.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
               if (ts == null) return false;
               final d = ts.toDate();
-              return d.isAfter(dateRange!.start) && d.isBefore(dateRange!.end);
+              return !d.isBefore(startDay) && !d.isAfter(endDay);
             }).toList();
           }
 

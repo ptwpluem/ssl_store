@@ -44,7 +44,28 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     TradingService().repairAllTransactions().catchError((_) {});
   }
 
-  // ─── Data helpers (logic unchanged) ──────────────────────────────────────
+  // ─── Date range helpers ───────────────────────────────────────────────────
+
+  /// Returns true if [timestamp] falls within [_selectedDateRange] (inclusive
+  /// of the full start day through the last millisecond of the end day).
+  /// Always returns true when no date range is selected.
+  bool _inRange(DateTime? timestamp) {
+    if (_selectedDateRange == null || timestamp == null) return true;
+    final startDay = DateTime(
+      _selectedDateRange!.start.year,
+      _selectedDateRange!.start.month,
+      _selectedDateRange!.start.day,
+    );
+    final endDay = DateTime(
+      _selectedDateRange!.end.year,
+      _selectedDateRange!.end.month,
+      _selectedDateRange!.end.day,
+      23, 59, 59, 999,
+    );
+    return !timestamp.isBefore(startDay) && !timestamp.isAfter(endDay);
+  }
+
+  // ─── Data helpers ─────────────────────────────────────────────────────────
 
   Stream<int> _getTypeCountStream(List<String> types) {
     return _firestore
@@ -56,12 +77,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
       for (var doc in snap.docs) {
         final data = doc.data();
         final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-        if (_selectedDateRange != null && timestamp != null) {
-          if (timestamp.isBefore(_selectedDateRange!.start) ||
-              timestamp.isAfter(_selectedDateRange!.end)) {
-            continue;
-          }
-        }
+        if (!_inRange(timestamp)) continue;
         count++;
       }
       return count;
@@ -298,12 +314,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     double total = 0.0;
                     for (var doc in snap.docs) {
                       final data = doc.data();
-                      final timestamp =
-                          (data['timestamp'] as Timestamp?)?.toDate();
-                      if (_selectedDateRange != null && timestamp != null) {
-                        if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) continue;
-                      }
+                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      if (!_inRange(timestamp)) continue;
                       total += (data['profit'] as num?)?.toDouble() ?? 0.0;
                     }
                     return _formatCurrency(total);
@@ -333,12 +345,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     for (var doc in snap.docs) {
                       final data = doc.data();
                       final type = data['type'] as String?;
-                      final timestamp =
-                          (data['timestamp'] as Timestamp?)?.toDate();
-                      if (_selectedDateRange != null && timestamp != null) {
-                        if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) continue;
-                      }
+                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      if (!_inRange(timestamp)) continue;
                       if (type == 'buy') {
                         total += (data['amount'] as num?)?.toDouble() ?? 0.0;
                       } else if (type == 'redeem') {
@@ -364,12 +372,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     double total = 0.0;
                     for (var doc in snap.docs) {
                       final data = doc.data();
-                      final timestamp =
-                          (data['timestamp'] as Timestamp?)?.toDate();
-                      if (_selectedDateRange != null && timestamp != null) {
-                        if (timestamp.isBefore(_selectedDateRange!.start) ||
-                            timestamp.isAfter(_selectedDateRange!.end)) continue;
-                      }
+                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                      if (!_inRange(timestamp)) continue;
                       total += (data['cost'] as num?)?.toDouble() ?? 0.0;
                     }
                     return _formatCurrency(total);

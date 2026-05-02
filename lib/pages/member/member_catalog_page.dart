@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/product.dart';
@@ -23,7 +24,7 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   final CatalogService _catalogService = CatalogService();
   final MarketService _marketService = MarketService();
-  late Stream<GoldRate> _goldRateStream;
+  StreamSubscription<GoldRate>? _rateSub;
   late Stream<List<Product>> _productsStream;
   GoldRate? _currentRate;
 
@@ -42,10 +43,15 @@ class _CatalogPageState extends State<CatalogPage> {
   void initState() {
     super.initState();
     _productsStream = _catalogService.getProductsStream();
-    _goldRateStream = _marketService.getGoldRateStream();
-    _goldRateStream.listen((rate) {
+    _rateSub = _marketService.getGoldRateStream().listen((rate) {
       if (mounted) setState(() => _currentRate = rate);
     });
+  }
+
+  @override
+  void dispose() {
+    _rateSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -227,10 +233,10 @@ class _CatalogPageState extends State<CatalogPage> {
         }
 
         final allCloudProducts = snapshot.data ?? [];
+        final query = _searchQuery.toLowerCase();
+        final backendCategory = _categories[_selectedCategory];
         final productsToShow = allCloudProducts.where((p) {
-          final matchesSearch =
-              p.name.toLowerCase().contains(_searchQuery.toLowerCase());
-          final backendCategory = _categories[_selectedCategory];
+          final matchesSearch = p.name.toLowerCase().contains(query);
           final matchesCategory =
               backendCategory == 'All' || p.category == backendCategory;
           return matchesSearch && matchesCategory;

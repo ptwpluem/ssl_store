@@ -8,6 +8,9 @@ import '../models/gold_rate.dart';
 const Color _cardPrimary = Color(0xFF800000);
 const Color _cardGold    = Color(0xFFFFD700);
 
+// Cached formatter — not rebuilt on every build()
+final _priceFmt = NumberFormat('#,##0');
+
 class ProductCard extends StatelessWidget {
   final Product product;
   final GoldRate? currentRate;
@@ -19,6 +22,30 @@ class ProductCard extends StatelessWidget {
     this.currentRate,
     required this.onTap,
   });
+
+  Widget _buildImage(bool isOutOfStock) {
+    final img = product.imageUrl.startsWith('assets/')
+        ? Image.asset(product.imageUrl, fit: BoxFit.cover)
+        : Image.network(
+            product.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              color: const Color(0xFFF5F7FA),
+              child: Icon(Icons.image_not_supported_rounded,
+                  size: 40, color: Colors.grey[300]),
+            ),
+          );
+    if (!isOutOfStock) return img;
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix([
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0,      0,      0,      1, 0,
+      ]),
+      child: img,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,31 +86,7 @@ class ProductCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: ColorFiltered(
-                      colorFilter: isOutOfStock
-                          ? const ColorFilter.matrix([
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0,      0,      0,      1, 0,
-                            ])
-                          : const ColorFilter.mode(
-                              Colors.transparent, BlendMode.color),
-                      child: product.imageUrl.startsWith('assets/')
-                          ? Image.asset(product.imageUrl, fit: BoxFit.cover)
-                          : Image.network(
-                              product.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: const Color(0xFFF5F7FA),
-                                child: Icon(
-                                  Icons.image_not_supported_rounded,
-                                  size: 40,
-                                  color: Colors.grey[300],
-                                ),
-                              ),
-                            ),
-                    ),
+                    child: _buildImage(isOutOfStock),
                   ),
 
                   // Out-of-stock overlay
@@ -182,7 +185,7 @@ class ProductCard extends StatelessWidget {
                   // Price
                   if (currentRate != null)
                     Text(
-                      '฿${NumberFormat('#,##0').format(totalPrice)}',
+                      '฿${_priceFmt.format(totalPrice)}',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,

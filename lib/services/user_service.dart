@@ -146,12 +146,18 @@ class UserService {
     return FirebaseFirestore.instance
         .collection('transactions')
         .where('userId', isEqualTo: uid)
-        // Server-side ordering backed by the composite index:
-        // transactions: (userId ASC, timestamp DESC) in firestore.indexes.json
-        .orderBy('timestamp', descending: true)
+        // Note: orderBy is intentionally omitted here to avoid requiring a
+        // composite Firestore index (userId + timestamp) that may not yet be
+        // deployed. Results are sorted client-side below instead.
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final docs = snapshot.docs.toList()
+        ..sort((a, b) {
+          final tA = (a.data()['timestamp'] as Timestamp?)?.toDate() ?? DateTime(0);
+          final tB = (b.data()['timestamp'] as Timestamp?)?.toDate() ?? DateTime(0);
+          return tB.compareTo(tA); // descending — newest first
+        });
+      return docs.map((doc) {
         final data = doc.data();
         // Map every known type string to its enum value. Previously
         // savings_physical_withdraw was missing, causing it to silently

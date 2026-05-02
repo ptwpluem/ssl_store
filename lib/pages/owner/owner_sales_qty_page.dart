@@ -31,16 +31,15 @@ class OwnerSalesQtyPage extends StatelessWidget {
           var docs = snapshot.data?.docs ?? [];
 
           if (dateRange != null) {
+            final startDay = DateTime(dateRange!.start.year, dateRange!.start.month, dateRange!.start.day);
+            final endDay = DateTime(dateRange!.end.year, dateRange!.end.month, dateRange!.end.day, 23, 59, 59, 999);
             docs = docs.where((doc) {
               final timestamp =
                   (doc.data() as Map<String, dynamic>)['timestamp']
                       as Timestamp?;
-              if (timestamp == null) {
-                return false;
-              }
+              if (timestamp == null) return false;
               final date = timestamp.toDate();
-              return date.isAfter(dateRange!.start) &&
-                  date.isBefore(dateRange!.end);
+              return !date.isBefore(startDay) && !date.isAfter(endDay);
             }).toList();
           }
 

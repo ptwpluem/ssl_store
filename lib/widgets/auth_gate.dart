@@ -53,7 +53,6 @@ class AuthGate extends StatelessWidget {
                    
                    final emailDocs = emailSnapshot.data?.docs ?? [];
                    if (emailDocs.isEmpty) {
-                     print('DEBUG: AuthGate - No document found by UID or Email for ${user.email}');
                      return const MainScreen();
                    }
                    
@@ -88,8 +87,6 @@ class AuthGate extends StatelessWidget {
     final data = userSnapshot.data() as Map<String, dynamic>?;
     final role = data?['role'] ?? 'user';
     final email = data?['email'] ?? 'unknown';
-
-    print('DEBUG: AuthGate - Resolved role "$role" for user $email');
 
     if (role == 'owner') {
       return const OwnerDashboardPage();

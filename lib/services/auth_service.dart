@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'id_generator_service.dart';
@@ -160,7 +161,7 @@ class AuthService {
     try {
       return await _auth.signOut();
     } catch (e) {
-      print('Sign out error: ${e.toString()}');
+      debugPrint('Sign out error: ${e.toString()}');
       return null;
     }
   }

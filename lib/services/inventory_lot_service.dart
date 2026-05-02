@@ -37,27 +37,34 @@ class InventoryLotService {
             .toList());
   }
 
-  /// Snapshot of active (non-exhausted) lots for a product.
+  /// Snapshot of active (non-exhausted) lots for a product, ordered FIFO.
+  ///
+  /// Filters remainingQuantity > 0 in Dart to avoid requiring a composite
+  /// Firestore index (range filter + orderBy on different fields).
   Future<List<InventoryLot>> getActiveLots(String productId) async {
     final snap = await _lotsRef(productId)
-        .where('remainingQuantity', isGreaterThan: 0)
         .orderBy('purchaseDate', descending: false)
         .get();
     return snap.docs
         .map((doc) => InventoryLot.fromMap(doc.id, doc.data()))
+        .where((lot) => lot.remainingQuantity > 0)
         .toList();
   }
 
   /// Finds the oldest lot that still has stock (FIFO head).
   /// Returns null if no active lots exist.
+  ///
+  /// Orders by purchaseDate only (no composite index needed). The
+  /// remainingQuantity > 0 guard is applied in Dart after the fetch.
   Future<InventoryLot?> getOldestActiveLot(String productId) async {
     final snap = await _lotsRef(productId)
-        .where('remainingQuantity', isGreaterThan: 0)
         .orderBy('purchaseDate', descending: false)
-        .limit(1)
         .get();
-    if (snap.docs.isEmpty) return null;
-    return InventoryLot.fromMap(snap.docs.first.id, snap.docs.first.data());
+    final active = snap.docs
+        .map((doc) => InventoryLot.fromMap(doc.id, doc.data()))
+        .where((lot) => lot.remainingQuantity > 0)
+        .toList();
+    return active.isEmpty ? null : active.first;
   }
 
   // ─── Write ────────────────────────────────────────────────────────────────

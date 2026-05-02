@@ -32,12 +32,12 @@ class PawnService {
     final id = await _ids.generateId('transactions', prefixOverride: 'PWN');
     final displayName = await _getDisplayName(uid);
 
+    final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
           .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
       if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
 
-      final userRef = await getUserDocRef(uid);
       final assetRef = userRef.collection('assets').doc(asset.id);
       final assetDoc = await tx.get(assetRef);
 
@@ -133,12 +133,12 @@ class PawnService {
     final id = await _ids.generateId('transactions', prefixOverride: 'RED');
     final displayName = await _getDisplayName(uid);
 
+    final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
           .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
       if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
 
-      final userRef = await getUserDocRef(uid);
       final assetRef = userRef.collection('assets').doc(asset.id);
       final assetDoc = await tx.get(assetRef);
 

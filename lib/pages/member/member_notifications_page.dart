@@ -11,7 +11,7 @@ class NotificationsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('การแจ้งเตือน'),
         backgroundColor: const Color(0xFF800000),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -25,7 +25,7 @@ class NotificationsPage extends StatelessWidget {
                 await NotificationService().clearAllNotifications();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All notifications cleared')),
+                    const SnackBar(content: Text('ล้างการแจ้งเตือนทั้งหมดแล้ว')),
                   );
                 }
               }
@@ -33,11 +33,11 @@ class NotificationsPage extends StatelessWidget {
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'mark_read',
-                child: Text('Mark All as Read'),
+                child: Text('ทำเครื่องหมายว่าอ่านแล้วทั้งหมด'),
               ),
               const PopupMenuItem(
                 value: 'clear_all',
-                child: Text('Clear All', style: TextStyle(color: Colors.red)),
+                child: Text('ล้างทั้งหมด', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -50,14 +50,14 @@ class NotificationsPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator(color: Color(0xFF800000)));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
           }
 
           final notifications = snapshot.data ?? [];
           if (notifications.isEmpty) {
             return const Center(
               child: Text(
-                'You have no notifications.',
+                'ยังไม่มีการแจ้งเตือน',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
@@ -82,7 +82,7 @@ class NotificationsPage extends StatelessWidget {
                   await NotificationService().deleteNotification(notification.id);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Notification removed'), duration: const Duration(seconds: 2)),
+                      const SnackBar(content: Text('ลบการแจ้งเตือนแล้ว'), duration: Duration(seconds: 2)),
                     );
                   }
                 },
@@ -125,7 +125,7 @@ class NotificationsPage extends StatelessWidget {
         iconColor = Colors.grey;
     }
 
-    final dateFormat = DateFormat('MMM dd, hh:mm a');
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'th');
 
     return InkWell(
       onTap: () {
