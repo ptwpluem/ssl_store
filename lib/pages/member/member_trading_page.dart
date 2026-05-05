@@ -470,6 +470,259 @@ class _BuyTabState extends State<_BuyTab> {
   }
 }
 
+// ─── Pawn Confirmation Dialog ─────────────────────────────────────────────────
+// Uses a proper StatefulWidget so dispose() and mounted are correctly handled,
+// preventing "TextEditingController used after disposed" and
+// "build dirty widget in wrong scope" crashes.
+class _PawnConfirmationDialog extends StatefulWidget {
+  final GoldAsset asset;
+  final double maxLoan;
+  final UserService userService;
+  final PawnService pawnService;
+
+  const _PawnConfirmationDialog({
+    required this.asset,
+    required this.maxLoan,
+    required this.userService,
+    required this.pawnService,
+  });
+
+  @override
+  State<_PawnConfirmationDialog> createState() => _PawnConfirmationDialogState();
+}
+
+class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
+  late final TextEditingController _loanController;
+  double _requestedLoan = 0;
+  bool _isLoading = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestedLoan = widget.maxLoan;
+    _loanController = TextEditingController(text: widget.maxLoan.toStringAsFixed(0));
+  }
+
+  @override
+  void dispose() {
+    _loanController.dispose();
+    super.dispose();
+  }
+
+  bool get _isValid => _requestedLoan > 0 && _requestedLoan <= widget.maxLoan;
+
+  Future<void> _confirm() async {
+    if (!_isValid) return;
+    setState(() { _isLoading = true; _errorText = null; });
+    try {
+      await widget.pawnService.pawnAsset(
+        asset: widget.asset,
+        loanAmount: _requestedLoan,
+      );
+      if (mounted) Navigator.of(context).pop(true); // ← pop BEFORE any setState
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorText = 'เกิดข้อผิดพลาดในการจำนำ: ${e.toString().replaceAll('Exception: ', '')}';
+        });
+      }
+    }
+    // No finally setState — success already popped, error is handled above
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dueDate = DateTime.now().add(const Duration(days: 30));
+    final formattedDate = '${dueDate.day}/${dueDate.month}/${dueDate.year}';
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('ยืนยันการจำนำ'),
+      content: StreamBuilder<double>(
+        stream: widget.userService.getWalletBalanceStream(),
+        builder: (_, snapshot) {
+          final walletBalance = snapshot.data ?? 0.0;
+          final newBalance = walletBalance + (_isValid ? _requestedLoan : 0);
+
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('สินค้า: ${widget.asset.name}'),
+                Text('น้ำหนัก: ${widget.asset.weight} บาท'),
+                const SizedBox(height: 12),
+                const Text('ระบุวงเงินที่ต้องการกู้ (บาท):', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _loanController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  enabled: !_isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'วงเงินที่ต้องการ (฿)',
+                    border: const OutlineInputBorder(),
+                    suffixText: 'กู้ได้สูงสุด: ${_fmt.format(widget.maxLoan)}',
+                    errorText: (!_isValid && _loanController.text.isNotEmpty) ? 'วงเงินต้องอยู่ระหว่าง 1 ถึง ${_fmt.format(widget.maxLoan)}' : null,
+                  ),
+                  onChanged: (val) => setState(() {
+                    _requestedLoan = double.tryParse(val) ?? 0.0;
+                  }),
+                ),
+                const SizedBox(height: 16),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('+ ฿ ${_fmt.format(_requestedLoan)}',
+                      style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 8),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('฿ ${_fmt.format(newBalance)}',
+                      style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
+                ]),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('ครบกำหนดชำระ: $formattedDate (30 วัน)',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange)),
+                      const Text('อัตราดอกเบี้ย 1.25% ต่อเดือน. หากชำระล่าช้าจะมีค่าปรับ 2% ต่อเดือน.',
+                          style: TextStyle(fontSize: 10, color: Colors.black87)),
+                    ],
+                  ),
+                ),
+                if (_errorText != null) ...[
+                  const SizedBox(height: 10),
+                  Text(_errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('ยกเลิก'),
+        ),
+        ElevatedButton(
+          onPressed: (_isLoading || !_isValid) ? null : _confirm,
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800000)),
+          child: _isLoading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('ยืนยันการจำนำ', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Sell Confirmation Dialog ─────────────────────────────────────────────────
+class _SellConfirmationDialog extends StatefulWidget {
+  final GoldAsset asset;
+  final double estimatedValue;
+  final UserService userService;
+  final TradingService tradingService;
+
+  const _SellConfirmationDialog({
+    required this.asset,
+    required this.estimatedValue,
+    required this.userService,
+    required this.tradingService,
+  });
+
+  @override
+  State<_SellConfirmationDialog> createState() => _SellConfirmationDialogState();
+}
+
+class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
+  bool _isLoading = false;
+  String? _errorText;
+
+  Future<void> _confirm() async {
+    setState(() { _isLoading = true; _errorText = null; });
+    try {
+      await widget.tradingService.sellAsset(
+        asset: widget.asset,
+        sellPrice: widget.estimatedValue,
+      );
+      if (mounted) Navigator.of(context).pop(true); // ← pop BEFORE any setState
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorText = 'เกิดข้อผิดพลาดในการขายสินค้า: ${e.toString().replaceAll('Exception: ', '')}';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('ยืนยันการขาย'),
+      content: StreamBuilder<double>(
+        stream: widget.userService.getWalletBalanceStream(),
+        builder: (_, snapshot) {
+          final walletBalance = snapshot.data ?? 0.0;
+          final newBalance = walletBalance + widget.estimatedValue;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('สินค้า: ${widget.asset.name}'),
+              Text('น้ำหนัก: ${widget.asset.weight} บาท'),
+              const SizedBox(height: 12),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('+ ฿ ${_fmt.format(widget.estimatedValue)}',
+                    style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 8),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('฿ ${_fmt.format(newBalance)}',
+                    style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 16),
+              const Text(
+                'คุณแน่ใจหรือไม่ว่าต้องการขายสินค้าชิ้นนี้? ไม่สามารถยกเลิกรายการได้หลังการยืนยัน',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              if (_errorText != null) ...[
+                const SizedBox(height: 10),
+                Text(_errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ],
+            ],
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('ยกเลิก'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _confirm,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: _isLoading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Text('ยืนยันการขาย', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
 // -- Sell Tab --
 class _SellTab extends StatefulWidget {
   final UserService userService;
@@ -482,81 +735,22 @@ class _SellTab extends StatefulWidget {
 }
 
 class _SellTabState extends State<_SellTab> {
-  bool _isProcessing = false;
-
   void _showSellConfirmation(BuildContext context, GoldAsset asset, double estimatedValue) {
-    final nav       = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    showDialog(
+    showDialog<bool>(
       context: context,
-      barrierDismissible: !_isProcessing,
-      builder: (BuildContext dialogCtx) {
-        return StatefulBuilder(
-          builder: (dialogCtx, setStateDialog) {
-            return AlertDialog(
-              title: const Text('ยืนยันการขาย'),
-              content: StreamBuilder<double>(
-                stream: widget.userService.getWalletBalanceStream(),
-                builder: (_, snapshot) {
-                  final walletBalance = snapshot.data ?? 0.0;
-                  final newBalance    = walletBalance + estimatedValue;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('สินค้า: ${asset.name}'),
-                      Text('น้ำหนัก: ${asset.weight} บาท'),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('+ ฿ ${_fmt.format(estimatedValue)}', style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
-                        ]),
-                      ),
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('฿ ${_fmt.format(newBalance)}', style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
-                      ]),
-                      const SizedBox(height: 16),
-                      const Text('คุณแน่ใจหรือไม่ว่าต้องการขายสินค้าชิ้นนี้? ไม่สามารถยกเลิกรายการได้หลังการยืนยัน', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  );
-                },
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _isProcessing ? null : () => nav.pop(),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: _isProcessing ? null : () async {
-                    setStateDialog(() => _isProcessing = true);
-                    setState(() => _isProcessing = true);
-                    try {
-                      await widget.tradingService.sellAsset(asset: asset, sellPrice: estimatedValue);
-                      nav.pop();
-                      messenger.showSnackBar(const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')));
-                    } catch (e) {
-                      messenger.showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาดในการขายสินค้า: $e')));
-                    } finally {
-                      if (mounted) {
-                        setStateDialog(() => _isProcessing = false);
-                        setState(() => _isProcessing = false);
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: _isProcessing
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('ยืนยันการขาย', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+      barrierDismissible: false,
+      builder: (_) => _SellConfirmationDialog(
+        asset: asset,
+        estimatedValue: estimatedValue,
+        userService: widget.userService,
+        tradingService: widget.tradingService,
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        messenger.showSnackBar(const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')));
+      }
+    });
   }
 
   @override
@@ -628,7 +822,7 @@ class _SellTabState extends State<_SellTab> {
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32), fontSize: 15)),
                   ],
                 ),
-                onTap: _isProcessing ? null : () => _showSellConfirmation(context, asset, estimatedValue),
+                onTap: () => _showSellConfirmation(context, asset, estimatedValue),
               ),
             );
           },
@@ -650,116 +844,24 @@ class _PawnTab extends StatefulWidget {
 }
 
 class _PawnTabState extends State<_PawnTab> {
-  bool _isProcessing = false;
-
   void _showPawnConfirmation(BuildContext context, GoldAsset asset, double maxLoan) {
-    double requestedLoan = maxLoan;
-    final loanController = TextEditingController(text: maxLoan.toStringAsFixed(0));
-    final nav       = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
-
-    showDialog(
+    showDialog<bool>(
       context: context,
-      barrierDismissible: !_isProcessing,
-      builder: (BuildContext dialogCtx) {
-        return StatefulBuilder(
-          builder: (dialogCtx, setStateDialog) {
-            bool isValid = requestedLoan > 0 && requestedLoan <= maxLoan;
-            return AlertDialog(
-              title: const Text('ยืนยันการจำนำ'),
-              content: StreamBuilder<double>(
-                stream: widget.userService.getWalletBalanceStream(),
-                builder: (_, snapshot) {
-                  final walletBalance = snapshot.data ?? 0.0;
-                  final newBalance    = walletBalance + (isValid ? requestedLoan : 0);
-                  final dueDate       = DateTime.now().add(const Duration(days: 30));
-                  final formattedDate = '${dueDate.day}/${dueDate.month}/${dueDate.year}';
-
-                  return SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('สินค้า: ${asset.name}'),
-                        Text('น้ำหนัก: ${asset.weight} บาท'),
-                        const SizedBox(height: 12),
-                        const Text('ระบุวงเงินที่ต้องการกู้ (บาท):', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: loanController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            labelText: 'วงเงินที่ต้องการ (฿)',
-                            border: const OutlineInputBorder(),
-                            suffixText: 'กู้ได้สูงสุด: ${_fmt.format(maxLoan)}',
-                            errorText: (!isValid && loanController.text.isNotEmpty)
-                                ? 'วงเงินต้องอยู่ระหว่าง 1 ถึง ${_fmt.format(maxLoan)}'
-                                : null,
-                          ),
-                          onChanged: (val) => setStateDialog(() {
-                            requestedLoan = double.tryParse(val) ?? 0.0;
-                          }),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('+ ฿ ${_fmt.format(requestedLoan)}', style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
-                        ]),
-                        const SizedBox(height: 8),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('฿ ${_fmt.format(newBalance)}', style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
-                        ]),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          color: Colors.orange[50],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('ครบกำหนดชำระ: $formattedDate (30 วัน)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange)),
-                              const Text('อัตราดอกเบี้ย 1.25% ต่อเดือน. หากชำระล่าช้าจะมีค่าปรับ 2% ต่อเดือน.', style: TextStyle(fontSize: 10, color: Colors.black87)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              actions: [
-                TextButton(
-                  onPressed: _isProcessing ? null : () => nav.pop(),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: (_isProcessing || !isValid) ? null : () async {
-                    setStateDialog(() => _isProcessing = true);
-                    setState(() => _isProcessing = true);
-                    try {
-                      await widget.pawnService.pawnAsset(asset: asset, loanAmount: requestedLoan);
-                      nav.pop();
-                      messenger.showSnackBar(SnackBar(content: Text('จำนำสินค้าสำเร็จ! เพิ่มเงิน ฿${_fmt.format(requestedLoan)} เข้าวอลเล็ตแล้ว')));
-                    } catch (e) {
-                      messenger.showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาดในการจำนำ: $e')));
-                    } finally {
-                      if (mounted) {
-                        setStateDialog(() => _isProcessing = false);
-                        setState(() => _isProcessing = false);
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800000)),
-                  child: _isProcessing
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('ยืนยันการจำนำ', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
-          },
+      barrierDismissible: false,
+      builder: (_) => _PawnConfirmationDialog(
+        asset: asset,
+        maxLoan: maxLoan,
+        userService: widget.userService,
+        pawnService: widget.pawnService,
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('จำนำสินค้าสำเร็จ! ยอดเงินถูกโอนเข้าวอลเล็ตแล้ว')),
         );
-      },
-    ).then((_) => loanController.dispose());
+      }
+    });
   }
 
   @override
@@ -869,7 +971,7 @@ class _PawnTabState extends State<_PawnTab> {
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1565C0))),
                         ],
                       ),
-                      onTap: _isProcessing ? null : () => _showPawnConfirmation(context, asset, maxLoan),
+                      onTap: () => _showPawnConfirmation(context, asset, maxLoan),
                     ),
                   );
                 },

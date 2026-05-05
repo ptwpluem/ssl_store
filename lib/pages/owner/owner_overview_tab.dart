@@ -28,6 +28,31 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   DateTimeRange? _selectedDateRange;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // ── Non-date-dependent streams (created once; never reassigned) ───────────
+  // Keeping these stable means StreamBuilders / OwnerMetricCards never receive
+  // a new stream object on unrelated setState() calls, preventing the listener
+  // churn that triggers '_dependents.isEmpty' assertion crashes.
+  late final Stream<DocumentSnapshot> _goldRateDocStream;
+  late final Stream<List<Map<String, dynamic>>> _rateHistoryStream;
+  late final Stream<QuerySnapshot> _recentActivityStream;
+  late final Stream<String> _walletTotalStream;
+  late final Stream<String> _stockValueStream;
+  late final Stream<String> _stockInvestmentStream;
+  late final Stream<String> _productCountStream;
+  late final Stream<String> _savingsLiabilityStream;
+
+  // ── Date-filtered streams (recreated in _rebuildFilteredStreams()) ─────────
+  // These must be NEW objects whenever _selectedDateRange changes so that
+  // OwnerMetricCard StreamBuilders cancel and resubscribe with the updated
+  // filter. Using late (non-final) fields allows reassignment.
+  late Stream<String> _profitStream;
+  late Stream<String> _revenueStream;
+  late Stream<String> _costStream;
+  late Stream<String> _buyCountStream;
+  late Stream<String> _sellCountStream;
+  late Stream<String> _pawnCountStream;
+  late Stream<String> _savingsCountStream;
+
   // Design tokens
   static const Color _primary = Color(0xFF800000);
   static const Color _textDark = Color(0xFF1A1A2E);
@@ -45,6 +70,157 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   void initState() {
     super.initState();
     TradingService().repairAllTransactions().catchError((_) {});
+
+    // ── Non-date streams ─────────────────────────────────────────────────────
+    _goldRateDocStream = FirebaseFirestore.instance
+        .collection('market')
+        .doc('gold_rate')
+        .snapshots();
+
+    _rateHistoryStream = MarketService().getGoldRateHistoryStream(limit: 5);
+
+    _recentActivityStream = FirebaseFirestore.instance
+        .collection('transactions')
+        .orderBy('timestamp', descending: true)
+        .limit(5)
+        .snapshots();
+
+    _walletTotalStream = FirebaseFirestore.instance
+        .collection('wallets')
+        .snapshots()
+        .map((snap) {
+      double total = 0.0;
+      for (var doc in snap.docs) {
+        total += (doc.data()['balance'] as num?)?.toDouble() ?? 0.0;
+      }
+      return _formatCurrency(total);
+    });
+
+    _stockValueStream = FirebaseFirestore.instance
+        .collection('market')
+        .doc('gold_rate')
+        .snapshots()
+        .asyncMap((rateDoc) async {
+      final data = rateDoc.data();
+      final sellRate = (data?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
+      final productSnap =
+          await FirebaseFirestore.instance.collection('products').get();
+      double totalValue = 0.0;
+      for (var doc in productSnap.docs) {
+        final pData = doc.data();
+        final stock    = (pData['stock']    as num?)?.toInt()    ?? 0;
+        final weight   = (pData['weight']   as num?)?.toDouble() ?? 0.0;
+        final laborFee = (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
+        totalValue += stock * ((weight * sellRate) + laborFee);
+      }
+      return _formatCurrency(totalValue);
+    });
+
+    _stockInvestmentStream = FirebaseFirestore.instance
+        .collection('products')
+        .snapshots()
+        .map((productSnap) {
+      double totalInvestment = 0.0;
+      for (var doc in productSnap.docs) {
+        final pData     = doc.data();
+        final stock     = (pData['stock']     as num?)?.toInt()    ?? 0;
+        final costBasis = (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
+        totalInvestment += stock * costBasis;
+      }
+      return _formatCurrency(totalInvestment);
+    });
+
+    _productCountStream = FirebaseFirestore.instance
+        .collection('products')
+        .where('stock', isGreaterThan: 0)
+        .snapshots()
+        .map((snap) => snap.docs.length.toString());
+
+    _savingsLiabilityStream = FirebaseFirestore.instance
+        .collectionGroup('savings')
+        .snapshots()
+        .asyncMap((snap) async {
+      double totalWeight = 0.0;
+      for (var doc in snap.docs) {
+        if (doc.id == 'account') {
+          final data = doc.data();
+          totalWeight +=
+              (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+      final rateDoc = await FirebaseFirestore.instance
+          .collection('market')
+          .doc('gold_rate')
+          .get();
+      final sellPrice =
+          (rateDoc.data()?['sellPrice'] as num?)?.toDouble() ?? 40000.0;
+      return _formatCurrency(totalWeight * sellPrice);
+    });
+
+    // ── Date-filtered streams (initial build) ────────────────────────────────
+    _rebuildFilteredStreams();
+  }
+
+  /// Recreates all date-filtered metric streams. Call inside any [setState]
+  /// that mutates [_selectedDateRange] so that OwnerMetricCard StreamBuilders
+  /// receive a new stream object and resubscribe with the updated filter.
+  void _rebuildFilteredStreams() {
+    _profitStream = FirebaseFirestore.instance
+        .collection('transactions')
+        .where('type', whereIn: ['buy', 'redeem'])
+        .snapshots()
+        .map((snap) {
+      double total = 0.0;
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        final ts = (data['timestamp'] as Timestamp?)?.toDate();
+        if (!_inRange(ts)) continue;
+        total += (data['profit'] as num?)?.toDouble() ?? 0.0;
+      }
+      return _formatCurrency(total);
+    });
+
+    _revenueStream = FirebaseFirestore.instance
+        .collection('transactions')
+        .where('type', whereIn: ['buy', 'redeem'])
+        .snapshots()
+        .map((snap) {
+      double total = 0.0;
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        final type = data['type'] as String?;
+        final ts   = (data['timestamp'] as Timestamp?)?.toDate();
+        if (!_inRange(ts)) continue;
+        if (type == 'buy') {
+          total += (data['amount'] as num?)?.toDouble() ?? 0.0;
+        } else if (type == 'redeem') {
+          total += (data['profit'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+      return _formatCurrency(total);
+    });
+
+    _costStream = FirebaseFirestore.instance
+        .collection('transactions')
+        .where('type', whereIn: ['buy', 'redeem'])
+        .snapshots()
+        .map((snap) {
+      double total = 0.0;
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        final ts = (data['timestamp'] as Timestamp?)?.toDate();
+        if (!_inRange(ts)) continue;
+        total += (data['cost'] as num?)?.toDouble() ?? 0.0;
+      }
+      return _formatCurrency(total);
+    });
+
+    _buyCountStream  = _getTypeCountStream(['buy']).map((c) => c.toString());
+    _sellCountStream = _getTypeCountStream(['sell']).map((c) => c.toString());
+    _pawnCountStream = _getTypeCountStream(['pawn']).map((c) => c.toString());
+    _savingsCountStream = _getTypeCountStream(
+            ['savings_deposit', 'savings_withdraw'])
+        .map((c) => c.toString());
   }
 
   // ─── Date range helpers ───────────────────────────────────────────────────
@@ -217,6 +393,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                     end: DateTime(result.end.year, result.end.month,
                         result.end.day, 23, 59, 59, 59),
                   );
+                  _rebuildFilteredStreams();
                 });
               }
             },
@@ -247,8 +424,10 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                   if (_selectedDateRange != null) ...[
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedDateRange = null),
+                      onTap: () => setState(() {
+                        _selectedDateRange = null;
+                        _rebuildFilteredStreams();
+                      }),
                       child: Icon(Icons.close_rounded,
                           size: 14,
                           color: Colors.white.withValues(alpha: 0.80)),
@@ -299,10 +478,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   Widget _buildGoldRateCard() {
     final numFmt = NumberFormat('#,##0');
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('market')
-          .doc('gold_rate')
-          .snapshots(),
+      stream: _goldRateDocStream,
       builder: (context, snapshot) {
         double buyPrice = 0;
         double sellPrice = 0;
@@ -773,7 +949,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   Widget _buildRateHistoryCard() {
     final numFmt = NumberFormat('#,##0');
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: MarketService().getGoldRateHistoryStream(limit: 5),
+      stream: _rateHistoryStream,
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
         if (items.isEmpty) return const SizedBox.shrink();
@@ -948,20 +1124,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                   icon: Icons.trending_up_rounded,
                   color: const Color(0xFF2E7D32),
                   isHero: true,
-                  stream: FirebaseFirestore.instance
-                      .collection('transactions')
-                      .where('type', whereIn: ['buy', 'redeem'])
-                      .snapshots()
-                      .map((snap) {
-                    double total = 0.0;
-                    for (var doc in snap.docs) {
-                      final data = doc.data();
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-                      if (!_inRange(timestamp)) continue;
-                      total += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                    }
-                    return _formatCurrency(total);
-                  }),
+                  stream: _profitStream,
                 ),
               ),
               const SizedBox(width: 12),
@@ -978,25 +1141,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                           OwnerSalesThbPage(dateRange: _selectedDateRange),
                     ),
                   ),
-                  stream: FirebaseFirestore.instance
-                      .collection('transactions')
-                      .where('type', whereIn: ['buy', 'redeem'])
-                      .snapshots()
-                      .map((snap) {
-                    double total = 0.0;
-                    for (var doc in snap.docs) {
-                      final data = doc.data();
-                      final type = data['type'] as String?;
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-                      if (!_inRange(timestamp)) continue;
-                      if (type == 'buy') {
-                        total += (data['amount'] as num?)?.toDouble() ?? 0.0;
-                      } else if (type == 'redeem') {
-                        total += (data['profit'] as num?)?.toDouble() ?? 0.0;
-                      }
-                    }
-                    return _formatCurrency(total);
-                  }),
+                  stream: _revenueStream,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1006,20 +1151,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                   icon: Icons.payments_rounded,
                   color: const Color(0xFFC62828),
                   isHero: true,
-                  stream: FirebaseFirestore.instance
-                      .collection('transactions')
-                      .where('type', whereIn: ['buy', 'redeem'])
-                      .snapshots()
-                      .map((snap) {
-                    double total = 0.0;
-                    for (var doc in snap.docs) {
-                      final data = doc.data();
-                      final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-                      if (!_inRange(timestamp)) continue;
-                      total += (data['cost'] as num?)?.toDouble() ?? 0.0;
-                    }
-                    return _formatCurrency(total);
-                  }),
+                  stream: _costStream,
                 ),
               ),
             ],
@@ -1049,8 +1181,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                       OwnerSalesThbPage(dateRange: _selectedDateRange),
                 ),
               ),
-              stream:
-                  _getTypeCountStream(['buy']).map((c) => c.toString()),
+              stream: _buyCountStream,
             ),
             OwnerMetricCard(
               title: 'รายการขาย',
@@ -1063,8 +1194,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                       dateRange: _selectedDateRange),
                 ),
               ),
-              stream:
-                  _getTypeCountStream(['sell']).map((c) => c.toString()),
+              stream: _sellCountStream,
             ),
             OwnerMetricCard(
               title: 'รายการจำนำ',
@@ -1074,8 +1204,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
-              stream:
-                  _getTypeCountStream(['pawn']).map((c) => c.toString()),
+              stream: _pawnCountStream,
             ),
             OwnerMetricCard(
               title: 'รายการออมทอง',
@@ -1088,9 +1217,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                       dateRange: _selectedDateRange),
                 ),
               ),
-              stream: _getTypeCountStream(
-                      ['savings_deposit', 'savings_withdraw'])
-                  .map((c) => c.toString()),
+              stream: _savingsCountStream,
             ),
           ],
         ),
@@ -1116,17 +1243,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerWalletsPage()),
               ),
-              stream: FirebaseFirestore.instance
-                  .collection('wallets')
-                  .snapshots()
-                  .map((snap) {
-                double total = 0.0;
-                for (var doc in snap.docs) {
-                  total +=
-                      (doc.data()['balance'] as num?)?.toDouble() ?? 0.0;
-                }
-                return _formatCurrency(total);
-              }),
+              stream: _walletTotalStream,
             ),
             OwnerMetricCard(
               title: 'มูลค่าสต็อก (ราคาขาย)',
@@ -1137,29 +1254,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 MaterialPageRoute(
                     builder: (_) => const OwnerInventoryCostPage()),
               ),
-              stream: FirebaseFirestore.instance
-                  .collection('market')
-                  .doc('gold_rate')
-                  .snapshots()
-                  .asyncMap((rateDoc) async {
-                final data = rateDoc.data();
-                final sellRate =
-                    (data?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
-                final productSnap = await FirebaseFirestore.instance
-                    .collection('products')
-                    .get();
-                double totalValue = 0.0;
-                for (var doc in productSnap.docs) {
-                  final pData = doc.data();
-                  final stock = (pData['stock'] as num?)?.toInt() ?? 0;
-                  final weight =
-                      (pData['weight'] as num?)?.toDouble() ?? 0.0;
-                  final laborFee =
-                      (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
-                  totalValue += stock * ((weight * sellRate) + laborFee);
-                }
-                return _formatCurrency(totalValue);
-              }),
+              stream: _stockValueStream,
             ),
             OwnerMetricCard(
               title: 'เงินลงทุนในสต็อก',
@@ -1170,20 +1265,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 MaterialPageRoute(
                     builder: (_) => const OwnerInventoryCostPage()),
               ),
-              stream: FirebaseFirestore.instance
-                  .collection('products')
-                  .snapshots()
-                  .map((productSnap) {
-                double totalInvestment = 0.0;
-                for (var doc in productSnap.docs) {
-                  final pData = doc.data();
-                  final stock = (pData['stock'] as num?)?.toInt() ?? 0;
-                  final costBasis =
-                      (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
-                  totalInvestment += stock * costBasis;
-                }
-                return _formatCurrency(totalInvestment);
-              }),
+              stream: _stockInvestmentStream,
             ),
             OwnerMetricCard(
               title: 'ประเภทสินค้า',
@@ -1193,11 +1275,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerProductsPage()),
               ),
-              stream: FirebaseFirestore.instance
-                  .collection('products')
-                  .where('stock', isGreaterThan: 0)
-                  .snapshots()
-                  .map((snap) => snap.docs.length.toString()),
+              stream: _productCountStream,
             ),
           ],
         ),
@@ -1223,8 +1301,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 context,
                 MaterialPageRoute(builder: (_) => const OwnerPawnsPage()),
               ),
-              stream:
-                  _getTypeCountStream(['pawn']).map((c) => c.toString()),
+              stream: _pawnCountStream,
             ),
             OwnerMetricCard(
               title: 'หนี้สินออมทอง',
@@ -1235,27 +1312,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
                 MaterialPageRoute(
                     builder: (_) => const OwnerSavingsPage()),
               ),
-              stream: FirebaseFirestore.instance
-                  .collectionGroup('savings')
-                  .snapshots()
-                  .asyncMap((snap) async {
-                double totalWeight = 0.0;
-                for (var doc in snap.docs) {
-                  if (doc.id == 'account') {
-                    final data = doc.data();
-                    totalWeight +=
-                        (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
-                  }
-                }
-                final rateDoc = await FirebaseFirestore.instance
-                    .collection('market')
-                    .doc('gold_rate')
-                    .get();
-                final sellPrice =
-                    (rateDoc.data()?['sellPrice'] as num?)?.toDouble() ??
-                        40000.0;
-                return _formatCurrency(totalWeight * sellPrice);
-              }),
+              stream: _savingsLiabilityStream,
             ),
           ],
         ),
@@ -1267,11 +1324,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
 
   Widget _buildRecentActivityList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('transactions')
-          .orderBy('timestamp', descending: true)
-          .limit(5)
-          .snapshots(),
+      stream: _recentActivityStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(

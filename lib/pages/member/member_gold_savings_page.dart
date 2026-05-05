@@ -22,7 +22,6 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   final UserService _userService = UserService();
   final SavingsService _savingsService = SavingsService();
   final AuthService _authService = AuthService();
-  final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
 
   // ── Streams created ONCE in initState ─────────────────────────────────────
@@ -51,7 +50,6 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
   @override
   void dispose() {
-    _amountController.dispose();
     super.dispose();
   }
 
@@ -64,10 +62,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
     try {
       await _savingsService.depositToGoldSavings(amount, currentBuyPrice);
-      
+
       if (!mounted) return;
-      
-      _amountController.clear();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -102,10 +99,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
     try {
       await _savingsService.sellFromGoldSavings(weightToSell, currentSellPrice);
-      
+
       if (!mounted) return;
-      
-      _amountController.clear();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -195,6 +191,11 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   }
 
   void _showDepositSheet(double currentBuyPrice) { // show deposit sheet
+    // Local controller — owned by this sheet only. Disposing in .then()
+    // (after the sheet is fully dismissed) avoids the TextEditingController-
+    // used-after-disposed crash and prevents cross-sheet state contamination.
+    final depositCtrl = TextEditingController();
+
     showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -242,7 +243,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                     const SizedBox(height: 24),
                     TextField( // input amount to deposit
-                      controller: _amountController,
+                      controller: depositCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -271,11 +272,11 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildQuickAmountButton(100, setSheetState),
+                        _buildQuickAmountButton(100, depositCtrl, setSheetState),
                         const SizedBox(width: 8),
-                        _buildQuickAmountButton(500, setSheetState),
+                        _buildQuickAmountButton(500, depositCtrl, setSheetState),
                         const SizedBox(width: 8),
-                        _buildQuickAmountButton(1000, setSheetState),
+                        _buildQuickAmountButton(1000, depositCtrl, setSheetState),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -285,7 +286,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                       builder: (context) {
                         final val =
                             double.tryParse(
-                              _amountController.text.replaceAll(',', ''),
+                              depositCtrl.text.replaceAll(',', ''),
                             ) ??
                             0;
                         final weight = val / currentBuyPrice;
@@ -329,7 +330,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                           : () {
                               final amount =
                                   double.tryParse(
-                                    _amountController.text.replaceAll(',', ''),
+                                    depositCtrl.text.replaceAll(',', ''),
                                   ) ??
                                   0;
                               if (amount > 0) {
@@ -364,16 +365,20 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         );
       },
     ).then((amount) {
-      // Sheet is now fully dismissed — safe to mutate state without racing
-      // against the sheet route's InheritedElement deactivation.
-      _amountController.clear();
+      // Sheet is fully dismissed — dispose the local controller now and
+      // trigger the deposit if the user confirmed.
+      depositCtrl.dispose();
       if (amount != null && amount > 0) {
         _deposit(currentBuyPrice, amount);
       }
     });
   }
 
-  Widget _buildQuickAmountButton(double amount, StateSetter setSheetState) {
+  Widget _buildQuickAmountButton(
+    double amount,
+    TextEditingController ctrl,
+    StateSetter setSheetState,
+  ) {
     return Expanded(
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
@@ -383,16 +388,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ),
         onPressed: () {
           setSheetState(() {
-            // Assuming 'amount' here is always a fixed value like 100, 500, 1000
-            // If 'amount' could be double.infinity for a 'MAX' button,
-            // you would need to fetch the actual max balance here.
-            // For now, we'll just apply the NumberFormat to the existing logic.
             final currentVal =
-                double.tryParse(_amountController.text.replaceAll(',', '')) ??
-                0.0;
-            _amountController.text = NumberFormat(
-              '#,##0',
-            ).format(currentVal + amount);
+                double.tryParse(ctrl.text.replaceAll(',', '')) ?? 0.0;
+            ctrl.text = NumberFormat('#,##0').format(currentVal + amount);
           });
         },
         child: Text('+฿${NumberFormat('#,##0').format(amount)}'),
@@ -401,6 +399,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   }
 
   void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) { // show withdraw sheet
+    // Local controller — owned by this sheet only.
+    final withdrawCtrl = TextEditingController();
+
     showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -456,7 +457,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     ),
                     const SizedBox(height: 24),
                     TextField(
-                      controller: _amountController,
+                      controller: withdrawCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -485,9 +486,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildQuickWeightButton(0.25, setSheetState),
+                        _buildQuickWeightButton(0.25, withdrawCtrl, setSheetState),
                         const SizedBox(width: 8),
-                        _buildQuickWeightButton(0.5, setSheetState),
+                        _buildQuickWeightButton(0.5, withdrawCtrl, setSheetState),
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton(
@@ -500,8 +501,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             ),
                             onPressed: () {
                               setSheetState(() {
-                                _amountController.text = currentSavedWeight
-                                    .toString();
+                                withdrawCtrl.text = currentSavedWeight.toString();
                               });
                             },
                             child: const Text('MAX'),
@@ -516,7 +516,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                       builder: (context) {
                         final val =
                             double.tryParse(
-                              _amountController.text.replaceAll(',', ''),
+                              withdrawCtrl.text.replaceAll(',', ''),
                             ) ??
                             0;
                         final cash = val * currentSellPrice;
@@ -571,7 +571,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                           : () {
                               final val =
                                   double.tryParse(
-                                    _amountController.text.replaceAll(',', ''),
+                                    withdrawCtrl.text.replaceAll(',', ''),
                                   ) ??
                                   0;
                               if (val > 0 && val <= currentSavedWeight) {
@@ -613,15 +613,20 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         );
       },
     ).then((weight) {
-      // Sheet is now fully dismissed — safe to mutate state.
-      _amountController.clear();
+      // Sheet is fully dismissed — dispose the local controller now and
+      // trigger the withdrawal if the user confirmed.
+      withdrawCtrl.dispose();
       if (weight != null && weight > 0) {
         _withdraw(currentSellPrice, weight);
       }
     });
   }
 
-  Widget _buildQuickWeightButton(double weight, StateSetter setSheetState) {
+  Widget _buildQuickWeightButton(
+    double weight,
+    TextEditingController ctrl,
+    StateSetter setSheetState,
+  ) {
     return Expanded(
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
@@ -631,7 +636,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ),
         onPressed: () {
           setSheetState(() {
-            _amountController.text = weight.toString();
+            ctrl.text = weight.toString();
           });
         },
         child: Text('${weight}B'),

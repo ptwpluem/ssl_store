@@ -19,10 +19,26 @@ class _OwnerPickupsTabState extends State<OwnerPickupsTab>
   late final TabController _tabController;
   final AppointmentService _service = AppointmentService();
 
+  // Created ONCE in initState so FutureBuilder keeps the same Future object
+  // across rebuilds. Recreating it inside build() causes FutureBuilder to
+  // reset to its loading state on every setState() call.
+  late final Future<Map<String, Map<String, dynamic>>> _userMapFuture;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _userMapFuture = FirebaseFirestore.instance.collection('users').get().then(
+      (snap) {
+        final Map<String, Map<String, dynamic>> map = {};
+        for (final doc in snap.docs) {
+          final data = doc.data();
+          final uid = data['uid'] as String?;
+          if (uid != null) map[uid] = data;
+        }
+        return map;
+      },
+    );
   }
 
   @override
@@ -160,16 +176,7 @@ class _OwnerPickupsTabState extends State<OwnerPickupsTab>
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, Map<String, dynamic>>>(
-      // Pre-load users: Auth UID → user data (same pattern as OwnerWalletsPage)
-      future: FirebaseFirestore.instance.collection('users').get().then((snap) {
-        final Map<String, Map<String, dynamic>> map = {};
-        for (final doc in snap.docs) {
-          final data = doc.data();
-          final uid = data['uid'] as String?;
-          if (uid != null) map[uid] = data;
-        }
-        return map;
-      }),
+      future: _userMapFuture,
       builder: (context, userSnap) {
         final userMap = userSnap.data ?? {};
 

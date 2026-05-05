@@ -29,30 +29,44 @@ class PawnService {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final id = await _ids.generateId('transactions', prefixOverride: 'PWN');
-    final displayName = await _getDisplayName(uid);
+    // ── Pre-generate all IDs and resolve wallet OUTSIDE the transaction ───────
+    // Firestore transactions must not contain additional async reads/writes
+    // beyond tx.get() calls. Generating IDs and querying the wallet here
+    // prevents any accidental reads-after-writes inside runTransaction.
+    final id           = await _ids.generateId('transactions', prefixOverride: 'PWN');
+    final pawnEventId  = await _ids.generateId('events');
+    final notifId      = await _ids.generateId('notifications');
+    final displayName  = await _getDisplayName(uid);
+
+    final walletQuery = await FirebaseFirestore.instance
+        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+    if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
+    final walletId  = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
 
     final userRef = await getUserDocRef(uid);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
-      final walletQuery = await FirebaseFirestore.instance
-          .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
-      if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
+    final fmt = NumberFormat('#,##0.00');
 
-      final assetRef = userRef.collection('assets').doc(asset.id);
-      final assetDoc = await tx.get(assetRef);
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      // ── ALL reads before any writes ───────────────────────────────────────
+      final assetRef  = userRef.collection('assets').doc(asset.id);
+      final assetDoc  = await tx.get(assetRef);       // READ 1
+      final walletSnap = await tx.get(walletRef);     // READ 2
 
       if (!assetDoc.exists) throw Exception('Asset not found in portfolio.');
       if ((assetDoc.data() as Map<String, dynamic>)['status'] != 'owned') {
         throw Exception('Only fully owned assets can be pawned.');
       }
 
+      // ── Writes begin here ─────────────────────────────────────────────────
       await _walletService.performTransactionWithTx(
         transaction: tx,
-        walletId: walletQuery.docs.first.id,
+        walletId: walletId,
         amount: loanAmount,
         type: WalletTransactionType.deposit,
         description: 'เงินกู้จำนำ: ${asset.name}',
         referenceId: id,
+        preReadWalletSnapshot: walletSnap,
       );
 
       final dueDate = DateTime.now().add(const Duration(days: 30));
@@ -84,7 +98,6 @@ class PawnService {
       });
 
       // ── Asset lifecycle event (immutable audit trail) ──────────────────────
-      final pawnEventId = await _ids.generateId('events');
       tx.set(assetRef.collection('events').doc(pawnEventId), {
         'type': 'pawned',
         'timestamp': FieldValue.serverTimestamp(),
@@ -108,8 +121,6 @@ class PawnService {
         'userDisplayName': displayName,
       });
 
-      final notifId = await _ids.generateId('notifications');
-      final fmt = NumberFormat('#,##0.00');
       tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
         id: notifId,
         title: 'จำนำสำเร็จ',
@@ -130,36 +141,47 @@ class PawnService {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final id = await _ids.generateId('transactions', prefixOverride: 'RED');
-    final displayName = await _getDisplayName(uid);
+    // ── Pre-generate all IDs and resolve wallet OUTSIDE the transaction ───────
+    final id             = await _ids.generateId('transactions', prefixOverride: 'RED');
+    final redeemEventId  = await _ids.generateId('events');
+    final notifId        = await _ids.generateId('notifications');
+    final displayName    = await _getDisplayName(uid);
+
+    final walletQuery = await FirebaseFirestore.instance
+        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+    if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
+    final walletId  = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
 
     final userRef = await getUserDocRef(uid);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
-      final walletQuery = await FirebaseFirestore.instance
-          .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
-      if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
+    final fmt = NumberFormat('#,##0.00');
 
-      final assetRef = userRef.collection('assets').doc(asset.id);
-      final assetDoc = await tx.get(assetRef);
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      // ── ALL reads before any writes ───────────────────────────────────────
+      final assetRef   = userRef.collection('assets').doc(asset.id);
+      final assetDoc   = await tx.get(assetRef);      // READ 1
+      final walletSnap = await tx.get(walletRef);     // READ 2
 
       if (!assetDoc.exists) throw Exception('Asset not found in portfolio.');
       if ((assetDoc.data() as Map<String, dynamic>)['status'] != 'pawned') {
         throw Exception('Asset is not currently pawned.');
       }
 
+      final assetData    = assetDoc.data() as Map<String, dynamic>;
+      final principal    = (assetData['loanAmount'] as num?)?.toDouble() ?? 0.0;
+      final interestPaid = totalOwed - principal;
+      final loanId       = assetData['loanId'] as String?;
+
+      // ── Writes begin here ─────────────────────────────────────────────────
       await _walletService.performTransactionWithTx(
         transaction: tx,
-        walletId: walletQuery.docs.first.id,
+        walletId: walletId,
         amount: totalOwed,
         type: WalletTransactionType.withdrawal,
-        description: 'Pawn Redemption: ${asset.name}',
+        description: 'ไถ่ถอนจำนำ: ${asset.name}',
         referenceId: id,
+        preReadWalletSnapshot: walletSnap,
       );
-
-      final assetData = assetDoc.data() as Map<String, dynamic>;
-      final principal = (assetData['loanAmount'] as num?)?.toDouble() ?? 0.0;
-      final interestPaid = totalOwed - principal;
-      final loanId = assetData['loanId'] as String?;
 
       tx.update(assetRef, {
         'status': 'owned',
@@ -184,7 +206,6 @@ class PawnService {
       }
 
       // ── Asset lifecycle event (immutable audit trail) ──────────────────────
-      final redeemEventId = await _ids.generateId('events');
       tx.set(assetRef.collection('events').doc(redeemEventId), {
         'type': 'redeemed',
         'timestamp': FieldValue.serverTimestamp(),
@@ -213,8 +234,6 @@ class PawnService {
         'userDisplayName': displayName,
       });
 
-      final notifId = await _ids.generateId('notifications');
-      final fmt = NumberFormat('#,##0.00');
       tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
         id: notifId,
         title: 'ไถ่ถอนสินทรัพย์สำเร็จ',

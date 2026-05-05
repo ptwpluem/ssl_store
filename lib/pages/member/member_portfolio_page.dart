@@ -14,6 +14,7 @@ import '../../models/gold_asset.dart';
 import '../../models/gold_savings.dart';
 import '../../models/gold_transaction.dart';
 import '../../models/gold_rate.dart';
+import 'member_gold_savings_page.dart';
 
 // Shared formatter — avoids per-build and per-dialog construction
 final _portFmt = NumberFormat('#,##0');
@@ -459,9 +460,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
       ),
       child: InkWell(
         onTap: () {
-            // Navigate directly to the Savings Page if they tap this
-            Navigator.pushNamed(context, '/'); // Quick hack to jump, but preferably route to GoldSavingsPage
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('จัดการที่หน้าออมทอง')));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GoldSavingsPage()),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -717,14 +719,19 @@ class _AssetCardState extends State<_AssetCard> {
                       onPressed: (_isProcessing || !hasEnoughFunds) ? null : () async {
                         setStateDialog(() => _isProcessing = true);
                         setState(() => _isProcessing = true);
+                        bool success = false;
                         try {
                           await _pawnService.redeemAsset(asset: widget.asset, totalOwed: totalOwed);
+                          success = true;
                           nav.pop();
                           messenger.showSnackBar(const SnackBar(content: Text('ไถ่ถอนสำเร็จ!')));
                         } catch (e) {
                           messenger.showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
                         } finally {
-                          if (mounted) {
+                          // Only reset state on failure — on success the widget is
+                          // already unmounting after nav.pop(), so calling
+                          // setStateDialog() there would crash the app.
+                          if (!success && mounted) {
                             setStateDialog(() => _isProcessing = false);
                             setState(() => _isProcessing = false);
                           }
@@ -788,14 +795,19 @@ class _AssetCardState extends State<_AssetCard> {
                   onPressed: _isProcessing ? null : () async {
                     setStateDialog(() => _isProcessing = true);
                     setState(() => _isProcessing = true);
+                    bool success = false;
                     try {
                       await _tradingService.sellAsset(asset: widget.asset, sellPrice: estimatedValue);
+                      success = true;
                       nav.pop();
                       messenger.showSnackBar(const SnackBar(content: Text('ขายสินทรัพย์สำเร็จ!')));
                     } catch (e) {
                       messenger.showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
                     } finally {
-                      if (mounted) {
+                      // Only reset state on failure — on success the widget is
+                      // already unmounting after nav.pop(), so calling
+                      // setStateDialog() there would crash the app.
+                      if (!success && mounted) {
                         setStateDialog(() => _isProcessing = false);
                         setState(() => _isProcessing = false);
                       }
@@ -817,34 +829,91 @@ class _AssetCardState extends State<_AssetCard> {
   void _showOwnedAssetOptions(BuildContext context, double currentVal) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(margin: const EdgeInsets.only(top: 8, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              ListTile(
-                leading: const Icon(Icons.storefront, color: Color(0xFF800000)),
-                title: const Text('Pick Up Physical Gold In-Store', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Schedule an appointment to collect your gold.'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/appointment', arguments: widget.asset);
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.sell, color: Colors.green),
-                title: const Text('Sell Digital Gold Asset', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Estimated value: ฿ ${currentVal.toInt()}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showSellConfirmation(context, currentVal);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 4),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+                // Gold accent stripe
+                Container(
+                  margin: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                  height: 4,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_portPrimary, _portGold],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Option 1: นัดรับทองที่ร้าน
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _portPrimary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.storefront_rounded, color: _portPrimary, size: 22),
+                  ),
+                  title: const Text(
+                    'นัดรับทองที่หน้าร้าน',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _portPrimary),
+                  ),
+                  subtitle: const Text(
+                    'จัดการตารางนัดหมายเพื่อรับทองคำที่หน้าร้าน',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF666666)),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: _portPrimary),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/appointment', arguments: widget.asset);
+                  },
+                ),
+                const Divider(height: 1, indent: 20, endIndent: 20, color: Color(0xFFF0F0F0)),
+                // Option 2: ขายสินทรัพย์ทอง
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.sell_rounded, color: Color(0xFF2E7D32), size: 22),
+                  ),
+                  title: const Text(
+                    'ขายสินทรัพย์ทองดิจิทัล',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2E7D32)),
+                  ),
+                  subtitle: Text(
+                    'ราคาประเมิน: ฿ ${_portFmt.format(currentVal.toInt())}',
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF2E7D32)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSellConfirmation(context, currentVal);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       }

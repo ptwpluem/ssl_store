@@ -1,0 +1,281 @@
+<mxGraphModel dx="2200" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="2200" pageHeight="1050" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- COLUMN 1: users cluster (x=40, w=300) -->
+
+    <mxCell id="100" value="users" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="40" y="60" width="300" height="192" as="geometry"/>
+    </mxCell>
+    <mxCell id="101" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="28" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="102" value="uid: String  (Firebase Auth UID)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="46" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="103" value="firstName: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="64" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="104" value="lastName: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="82" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="105" value="phoneNumber: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="100" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="106" value="email: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="118" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="107" value="role: String  (member | owner)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="136" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="108" value="preferences: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eff7ff;strokeColor=none;overflow=hidden;" vertex="1" parent="100"><mxGeometry x="0" y="154" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="109" value="▸ sub-collections: assets, notifications" style="text;align=center;fontSize=8;fontStyle=2;fillColor=#eff7ff;strokeColor=none;fontColor=#555555;" vertex="1" parent="100"><mxGeometry x="0" y="172" width="300" height="20" as="geometry"/></mxCell>
+
+    <mxCell id="110" value="users/{id}/assets" style="swimlane;fontStyle=1;fontSize=11;align=center;startSize=28;fillColor=#cce5ff;strokeColor=#5a9fd4;" vertex="1" parent="1">
+      <mxGeometry x="40" y="312" width="300" height="244" as="geometry"/>
+    </mxCell>
+    <mxCell id="111" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="28" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="112" value="name: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="46" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="113" value="weight: Number  (Baht unit)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="64" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="114" value="category: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="82" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="115" value="acquisitionDate: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="100" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="116" value="acquisitionPrice: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="118" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="117" value="status: String  (owned | sold | pawned)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="136" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="118" value="purity: Number  (0.965 | 0.9999)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="154" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="119" value="loanAmount?: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="172" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="120" value="pawnDate?: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="190" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="121" value="dueDate?: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="208" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="122" value="interestRate?: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f8ff;strokeColor=none;overflow=hidden;" vertex="1" parent="110"><mxGeometry x="0" y="226" width="300" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="123" value="users/{id}/notifications" style="swimlane;fontStyle=1;fontSize=11;align=center;startSize=28;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+      <mxGeometry x="40" y="616" width="300" height="136" as="geometry"/>
+    </mxCell>
+    <mxCell id="124" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="28" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="125" value="title: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="46" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="126" value="message: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="64" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="127" value="type: String  (pawn | appointment | price)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="82" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="128" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="100" width="300" height="18" as="geometry"/></mxCell>
+    <mxCell id="129" value="isRead: Boolean" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="123"><mxGeometry x="0" y="118" width="300" height="18" as="geometry"/></mxCell>
+
+    <!-- COLUMN 2: wallets / savings cluster (x=440, w=280) -->
+
+    <mxCell id="130" value="wallets" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="440" y="60" width="280" height="120" as="geometry"/>
+    </mxCell>
+    <mxCell id="131" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="130"><mxGeometry x="0" y="28" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="132" value="userId: String  → users" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="130"><mxGeometry x="0" y="46" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="133" value="balance: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="130"><mxGeometry x="0" y="64" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="134" value="updatedAt: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="130"><mxGeometry x="0" y="82" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="135" value="▸ sub: wallet_transactions" style="text;align=center;fontSize=8;fontStyle=2;fillColor=#f0f7ee;strokeColor=none;fontColor=#555555;" vertex="1" parent="130"><mxGeometry x="0" y="100" width="280" height="20" as="geometry"/></mxCell>
+
+    <mxCell id="136" value="wallets/{id}/wallet_transactions" style="swimlane;fontStyle=1;fontSize=11;align=center;startSize=28;fillColor=#c8e6c9;strokeColor=#6dab6d;" vertex="1" parent="1">
+      <mxGeometry x="440" y="250" width="280" height="154" as="geometry"/>
+    </mxCell>
+    <mxCell id="137" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="28" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="138" value="amount: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="46" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="139" value="type: String  (deposit | withdrawal | purchase | sale)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="64" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="140" value="resultingBalance: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="82" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="141" value="description?: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="100" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="142" value="referenceId?: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="118" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="143" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5fbf5;strokeColor=none;overflow=hidden;" vertex="1" parent="136"><mxGeometry x="0" y="136" width="280" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="144" value="savings  (keyed by userId)" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="440" y="474" width="280" height="102" as="geometry"/>
+    </mxCell>
+    <mxCell id="145" value="totalWeightSaved: Number  (grams)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffde7;strokeColor=none;overflow=hidden;" vertex="1" parent="144"><mxGeometry x="0" y="28" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="146" value="totalAmountInvested: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffde7;strokeColor=none;overflow=hidden;" vertex="1" parent="144"><mxGeometry x="0" y="46" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="147" value="lastUpdated: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffde7;strokeColor=none;overflow=hidden;" vertex="1" parent="144"><mxGeometry x="0" y="64" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="148" value="▸ sub: savings_transactions" style="text;align=center;fontSize=8;fontStyle=2;fillColor=#fffde7;strokeColor=none;fontColor=#555555;" vertex="1" parent="144"><mxGeometry x="0" y="82" width="280" height="20" as="geometry"/></mxCell>
+
+    <mxCell id="149" value="savings/{userId}/savings_transactions" style="swimlane;fontStyle=1;fontSize=11;align=center;startSize=28;fillColor=#ffeaa0;strokeColor=#c9a820;" vertex="1" parent="1">
+      <mxGeometry x="440" y="646" width="280" height="118" as="geometry"/>
+    </mxCell>
+    <mxCell id="150" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffdf0;strokeColor=none;overflow=hidden;" vertex="1" parent="149"><mxGeometry x="0" y="28" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="151" value="amountInvested: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffdf0;strokeColor=none;overflow=hidden;" vertex="1" parent="149"><mxGeometry x="0" y="46" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="152" value="weightGained: Number  (grams)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffdf0;strokeColor=none;overflow=hidden;" vertex="1" parent="149"><mxGeometry x="0" y="64" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="153" value="buyPriceAtTransaction: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffdf0;strokeColor=none;overflow=hidden;" vertex="1" parent="149"><mxGeometry x="0" y="82" width="280" height="18" as="geometry"/></mxCell>
+    <mxCell id="154" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fffdf0;strokeColor=none;overflow=hidden;" vertex="1" parent="149"><mxGeometry x="0" y="100" width="280" height="18" as="geometry"/></mxCell>
+
+    <!-- COLUMN 3: transaction cluster (x=840, w=310) -->
+
+    <mxCell id="155" value="transactions" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+      <mxGeometry x="840" y="60" width="310" height="208" as="geometry"/>
+    </mxCell>
+    <mxCell id="156" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="28" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="157" value="userId: String  → users" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="46" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="158" value="assetId: String  → users/{id}/assets" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="64" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="159" value="type: String  (buy | sell | pawn | redeem | savings_*)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="82" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="160" value="amount: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="100" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="161" value="weight: Number  (Baht unit)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="118" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="162" value="purity: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="136" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="163" value="laborFee?: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="154" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="164" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="172" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="165" value="details: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff8f0;strokeColor=none;overflow=hidden;" vertex="1" parent="155"><mxGeometry x="0" y="190" width="310" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="166" value="pawn_loans" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="840" y="338" width="310" height="262" as="geometry"/>
+    </mxCell>
+    <mxCell id="167" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="28" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="168" value="userId: String  → users" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="46" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="169" value="assetId: String  → assets" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="64" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="170" value="assetName: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="82" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="171" value="assetWeight: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="100" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="172" value="assetCategory: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="118" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="173" value="principal: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="136" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="174" value="interestRateMonthly: Number  (0.0125)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="154" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="175" value="startDate: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="172" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="176" value="dueDate: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="190" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="177" value="gracePeriodDays: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="208" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="178" value="status: String  (active | redeemed | defaulted)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="226" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="179" value="openedByTxId: String  → transactions" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="166"><mxGeometry x="0" y="244" width="310" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="180" value="appointments" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+      <mxGeometry x="840" y="670" width="310" height="172" as="geometry"/>
+    </mxCell>
+    <mxCell id="181" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="28" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="182" value="userId: String  → users" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="46" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="183" value="assetId: String  → assets" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="64" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="184" value="assetName: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="82" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="185" value="date: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="100" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="186" value="status: String  (scheduled | completed | cancelled)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="118" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="187" value="purpose?: String  (gold_bar_pickup | pawn_dropoff)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="136" width="310" height="18" as="geometry"/></mxCell>
+    <mxCell id="188" value="linkedTransactionId?: String  → transactions" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f5f0f8;strokeColor=none;overflow=hidden;" vertex="1" parent="180"><mxGeometry x="0" y="154" width="310" height="18" as="geometry"/></mxCell>
+
+    <!-- COLUMN 4: products cluster (x=1270, w=290) -->
+
+    <mxCell id="189" value="products" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#d0e8e0;strokeColor=#4d9e80;" vertex="1" parent="1">
+      <mxGeometry x="1270" y="60" width="290" height="190" as="geometry"/>
+    </mxCell>
+    <mxCell id="190" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="28" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="191" value="name: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="46" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="192" value="description: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="64" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="193" value="weight: Number  (Baht unit)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="82" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="194" value="laborFee: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="100" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="195" value="costBasis: Number  (from latest lot)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="118" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="196" value="stock: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="136" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="197" value="imageUrl: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="154" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="198" value="category: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#eef8f4;strokeColor=none;overflow=hidden;" vertex="1" parent="189"><mxGeometry x="0" y="172" width="290" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="199" value="inventory_lots" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#ede0f5;strokeColor=#b08ac0;" vertex="1" parent="1">
+      <mxGeometry x="1270" y="320" width="290" height="190" as="geometry"/>
+    </mxCell>
+    <mxCell id="200" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="28" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="201" value="productId: String  → products" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="46" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="202" value="productName: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="64" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="203" value="quantity: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="82" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="204" value="remainingQuantity: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="100" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="205" value="unitCost: Number  (THB)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="118" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="206" value="purchaseDate: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="136" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="207" value="restockTransactionId: String  → transactions" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="154" width="290" height="18" as="geometry"/></mxCell>
+    <mxCell id="208" value="note?: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#faf5fd;strokeColor=none;overflow=hidden;" vertex="1" parent="199"><mxGeometry x="0" y="172" width="290" height="18" as="geometry"/></mxCell>
+
+    <!-- COLUMN 5: reference collections (x=1690, w=260) -->
+
+    <mxCell id="209" value="market  (live price)" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="1690" y="60" width="260" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="210" value="buyPrice: Number  (THB / Baht)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="209"><mxGeometry x="0" y="28" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="211" value="sellPrice: Number  (THB / Baht)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="209"><mxGeometry x="0" y="46" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="212" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="209"><mxGeometry x="0" y="64" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="213" value="trend: String  (up | down | stable)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fff5f5;strokeColor=none;overflow=hidden;" vertex="1" parent="209"><mxGeometry x="0" y="82" width="260" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="214" value="markethistory" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+      <mxGeometry x="1690" y="230" width="260" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="215" value="buyPrice: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="214"><mxGeometry x="0" y="28" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="216" value="sellPrice: Number" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="214"><mxGeometry x="0" y="46" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="217" value="timestamp: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="214"><mxGeometry x="0" y="64" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="218" value="trend: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="214"><mxGeometry x="0" y="82" width="260" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="219" value="roles  (doc ID = uid)" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+      <mxGeometry x="1690" y="400" width="260" height="46" as="geometry"/>
+    </mxCell>
+    <mxCell id="220" value="role: String  (owner)" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#fafafa;strokeColor=none;overflow=hidden;" vertex="1" parent="219"><mxGeometry x="0" y="28" width="260" height="18" as="geometry"/></mxCell>
+
+    <mxCell id="221" value="news" style="swimlane;fontStyle=1;fontSize=12;align=center;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="1690" y="516" width="260" height="154" as="geometry"/>
+    </mxCell>
+    <mxCell id="222" value="🔑 id: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="28" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="223" value="title: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="46" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="224" value="summary: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="64" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="225" value="imageUrl: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="82" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="226" value="date: Timestamp" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="100" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="227" value="content: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="118" width="260" height="18" as="geometry"/></mxCell>
+    <mxCell id="228" value="url?: String" style="text;align=left;spacingLeft=8;fontSize=9;fillColor=#f0f7ee;strokeColor=none;overflow=hidden;" vertex="1" parent="221"><mxGeometry x="0" y="136" width="260" height="18" as="geometry"/></mxCell>
+
+    <!-- ═══ EDGES ═══ -->
+
+    <!-- assets → users : parent doc (direct vertical, 60px gap) -->
+    <mxCell id="229" value="parent doc" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontStyle=2;fontSize=9;" edge="1" source="110" target="100" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- notifications → users : parent doc (right-side routing, outside col1) -->
+    <!-- notifications right-center (340,684) → waypoints (370,684)→(370,156) → users right-center (340,156) -->
+    <mxCell id="230" value="parent doc" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontStyle=2;fontSize=9;" edge="1" source="123" target="100" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="370" y="684"/>
+          <mxPoint x="370" y="156"/>
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- wallets → users : userId (direct horizontal, 100px gap) -->
+    <mxCell id="231" value="userId" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="130" target="100" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- wallet_transactions → wallets : parent doc (direct vertical) -->
+    <mxCell id="232" value="parent doc" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontStyle=2;fontSize=9;" edge="1" source="136" target="130" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- savings → users : userId (route through col gap x=390) -->
+    <!-- savings left-center (440,525) → (390,525)→(390,156) → users right-center (340,156) -->
+    <mxCell id="233" value="userId (doc key)" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="144" target="100" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="390" y="525"/>
+          <mxPoint x="390" y="156"/>
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- savings_transactions → savings : parent doc (direct vertical) -->
+    <mxCell id="234" value="parent doc" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontStyle=2;fontSize=9;" edge="1" source="149" target="144" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- transactions → users : userId — routed ABOVE diagram at y=-40 -->
+    <!-- transactions top-center (995,60) → (995,-40)→(190,-40) → users top-center (190,60) -->
+    <mxCell id="235" value="userId" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="155" target="100" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="995" y="-40"/>
+          <mxPoint x="190" y="-40"/>
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- pawn_loans → transactions : openedByTxId (direct vertical, 70px gap) -->
+    <mxCell id="236" value="openedByTxId" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="166" target="155" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- appointments → transactions : linkedTransactionId? (right-side routing outside col3) -->
+    <!-- appointments right-center (1150,756) → (1180,756)→(1180,164) → transactions right-center (1150,164) -->
+    <mxCell id="237" value="linkedTxId?" style="edgeStyle=orthogonalEdgeStyle;dashed=1;endArrow=open;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="180" target="155" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1180" y="756"/>
+          <mxPoint x="1180" y="164"/>
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- inventory_lots → products : productId (direct vertical, 70px gap) -->
+    <mxCell id="238" value="productId" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="199" target="189" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- inventory_lots → transactions : restockTransactionId (col4→col3, route through gap x=1210) -->
+    <!-- inventory_lots left-center (1270,415) → (1210,415)→(1210,164) → transactions right-center (1150,164) -->
+    <mxCell id="239" value="restockTxId" style="edgeStyle=orthogonalEdgeStyle;endArrow=open;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=9;" edge="1" source="199" target="155" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1210" y="415"/>
+          <mxPoint x="1210" y="164"/>
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

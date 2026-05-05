@@ -428,19 +428,46 @@ class _ProfileMemberView extends StatelessWidget {
                   stream: UserService().getRewardPointsStream(),
                   builder: (context, snapshot) {
                     final points = snapshot.data ?? 0;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700), // Gold badge
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2)),
-                        ],
-                      ),
-                      child: Text(
-                        '${NumberFormat('#,##0').format(points)} คะแนน',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF800000), letterSpacing: 0.5),
-                      ),
+                    return Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showPointsInfoDialog(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2)),
+                              ],
+                            ),
+                            child: Text(
+                              '${NumberFormat('#,##0').format(points)} คะแนน',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF800000), letterSpacing: 0.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _showPointsInfoDialog(context),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.info_outline, size: 13, color: Colors.white.withValues(alpha: 0.7)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'วิธีคำนวณคะแนน',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -468,7 +495,8 @@ class _ProfileMemberView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-             _buildSectionTitle('ข้อมูลบัญชี'),
+            const SizedBox(height: 8),
+            _buildSectionTitle('ข้อมูลบัญชี'),
             _buildGroupedList([
               _buildListTile(
                 icon: Icons.person_outline,
@@ -530,6 +558,139 @@ class _ProfileMemberView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showPointsInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF800000), Color(0xFF550000)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.stars_rounded, color: Color(0xFFFFD700), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'วิธีคำนวณคะแนน',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'คะแนนสะสมของคุณคำนวณจากยอดซื้อทองคำ ดังนี้',
+              style: TextStyle(fontSize: 14, color: Color(0xFF555555), height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            _buildPointsRule(
+              icon: Icons.shopping_bag_outlined,
+              label: 'ซื้อทองคำ',
+              detail: 'ทุก ฿1,000 = 1 คะแนน',
+              color: const Color(0xFF2E7D32),
+            ),
+            const SizedBox(height: 10),
+            _buildPointsRule(
+              icon: Icons.swap_horiz_rounded,
+              label: 'ขายคืนทองคำ',
+              detail: 'ไม่ได้รับคะแนน',
+              color: const Color(0xFF888888),
+            ),
+            const SizedBox(height: 10),
+            _buildPointsRule(
+              icon: Icons.lock_clock_outlined,
+              label: 'จำนำทองคำ',
+              detail: 'ไม่ได้รับคะแนน',
+              color: const Color(0xFF888888),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.lightbulb_outline, color: Color(0xFFF9A825), size: 16),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'คะแนนสามารถใช้แลกส่วนลดหรือสิทธิพิเศษต่างๆ ของร้านได้',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF5D4037), height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFF800000)),
+            child: const Text('เข้าใจแล้ว', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsRule({
+    required IconData icon,
+    required String label,
+    required String detail,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+          ),
+        ),
+        Text(
+          detail,
+          style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 

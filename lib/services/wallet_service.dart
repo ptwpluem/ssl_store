@@ -64,6 +64,11 @@ class WalletService {
     required WalletTransactionType type,
     String? description,
     String? referenceId,
+    // Optional pre-read snapshot. Callers that must do writes before calling
+    // this method should tx.get(walletRef) FIRST (before any tx.update/set),
+    // then pass it here. This prevents the Firestore "reads before writes"
+    // assertion failure (_commands.isEmpty).
+    DocumentSnapshot? preReadWalletSnapshot,
   }) async {
     final walletRef = _firestore.collection('wallets').doc(walletId);
 
@@ -72,12 +77,17 @@ class WalletService {
     final wtxId = await _ids.generateId('wallet_transactions');
     final transactionRef = walletRef.collection('transactions').doc(wtxId);
 
-    final walletSnapshot = await transaction.get(walletRef);
+    // Use the pre-read snapshot when provided; otherwise read now.
+    // Pre-reading is required when writes have already been issued in this
+    // transaction (e.g. lot decrement), because Firestore forbids reads
+    // after writes within the same transaction.
+    final walletSnapshot = preReadWalletSnapshot ?? await transaction.get(walletRef);
     if (!walletSnapshot.exists) {
       throw Exception("Wallet does not exist!");
     }
 
-    double currentBalance = (walletSnapshot.data()?['balance'] ?? 0.0).toDouble();
+    final data = walletSnapshot.data() as Map<String, dynamic>?;
+    double currentBalance = (data?['balance'] ?? 0.0).toDouble();
 
     double newBalance = currentBalance;
     if (type == WalletTransactionType.deposit || type == WalletTransactionType.sale) {

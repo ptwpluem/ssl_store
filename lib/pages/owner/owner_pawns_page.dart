@@ -107,6 +107,8 @@ class _ActivePawnsTab extends StatelessWidget {
             stream: FirebaseFirestore.instance
                 .collectionGroup('assets')
                 .where('status', isEqualTo: 'pawned')
+                .orderBy('pawnDate', descending: true)
+                .limit(200)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {

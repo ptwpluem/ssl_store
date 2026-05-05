@@ -142,7 +142,8 @@ class TradingService {
         throw Exception('Wallet not found. Please top up first.');
       }
 
-      // Read and validate the product document inside the transaction.
+      // ── ALL reads must happen before any writes (Firestore rule) ────────────
+      // Read product doc.
       DocumentSnapshot? productDoc;
       if (productId != null) {
         productDoc = await tx.get(
@@ -156,10 +157,16 @@ class TradingService {
         }
       }
 
-      // Deduct from FIFO lot (re-reads inside tx for atomicity).
+      // Pre-read wallet BEFORE any writes so we don't violate the
+      // "all reads before writes" constraint when consumeFromLotWithTx
+      // issues its tx.update(lotRef) write below.
+      final walletId = walletQuery.docs.first.id;
+      final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+      final preReadWalletSnapshot = await tx.get(walletRef);
+
+      // ── Writes begin here ─────────────────────────────────────────────────
+      // Deduct from FIFO lot (does tx.get + tx.update internally).
       if (lotRef != null) {
-        // consumeFromLotWithTx re-reads the lot doc via tx.get() to lock it,
-        // then decrements remainingQuantity atomically.
         await _lotService.consumeFromLotWithTx(
           transaction: tx,
           lotRef: lotRef!,
@@ -169,11 +176,12 @@ class TradingService {
 
       await _walletService.performTransactionWithTx(
         transaction: tx,
-        walletId: walletQuery.docs.first.id,
+        walletId: walletId,
         amount: amount,
         type: WalletTransactionType.purchase,
         description: 'Purchase: $assetName',
         referenceId: id,
+        preReadWalletSnapshot: preReadWalletSnapshot,
       );
 
       if (productId != null && productDoc != null) {
@@ -326,13 +334,18 @@ class TradingService {
     });
   }
 
-  // ─── Data repair (called once per session) ────────────────────────────────
+  // ─── Data repair (called once per UID per session) ───────────────────────
+  // A bool flag on the singleton would never reset when a different user logs
+  // in within the same app session. Tracking the last repaired UID ensures
+  // repairs always run for a newly authenticated user.
 
-  bool _repairsRun = false;
+  String? _lastRepairedUid;
 
   Future<void> _runRepairs() async {
-    if (_repairsRun) return;
-    _repairsRun = true;
+    final uid = _uid;
+    if (uid == null) return;
+    if (_lastRepairedUid == uid) return;   // already repaired for this user
+    _lastRepairedUid = uid;
     await _cleanupPhantomPawnAssets(); // Must run before repair to avoid false-negatives
     await _repairMissingPawnAssets();
     await repairAllTransactions();
@@ -391,10 +404,6 @@ class TradingService {
     final uid = _uid;
     if (uid == null) return;
 
-    // Only repair pawn assets that belong to the CURRENT user.
-    // Previously this queried all pawn transactions globally, which — combined
-    // with the getUserDocRef email-fallback bug — caused every user's phantom
-    // pawn assets to be written into the first user who triggered the repair.
     final query = await FirebaseFirestore.instance
         .collection('transactions')
         .where('type', isEqualTo: 'pawn')
@@ -405,26 +414,53 @@ class TradingService {
     final userRef = await getUserDocRef(uid);
     final batch = FirebaseFirestore.instance.batch();
     bool needed = false;
+
     for (var txDoc in query.docs) {
       final data = txDoc.data();
+
+      // Check if a REAL asset already exists that references this pawn transaction
+      // via the loanId field (set by pawnAsset() in PawnService).
+      // Using loanId — not a derived document ID — prevents creating phantom
+      // duplicates that inflate portfolio value with artificially low acquisitionPrice.
+      final existingByLoanId = await userRef
+          .collection('assets')
+          .where('loanId', isEqualTo: txDoc.id)
+          .limit(1)
+          .get();
+      if (existingByLoanId.docs.isNotEmpty) continue; // Real asset exists — skip.
+
+      // Also check the legacy a{digits} pattern in case a prior repair ran.
       final txId = txDoc.id.replaceAll(RegExp(r'[^0-9]'), '');
+      final legacyAssetDoc = await userRef.collection('assets').doc('a$txId').get();
+      if (legacyAssetDoc.exists) continue; // Legacy phantom exists — skip creation.
+
+      // Truly missing: create a repair asset.
+      // acquisitionPrice uses goldValue (weight × pricePerBaht from the transaction),
+      // NOT loanAmount, so P&L reflects real cost basis, not the borrowed sum.
+      final ts = (data['timestamp'] as Timestamp?) ?? Timestamp.now();
+      final weight = (data['weight'] as num?)?.toDouble() ?? 1.0;
+      final loanAmount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+      // Derive cost basis from pricePerBaht stored on the transaction if available,
+      // else fall back to loan amount / 0.85 (reversing the 85% LTV ratio).
+      final pricePerBaht = (data['pricePerBaht'] as num?)?.toDouble();
+      final acquisitionPrice = pricePerBaht != null
+          ? weight * pricePerBaht
+          : loanAmount / 0.85;
+
       final assetRef = userRef.collection('assets').doc('a$txId');
-      final assetDoc = await assetRef.get();
-      if (!assetDoc.exists) {
-        final ts = (data['timestamp'] as Timestamp?) ?? Timestamp.now();
-        batch.set(assetRef, {
-          'name': data['details']?.toString().split(':').last.trim() ?? 'Pawned Item',
-          'weight': (data['weight'] as num?)?.toDouble() ?? 1.0,
-          'category': 'General',
-          'acquisitionDate': ts,
-          'acquisitionPrice': (data['amount'] as num?)?.toDouble() ?? 0.0,
-          'status': 'pawned',
-          'loanAmount': (data['amount'] as num?)?.toDouble() ?? 0.0,
-          'pawnDate': ts,
-          'dueDate': Timestamp.fromDate(ts.toDate().add(const Duration(days: 30))),
-        });
-        needed = true;
-      }
+      batch.set(assetRef, {
+        'name': data['details']?.toString().split(':').last.trim() ?? 'Pawned Item',
+        'weight': weight,
+        'category': 'General',
+        'acquisitionDate': ts,
+        'acquisitionPrice': acquisitionPrice,
+        'status': 'pawned',
+        'loanAmount': loanAmount,
+        'loanId': txDoc.id,
+        'pawnDate': ts,
+        'dueDate': Timestamp.fromDate(ts.toDate().add(const Duration(days: 30))),
+      });
+      needed = true;
     }
     if (needed) await batch.commit();
   }
@@ -440,12 +476,14 @@ class TradingService {
 
     final userRef = await getUserDocRef(uid);
 
-    // Build the set of legitimate 'a{digits}' suffixes from own pawn transactions
     final ownPawnSnap = await FirebaseFirestore.instance
         .collection('transactions')
         .where('type', isEqualTo: 'pawn')
         .where('userId', isEqualTo: uid)
         .get();
+
+    // Map of loanId → pawn tx, used to detect duplicates below.
+    final pawnTxIds = ownPawnSnap.docs.map((tx) => tx.id).toSet();
     final validSuffixes = ownPawnSnap.docs
         .map((tx) => tx.id.replaceAll(RegExp(r'[^0-9]'), ''))
         .toSet();
@@ -453,15 +491,45 @@ class TradingService {
     final assetsSnap = await userRef.collection('assets').get();
     final batch = FirebaseFirestore.instance.batch();
     bool needed = false;
+
     for (var assetDoc in assetsSnap.docs) {
-      // Phantom assets follow the pattern 'a' + digits only (no letters after 'a')
       if (!RegExp(r'^a\d+$').hasMatch(assetDoc.id)) continue;
+
       final suffix = assetDoc.id.substring(1);
+
+      // Case 1: suffix doesn't match any pawn transaction at all → orphan, delete.
       if (!validSuffixes.contains(suffix)) {
+        batch.delete(assetDoc.reference);
+        needed = true;
+        continue;
+      }
+
+      // Case 2: suffix matches a pawn transaction, but a REAL asset with the same
+      // loanId also exists (created by pawnAsset()). This is the phantom duplicate
+      // that inflates P&L. Delete the phantom; keep the real one.
+      final loanId = ownPawnSnap.docs
+          .firstWhere(
+            (tx) => tx.id.replaceAll(RegExp(r'[^0-9]'), '') == suffix,
+            orElse: () => ownPawnSnap.docs.first,
+          )
+          .id;
+      if (!pawnTxIds.contains(loanId)) continue;
+
+      final realAssetQuery = await userRef
+          .collection('assets')
+          .where('loanId', isEqualTo: loanId)
+          .limit(2)
+          .get();
+
+      // If more than one asset has this loanId (the real one + this phantom), delete phantom.
+      final hasRealAsset = realAssetQuery.docs
+          .any((doc) => doc.id != assetDoc.id);
+      if (hasRealAsset) {
         batch.delete(assetDoc.reference);
         needed = true;
       }
     }
+
     if (needed) await batch.commit();
   }
 

@@ -1,6 +1,7 @@
 // lib/pages/member/member_login_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import '../../services/auth_service.dart';
 
 // ─── Design tokens (matches owner dashboard) ──────────────────────────────────
@@ -302,7 +303,26 @@ class _LoginPageState extends State<LoginPage> {
 
           // ── Password ─────────────────────────────────────────────────────
           _buildPasswordField(),
-          const SizedBox(height: 28),
+          if (_isLogin) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () => _showForgotPasswordSheet(context),
+                child: const Text(
+                  'ลืมรหัสผ่าน?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _loginPrimary,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                    decorationColor: _loginPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
 
           // ── Submit button ─────────────────────────────────────────────────
           ElevatedButton(
@@ -352,6 +372,19 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── Forgot password bottom sheet ────────────────────────────────────────────
+  void _showForgotPasswordSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ForgotPasswordSheet(
+        prefillEmail: _emailController.text.trim(),
+        authService: _authService,
       ),
     );
   }
@@ -447,6 +480,414 @@ class _LoginPageState extends State<LoginPage> {
       validator: (v) => (v == null || v.length < 6)
           ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
           : null,
+    );
+  }
+}
+
+// ─── Forgot Password Bottom Sheet ─────────────────────────────────────────────
+class _ForgotPasswordSheet extends StatefulWidget {
+  final String prefillEmail;
+  final AuthService authService;
+
+  const _ForgotPasswordSheet({
+    required this.prefillEmail,
+    required this.authService,
+  });
+
+  @override
+  State<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet>
+    with SingleTickerProviderStateMixin {
+  late final TextEditingController _emailController;
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isLoading  = false;
+  bool _isSuccess  = false;
+  String? _errorMessage;
+
+  late final AnimationController _animCtrl;
+  late final Animation<double> _fadeAnim;
+  late final Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.prefillEmail);
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _fadeAnim  = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendReset() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _isLoading = true; _errorMessage = null; });
+
+    try {
+      await widget.authService.sendPasswordResetEmail(_emailController.text.trim());
+      if (mounted) {
+        setState(() { _isLoading = false; _isSuccess = true; });
+        _animCtrl.forward();
+      }
+    } catch (e) {
+      if (mounted) {
+        String msg = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+        if (e is FirebaseAuthException) {
+          switch (e.code) {
+            case 'user-not-found':
+              msg = 'ไม่พบบัญชีที่ใช้อีเมลนี้ กรุณาตรวจสอบอีเมลอีกครั้ง';
+              break;
+            case 'invalid-email':
+              msg = 'รูปแบบอีเมลไม่ถูกต้อง';
+              break;
+            case 'network-request-failed':
+              msg = 'ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาลองใหม่';
+              break;
+          }
+        }
+        setState(() { _isLoading = false; _errorMessage = msg; });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Drag handle ───────────────────────────────────────────────────
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Gold accent stripe ────────────────────────────────────────────
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_loginPrimary, _loginGold],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Content switches between input and success ────────────────────
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _isSuccess ? _buildSuccessState() : _buildInputState(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Input state ─────────────────────────────────────────────────────────────
+  Widget _buildInputState() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _loginPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.lock_reset_rounded, color: _loginPrimary, size: 22),
+              ),
+              const SizedBox(width: 14),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ลืมรหัสผ่าน?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _loginPrimary,
+                    ),
+                  ),
+                  Text(
+                    'เราจะส่งลิงก์รีเซ็ตไปที่อีเมลคุณ',
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF888888)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Email field
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: widget.prefillEmail.isEmpty,
+            style: const TextStyle(fontSize: 14.5),
+            decoration: InputDecoration(
+              labelText: 'อีเมลที่ใช้สมัครสมาชิก',
+              labelStyle: const TextStyle(fontSize: 13.5, color: Color(0xFF888888)),
+              prefixIcon: const Icon(Icons.email_rounded, size: 20, color: _loginPrimary),
+              filled: true,
+              fillColor: const Color(0xFFF9F9FB),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.22)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _loginPrimary, width: 1.5),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.red.shade300),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
+              ),
+            ),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'กรุณากรอกอีเมล';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                return 'รูปแบบอีเมลไม่ถูกต้อง';
+              }
+              return null;
+            },
+          ),
+
+          // Inline error message
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 16, color: Colors.red.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(fontSize: 13, color: Colors.red.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Send button
+          ElevatedButton.icon(
+            onPressed: _isLoading ? null : _sendReset,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                  )
+                : const Icon(Icons.send_rounded, size: 18),
+            label: Text(
+              _isLoading ? 'กำลังส่ง...' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _loginPrimary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: _loginPrimary.withValues(alpha: 0.5),
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              elevation: 2,
+              shadowColor: _loginPrimary.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Cancel
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
+            child: const Text('ยกเลิก', style: TextStyle(fontSize: 14)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Success state ────────────────────────────────────────────────────────────
+  Widget _buildSuccessState() {
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: SlideTransition(
+        position: _slideAnim,
+        child: Column(
+          children: [
+            // Gold checkmark circle
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _loginGold.withValues(alpha: 0.12),
+                border: Border.all(color: _loginGold.withValues(alpha: 0.5), width: 2),
+              ),
+              child: const Icon(Icons.mark_email_read_rounded, size: 40, color: _loginGold),
+            ),
+            const SizedBox(height: 20),
+
+            const Text(
+              'ส่งอีเมลแล้ว!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _loginPrimary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'กรุณาตรวจสอบกล่องจดหมายของ\n${_emailController.text.trim()}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF555555), height: 1.6),
+            ),
+            const SizedBox(height: 20),
+
+            // Tip card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _loginGold.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline_rounded, size: 16, color: Color(0xFFF9A825)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'ไม่พบอีเมล? ลองตรวจสอบในโฟลเดอร์สแปม (Spam) หรือ Promotions',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF5D4037), height: 1.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.timer_outlined, size: 16, color: Color(0xFFF9A825)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'ลิงก์มีอายุ 1 ชั่วโมง — หากไม่ใช้งานในเวลาที่กำหนด กรุณาขอลิงก์ใหม่',
+                          style: TextStyle(fontSize: 13, color: Color(0xFF5D4037), height: 1.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Steps
+            _buildStep('1', 'เปิดอีเมลที่ได้รับจากระบบ'),
+            const SizedBox(height: 8),
+            _buildStep('2', 'คลิกลิงก์ "รีเซ็ตรหัสผ่าน"'),
+            const SizedBox(height: 8),
+            _buildStep('3', 'ตั้งรหัสผ่านใหม่ แล้วกลับมาเข้าสู่ระบบ'),
+            const SizedBox(height: 28),
+
+            // Back to login
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: const Text(
+                  'กลับสู่หน้าเข้าสู่ระบบ',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _loginPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep(String number, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 26, height: 26,
+          decoration: BoxDecoration(
+            color: _loginPrimary,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13.5, color: Color(0xFF444444)),
+          ),
+        ),
+      ],
     );
   }
 }

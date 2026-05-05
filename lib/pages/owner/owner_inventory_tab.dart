@@ -550,6 +550,9 @@ class OwnerInventoryTab extends StatelessWidget {
           );
         },
       ),
-    );
+    ).then((_) {
+      qtyCtrl.dispose();
+      unitCostCtrl.dispose();
+    });
   }
 }
