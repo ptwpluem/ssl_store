@@ -56,7 +56,7 @@ class StoreInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'ห้างทองสุ้นเซ่งหลี',
+                  'ห้างทองซุ่นเซ่งหลี',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

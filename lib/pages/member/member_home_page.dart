@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'ห้างทองสุ้นเซ่งหลี',
+                'ห้างทองซุ่นเซ่งหลี',
                 style: TextStyle(color: _homePrimary, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2, height: 1.25),
               ),
               Text(

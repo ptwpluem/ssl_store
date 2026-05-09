@@ -1,13 +1,15 @@
 class Product {
-  final String id;
-  final String name;
-  final String description;
+  final String id; // PRD-4GUNEfW32djCVMjx9c13
+  final String name; // สร้อยคอทองคำ ลายเบนซ์
+  final String
+  description; // สร้อยคอทองคำแท้ 96.5% ลายเบนซ์ ขัดเงาสวยงาม เรียบหรู
   final double weight; // In Baht (บาทน้ำหนัก)
   final double laborFee; // Cost of craftsmanship (ค่ากำเหน็จ)
-  final double costBasis; // Owner's acquisition cost per unit (from latest restock lot)
+  final double
+  costBasis; // Owner's acquisition cost per unit (from latest restock lot)
   final int stock; // Available quantity
   final String imageUrl;
-  final String category;
+  final String category; // สร้อยคอ
 
   // Selling price is NOT stored — it is always calculated live:
   //   sellPrice = (weight × market.sellPrice) + laborFee

@@ -98,7 +98,7 @@ class _ProfileGuestView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'ห้างทองสุ้นเซ่งหลี',
+                          'ห้างทองซุ่นเซ่งหลี',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -189,7 +189,7 @@ class _ProfileGuestView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
-                                  'ห้างทองสุ้นเซ่งหลี',
+                                  'ห้างทองซุ่นเซ่งหลี',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 24,

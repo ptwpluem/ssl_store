@@ -22,21 +22,24 @@ class IdGeneratorService {
     'pawn_loans': 'PLN',
     'events': 'EVT',
     'gold_rates': 'GRT',
-    'inventory_log': 'IVL',       // ← was INV — fixed: INV is reserved for invoices
+    'inventory_log': 'IVL', // ก่อนหน้านี้มี INV
     'wallets': 'WAL',
     'wallet_transactions': 'WTX',
     'savings_transactions': 'STX',
   };
 
-
   /// Generates a unique ID using a prefix and Firestore's auto-generated document ID.
   /// Format: PREFIX-AutoID (e.g., CST-vH9kL2m3n...)
-  Future<String> generateId(String collectionName, {String? prefixOverride}) async {
-    final prefix = prefixOverride ?? 
-                   _prefixMap[collectionName] ?? 
-                   collectionName.substring(0, 3).toUpperCase();
+  Future<String> generateId(
+    String collectionName, {
+    String? prefixOverride,
+  }) async {
+    final prefix =
+        prefixOverride ??
+        _prefixMap[collectionName] ??
+        collectionName.substring(0, 3).toUpperCase();
 
     final autoId = _firestore.collection(collectionName).doc().id;
-    return '$prefix-$autoId';
+    return '$prefix-$autoId'; // Prefix ช่วยให้แยกประเภท Transaction ได้ทันที
   }
 }

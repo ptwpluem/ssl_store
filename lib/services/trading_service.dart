@@ -40,8 +40,10 @@ class TradingService {
                 weight: (data['weight'] ?? 0 as num).toDouble(),
                 category: data['category'] ?? 'General',
                 acquisitionDate:
-                    (data['acquisitionDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                acquisitionPrice: (data['acquisitionPrice'] ?? 0 as num).toDouble(),
+                    (data['acquisitionDate'] as Timestamp?)?.toDate() ??
+                    DateTime.now(),
+                acquisitionPrice: (data['acquisitionPrice'] ?? 0 as num)
+                    .toDouble(),
                 status: data['status'] ?? 'owned',
                 loanAmount: (data['loanAmount'] as num?)?.toDouble(),
                 pawnDate: (data['pawnDate'] as Timestamp?)?.toDate(),
@@ -106,7 +108,9 @@ class TradingService {
         // No lot records exist yet (pre-existing stock before this feature
         // was added). Gracefully fall back to live market rate.
         final rateDoc = await FirebaseFirestore.instance
-            .collection('market').doc('gold_rate').get();
+            .collection('market')
+            .doc('gold_rate')
+            .get();
         final buyRate =
             (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
         totalCost = weight * buyRate;
@@ -114,7 +118,9 @@ class TradingService {
     } else {
       // No catalog product — raw gold trade. Use live market buy rate.
       final rateDoc = await FirebaseFirestore.instance
-          .collection('market').doc('gold_rate').get();
+          .collection('market')
+          .doc('gold_rate')
+          .get();
       final buyRate =
           (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
       totalCost = weight * buyRate;
@@ -129,7 +135,11 @@ class TradingService {
     final assetIds = <String>[];
     final assetEventIds = <String>[];
     for (int i = 0; i < quantity; i++) {
-      assetIds.add(i == 0 ? id : await _ids.generateId('transactions', prefixOverride: 'BUY'));
+      assetIds.add(
+        i == 0
+            ? id
+            : await _ids.generateId('transactions', prefixOverride: 'BUY'),
+      );
       assetEventIds.add(await _ids.generateId('events'));
     }
 
@@ -137,7 +147,10 @@ class TradingService {
     final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
-          .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+          .collection('wallets')
+          .where('userId', isEqualTo: uid)
+          .limit(1)
+          .get();
       if (walletQuery.docs.isEmpty) {
         throw Exception('Wallet not found. Please top up first.');
       }
@@ -147,7 +160,8 @@ class TradingService {
       DocumentSnapshot? productDoc;
       if (productId != null) {
         productDoc = await tx.get(
-            FirebaseFirestore.instance.collection('products').doc(productId));
+          FirebaseFirestore.instance.collection('products').doc(productId),
+        );
         if (productDoc.exists) {
           if ((productDoc.data() as Map<String, dynamic>)['stock'] <= 0) {
             throw Exception('Product is out of stock.');
@@ -161,7 +175,9 @@ class TradingService {
       // "all reads before writes" constraint when consumeFromLotWithTx
       // issues its tx.update(lotRef) write below.
       final walletId = walletQuery.docs.first.id;
-      final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+      final walletRef = FirebaseFirestore.instance
+          .collection('wallets')
+          .doc(walletId);
       final preReadWalletSnapshot = await tx.get(walletRef);
 
       // ── Writes begin here ─────────────────────────────────────────────────
@@ -185,7 +201,9 @@ class TradingService {
       );
 
       if (productId != null && productDoc != null) {
-        tx.update(productDoc.reference, {'stock': FieldValue.increment(-quantity)});
+        tx.update(productDoc.reference, {
+          'stock': FieldValue.increment(-quantity),
+        });
       }
 
       // ── Create one asset document per unit purchased ─────────────────────
@@ -193,7 +211,7 @@ class TradingService {
       // per-unit weight and per-unit acquisition price, so the customer's
       // portfolio correctly shows N separate items they can sell individually.
       final unitWeight = weight / quantity;
-      final unitPrice  = amount / quantity;
+      final unitPrice = amount / quantity;
 
       for (int i = 0; i < quantity; i++) {
         final assetRef = userRef.collection('assets').doc(assetIds[i]);
@@ -251,20 +269,26 @@ class TradingService {
       final unitLabel = quantity > 1
           ? '$quantity ชิ้น (${unitWeightForNotif.toStringAsFixed(2)} บาท/ชิ้น)'
           : '${unitWeightForNotif.toStringAsFixed(2)} บาท';
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'ทำรายการสำเร็จ',
-        message: 'ซื้อ $assetName $unitLabel สำเร็จแล้ว',
-        type: 'store',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'ทำรายการสำเร็จ',
+          message: 'ซื้อ $assetName $unitLabel สำเร็จแล้ว',
+          type: 'store',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
   // ─── Sell transaction ─────────────────────────────────────────────────────
 
-  Future<void> sellAsset({required GoldAsset asset, required double sellPrice}) async {
+  Future<void> sellAsset({
+    required GoldAsset asset,
+    required double sellPrice,
+  }) async {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
@@ -274,7 +298,10 @@ class TradingService {
     final userRef = await getUserDocRef(uid);
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final walletQuery = await FirebaseFirestore.instance
-          .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+          .collection('wallets')
+          .where('userId', isEqualTo: uid)
+          .limit(1)
+          .get();
       if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
 
       final assetRef = userRef.collection('assets').doc(asset.id);
@@ -311,11 +338,16 @@ class TradingService {
       });
 
       tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
-        'assetId': asset.id, 'type': TransactionType.sell.name,
-        'amount': sellPrice, 'weight': asset.weight, 'category': asset.category,
+        'assetId': asset.id,
+        'type': TransactionType.sell.name,
+        'amount': sellPrice,
+        'weight': asset.weight,
+        'category': asset.category,
         'timestamp': FieldValue.serverTimestamp(),
         'details': 'ขาย: ${asset.name} (${asset.weight} บาท)',
-        'cost': asset.acquisitionPrice, 'profit': profit, 'purity': asset.purity,
+        'cost': asset.acquisitionPrice,
+        'profit': profit,
+        'purity': asset.purity,
         'userId': uid,
         'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
@@ -323,14 +355,18 @@ class TradingService {
 
       final notifId = await _ids.generateId('notifications');
       final fmt = NumberFormat('#,##0.00');
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'ขายสินทรัพย์สำเร็จ',
-        message: 'ขาย ${asset.name} สำเร็จแล้ว เป็นเงิน ฿${fmt.format(sellPrice)}',
-        type: 'store',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'ขายสินทรัพย์สำเร็จ',
+          message:
+              'ขาย ${asset.name} สำเร็จแล้ว เป็นเงิน ฿${fmt.format(sellPrice)}',
+          type: 'store',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
@@ -344,7 +380,7 @@ class TradingService {
   Future<void> _runRepairs() async {
     final uid = _uid;
     if (uid == null) return;
-    if (_lastRepairedUid == uid) return;   // already repaired for this user
+    if (_lastRepairedUid == uid) return; // already repaired for this user
     _lastRepairedUid = uid;
     await _cleanupPhantomPawnAssets(); // Must run before repair to avoid false-negatives
     await _repairMissingPawnAssets();
@@ -352,11 +388,17 @@ class TradingService {
   }
 
   Future<void> repairAllTransactions() async {
-    final rateDoc = await FirebaseFirestore.instance.collection('market').doc('gold_rate').get();
-    final buyRate = (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
+    final rateDoc = await FirebaseFirestore.instance
+        .collection('market')
+        .doc('gold_rate')
+        .get();
+    final buyRate =
+        (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
 
     final buyTxQuery = await FirebaseFirestore.instance
-        .collection('transactions').where('type', isEqualTo: 'buy').get();
+        .collection('transactions')
+        .where('type', isEqualTo: 'buy')
+        .get();
     var batch = FirebaseFirestore.instance.batch();
     bool needed = false;
     for (var doc in buyTxQuery.docs) {
@@ -369,9 +411,12 @@ class TradingService {
       // INCLUDING those resolved via FIFO lot cost (costMethod == 'fifo').
       // Only repair truly missing or corrupted legacy records.
       final costMethod = data['costMethod'] as String?;
-      if (costMethod == 'fifo') continue; // FIFO cost is authoritative — never overwrite.
+      if (costMethod == 'fifo')
+        continue; // FIFO cost is authoritative — never overwrite.
 
-      if (cost == null || profit == null || (amount - (cost + profit)).abs() > 1.0) {
+      if (cost == null ||
+          profit == null ||
+          (amount - (cost + profit)).abs() > 1.0) {
         double weight = (data['weight'] as num?)?.toDouble() ?? 0.0;
         if (weight <= 0 && amount > 0) weight = amount / (buyRate * 1.04);
         batch.update(doc.reference, {
@@ -383,17 +428,27 @@ class TradingService {
         needed = true;
       }
     }
-    if (needed) { await batch.commit(); batch = FirebaseFirestore.instance.batch(); needed = false; }
+    if (needed) {
+      await batch.commit();
+      batch = FirebaseFirestore.instance.batch();
+      needed = false;
+    }
 
     final redeemQuery = await FirebaseFirestore.instance
-        .collection('transactions').where('type', isEqualTo: 'redeem').get();
+        .collection('transactions')
+        .where('type', isEqualTo: 'redeem')
+        .get();
     for (var doc in redeemQuery.docs) {
       final data = doc.data();
       if (data['profit'] == null || data['interestPaid'] == null) {
         final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
         double principal = (data['principal'] as num?)?.toDouble() ?? 0.0;
         if (principal <= 0) principal = amount * 0.98;
-        batch.update(doc.reference, {'principal': principal, 'interestPaid': amount - principal, 'profit': amount - principal});
+        batch.update(doc.reference, {
+          'principal': principal,
+          'interestPaid': amount - principal,
+          'profit': amount - principal,
+        });
         needed = true;
       }
     }
@@ -427,12 +482,17 @@ class TradingService {
           .where('loanId', isEqualTo: txDoc.id)
           .limit(1)
           .get();
-      if (existingByLoanId.docs.isNotEmpty) continue; // Real asset exists — skip.
+      if (existingByLoanId.docs.isNotEmpty)
+        continue; // Real asset exists — skip.
 
       // Also check the legacy a{digits} pattern in case a prior repair ran.
       final txId = txDoc.id.replaceAll(RegExp(r'[^0-9]'), '');
-      final legacyAssetDoc = await userRef.collection('assets').doc('a$txId').get();
-      if (legacyAssetDoc.exists) continue; // Legacy phantom exists — skip creation.
+      final legacyAssetDoc = await userRef
+          .collection('assets')
+          .doc('a$txId')
+          .get();
+      if (legacyAssetDoc.exists)
+        continue; // Legacy phantom exists — skip creation.
 
       // Truly missing: create a repair asset.
       // acquisitionPrice uses goldValue (weight × pricePerBaht from the transaction),
@@ -449,7 +509,8 @@ class TradingService {
 
       final assetRef = userRef.collection('assets').doc('a$txId');
       batch.set(assetRef, {
-        'name': data['details']?.toString().split(':').last.trim() ?? 'Pawned Item',
+        'name':
+            data['details']?.toString().split(':').last.trim() ?? 'Pawned Item',
         'weight': weight,
         'category': 'General',
         'acquisitionDate': ts,
@@ -458,7 +519,9 @@ class TradingService {
         'loanAmount': loanAmount,
         'loanId': txDoc.id,
         'pawnDate': ts,
-        'dueDate': Timestamp.fromDate(ts.toDate().add(const Duration(days: 30))),
+        'dueDate': Timestamp.fromDate(
+          ts.toDate().add(const Duration(days: 30)),
+        ),
       });
       needed = true;
     }
@@ -522,8 +585,9 @@ class TradingService {
           .get();
 
       // If more than one asset has this loanId (the real one + this phantom), delete phantom.
-      final hasRealAsset = realAssetQuery.docs
-          .any((doc) => doc.id != assetDoc.id);
+      final hasRealAsset = realAssetQuery.docs.any(
+        (doc) => doc.id != assetDoc.id,
+      );
       if (hasRealAsset) {
         batch.delete(assetDoc.reference);
         needed = true;

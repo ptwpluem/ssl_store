@@ -2,34 +2,18 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Represents a single owner purchase of stock at a specific price.
-///
-/// Stored at: products/{productId}/inventory_lots/{lotId}
-///
-/// Purpose: enables FIFO cost-basis resolution so that when a customer buys
-/// an item, the profit is calculated against what the owner actually paid for
-/// that specific lot — not the live market buy rate.
 class InventoryLot {
+  // เก็บค่าพวกนี้เพราะจะได้ทำ Stock FIFO
   final String id;
   final String productId;
   final String productName;
-
-  /// Number of units in the original purchase.
-  final int quantity;
-
-  /// Units still available (decremented on each customer sale).
-  final int remainingQuantity;
-
-  /// What the owner paid per unit (THB). Calculated as totalCost / quantity.
-  final double unitCost;
-
-  final DateTime purchaseDate;
-
+  final int quantity; // จำนวนที่ซื้อมา
+  final int remainingQuantity; // จำนวนที่เหลือ
+  final double unitCost; // ต้นทุนต่อ 1 ชิ้น totalCost / quantity
+  final DateTime purchaseDate; // วันที่ซื้อ
   /// Links back to the 'restock' transaction document for audit purposes.
   final String restockTransactionId;
-
-  /// Optional owner note (e.g. "ซื้อจากสาขาสยาม ราคาวันนี้ลด").
-  final String? note;
+  final String? note; // optional note
 
   const InventoryLot({
     required this.id,

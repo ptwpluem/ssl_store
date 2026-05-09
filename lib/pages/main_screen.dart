@@ -31,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
+        // เก็บหน้าจอหลายหน้าซ้อนกัน แต่แสดงแค่หน้าเดียวตามที่เราเลือก
         index: _selectedIndex,
         children: _pages,
       ),
@@ -52,10 +53,7 @@ class _MainScreenState extends State<MainScreen> {
           showUnselectedLabels: true,
           onTap: _onItemTapped,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'หน้าแรก',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'หน้าแรก'),
             BottomNavigationBarItem(
               icon: Icon(Icons.show_chart),
               label: 'ซื้อ-ขาย',
@@ -64,10 +62,7 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.pie_chart), // or savings icon
               label: 'ทองของฉัน',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'โปรไฟล์',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'โปรไฟล์'),
           ],
         ),
       ),

@@ -1,4 +1,13 @@
-enum TransactionType { buy, sell, pawn, redeem, savings_deposit, savings_withdraw, savings_physical_withdraw }
+enum TransactionType {
+  buy,
+  sell,
+  pawn,
+  redeem,
+  savings_deposit,
+  savings_withdraw,
+  savings_physical_withdraw,
+}
+// กำหนดค่าที่เป็นไปได้ล่วงหน้า ทำให้ไม่สามารถพิมพ์ผิดเป็น buyyy ได้
 
 class GoldTransaction {
   final String id;

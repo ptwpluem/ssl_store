@@ -206,7 +206,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            'ห้างทองสุ้นเซ่งหลี • ทองคำบริสุทธิ์ 96.5%',
+            'ห้างทองซุ่นเซ่งหลี • ทองคำบริสุทธิ์ 96.5%',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: 12.5,

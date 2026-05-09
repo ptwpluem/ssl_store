@@ -23,6 +23,7 @@ class PawnService {
   // ─── Pawn an asset ────────────────────────────────────────────────────────
 
   Future<void> pawnAsset({
+    // จำนำทอง
     required GoldAsset asset,
     required double loanAmount,
   }) async {
@@ -33,25 +34,30 @@ class PawnService {
     // Firestore transactions must not contain additional async reads/writes
     // beyond tx.get() calls. Generating IDs and querying the wallet here
     // prevents any accidental reads-after-writes inside runTransaction.
-    final id           = await _ids.generateId('transactions', prefixOverride: 'PWN');
-    final pawnEventId  = await _ids.generateId('events');
-    final notifId      = await _ids.generateId('notifications');
-    final displayName  = await _getDisplayName(uid);
+    final id = await _ids.generateId('transactions', prefixOverride: 'PWN');
+    final pawnEventId = await _ids.generateId('events');
+    final notifId = await _ids.generateId('notifications');
+    final displayName = await _getDisplayName(uid);
 
     final walletQuery = await FirebaseFirestore.instance
-        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
-    final walletId  = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+    final walletId = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance
+        .collection('wallets')
+        .doc(walletId);
 
     final userRef = await getUserDocRef(uid);
     final fmt = NumberFormat('#,##0.00');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
-      final assetRef  = userRef.collection('assets').doc(asset.id);
-      final assetDoc  = await tx.get(assetRef);       // READ 1
-      final walletSnap = await tx.get(walletRef);     // READ 2
+      final assetRef = userRef.collection('assets').doc(asset.id);
+      final assetDoc = await tx.get(assetRef); // READ 1
+      final walletSnap = await tx.get(walletRef); // READ 2
 
       if (!assetDoc.exists) throw Exception('Asset not found in portfolio.');
       if ((assetDoc.data() as Map<String, dynamic>)['status'] != 'owned') {
@@ -76,7 +82,7 @@ class PawnService {
         'pawnDate': FieldValue.serverTimestamp(),
         'dueDate': Timestamp.fromDate(dueDate),
         'interestRate': 0.0125,
-        'loanId': id,   // ← cross-reference to pawn_loans document
+        'loanId': id, // ← cross-reference to pawn_loans document
       });
 
       // ── Create pawn loan as a first-class entity ───────────────────────────
@@ -89,7 +95,7 @@ class PawnService {
         'assetWeight': asset.weight,
         'assetCategory': asset.category,
         'principal': loanAmount,
-        'interestRateMonthly': 0.0125,
+        'interestRateMonthly': 0.0125, // monthly rate
         'startDate': FieldValue.serverTimestamp(),
         'dueDate': Timestamp.fromDate(dueDate),
         'gracePeriodDays': 7,
@@ -121,14 +127,18 @@ class PawnService {
         'userDisplayName': displayName,
       });
 
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'จำนำสำเร็จ',
-        message: 'จำนำ ${asset.name} สำเร็จแล้ว ได้รับเงินกู้ ฿${fmt.format(loanAmount)}',
-        type: 'pawn',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'จำนำสำเร็จ',
+          message:
+              'จำนำ ${asset.name} สำเร็จแล้ว ได้รับเงินกู้ ฿${fmt.format(loanAmount)}',
+          type: 'pawn',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
@@ -142,35 +152,40 @@ class PawnService {
     if (uid == null) throw Exception('User not logged in');
 
     // ── Pre-generate all IDs and resolve wallet OUTSIDE the transaction ───────
-    final id             = await _ids.generateId('transactions', prefixOverride: 'RED');
-    final redeemEventId  = await _ids.generateId('events');
-    final notifId        = await _ids.generateId('notifications');
-    final displayName    = await _getDisplayName(uid);
+    final id = await _ids.generateId('transactions', prefixOverride: 'RED');
+    final redeemEventId = await _ids.generateId('events');
+    final notifId = await _ids.generateId('notifications');
+    final displayName = await _getDisplayName(uid);
 
     final walletQuery = await FirebaseFirestore.instance
-        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
-    final walletId  = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+    final walletId = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance
+        .collection('wallets')
+        .doc(walletId);
 
     final userRef = await getUserDocRef(uid);
     final fmt = NumberFormat('#,##0.00');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
-      final assetRef   = userRef.collection('assets').doc(asset.id);
-      final assetDoc   = await tx.get(assetRef);      // READ 1
-      final walletSnap = await tx.get(walletRef);     // READ 2
+      final assetRef = userRef.collection('assets').doc(asset.id);
+      final assetDoc = await tx.get(assetRef); // READ 1
+      final walletSnap = await tx.get(walletRef); // READ 2
 
       if (!assetDoc.exists) throw Exception('Asset not found in portfolio.');
       if ((assetDoc.data() as Map<String, dynamic>)['status'] != 'pawned') {
         throw Exception('Asset is not currently pawned.');
       }
 
-      final assetData    = assetDoc.data() as Map<String, dynamic>;
-      final principal    = (assetData['loanAmount'] as num?)?.toDouble() ?? 0.0;
+      final assetData = assetDoc.data() as Map<String, dynamic>;
+      final principal = (assetData['loanAmount'] as num?)?.toDouble() ?? 0.0;
       final interestPaid = totalOwed - principal;
-      final loanId       = assetData['loanId'] as String?;
+      final loanId = assetData['loanId'] as String?;
 
       // ── Writes begin here ─────────────────────────────────────────────────
       await _walletService.performTransactionWithTx(
@@ -234,14 +249,18 @@ class PawnService {
         'userDisplayName': displayName,
       });
 
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'ไถ่ถอนสินทรัพย์สำเร็จ',
-        message: 'ไถ่ถอน ${asset.name} สำเร็จแล้ว ยอดชำระทั้งหมด: ฿${fmt.format(totalOwed)}',
-        type: 'pawn',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'ไถ่ถอนสินทรัพย์สำเร็จ',
+          message:
+              'ไถ่ถอน ${asset.name} สำเร็จแล้ว ยอดชำระทั้งหมด: ฿${fmt.format(totalOwed)}',
+          type: 'pawn',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
@@ -249,12 +268,14 @@ class PawnService {
 
   /// Returns 85% of the current buy value as the loan offer.
   double calculatePawnLoan(double weight, double currentBuyPrice) {
+    // คำนวณยอดเงินกู้
     return (weight * currentBuyPrice) * 0.85;
   }
 
   /// Breaks down the total owed into principal, standard interest, and
   /// any overdue penalty interest. [monthlyRate] is a decimal (e.g. 0.0125).
   Map<String, double> calculatePawnOwed(
+    // คำนวนยอดที่ต้องชำระ
     double principal,
     DateTime pawnDate,
     DateTime dueDate,

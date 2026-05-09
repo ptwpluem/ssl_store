@@ -25,14 +25,18 @@ class SavingsService {
   Stream<GoldSavingsAccount> getGoldSavingsAccountStream() {
     final uid = _uid;
     if (uid == null) {
-      return Stream.value(GoldSavingsAccount(
-        totalWeightSaved: 0.0,
-        totalAmountInvested: 0.0,
-        lastUpdated: DateTime.now(),
-      ));
+      return Stream.value(
+        GoldSavingsAccount(
+          totalWeightSaved: 0.0,
+          totalAmountInvested: 0.0,
+          lastUpdated: DateTime.now(),
+        ),
+      );
     }
     return Stream.fromFuture(getUserDocRef(uid)).asyncExpand((userRef) {
-      return userRef.collection('savings').doc('account').snapshots().map((snapshot) {
+      return userRef.collection('savings').doc('account').snapshots().map((
+        snapshot,
+      ) {
         if (!snapshot.exists || snapshot.data() == null) {
           return GoldSavingsAccount(
             totalWeightSaved: 0.0,
@@ -55,9 +59,13 @@ class SavingsService {
           .collection('transactions')
           .orderBy('timestamp', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => GoldSavingsTransaction.fromMap(doc.id, doc.data()))
-              .toList());
+          .map(
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => GoldSavingsTransaction.fromMap(doc.id, doc.data()),
+                )
+                .toList(),
+          );
     });
   }
 
@@ -71,22 +79,27 @@ class SavingsService {
     if (uid == null) throw Exception('User not logged in');
 
     final walletQuery = await FirebaseFirestore.instance
-        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
-    final walletId  = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+    final walletId = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance
+        .collection('wallets')
+        .doc(walletId);
 
-    final userRef     = await getUserDocRef(uid);
-    final id          = await _ids.generateId('transactions', prefixOverride: 'SAV');
-    final stxId       = await _ids.generateId('savings_transactions');
-    final notifId     = await _ids.generateId('notifications');
+    final userRef = await getUserDocRef(uid);
+    final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
+    final stxId = await _ids.generateId('savings_transactions');
+    final notifId = await _ids.generateId('notifications');
     final displayName = await _getDisplayName(uid);
     final weightGained = amountInTHB / currentBuyPricePerBaht;
     final fmt = NumberFormat('#,##0.00');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
-      final walletSnap = await tx.get(walletRef);    // READ 1
+      final walletSnap = await tx.get(walletRef); // READ 1
 
       // ── Writes begin here ─────────────────────────────────────────────────
       await _walletService.performTransactionWithTx(
@@ -130,20 +143,25 @@ class SavingsService {
         'userDisplayName': displayName,
       });
 
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'ฝากเงินออมทองสำเร็จ',
-        message: 'ฝากเงิน ฿${fmt.format(amountInTHB)} เข้าออมทองสำเร็จแล้ว ได้รับทองเพิ่ม ${weightGained.toStringAsFixed(4)} บาท',
-        type: 'savings',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'ฝากเงินออมทองสำเร็จ',
+          message:
+              'ฝากเงิน ฿${fmt.format(amountInTHB)} เข้าออมทองสำเร็จแล้ว ได้รับทองเพิ่ม ${weightGained.toStringAsFixed(4)} บาท',
+          type: 'savings',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
   // ─── Sell from savings ────────────────────────────────────────────────────
 
   Future<void> sellFromGoldSavings(
+    // ออกจา Saving โดยการ Sell
     double weightToSell,
     double currentSellPricePerBaht,
   ) async {
@@ -151,15 +169,20 @@ class SavingsService {
     if (uid == null) throw Exception('User not logged in');
 
     final walletQuery = await FirebaseFirestore.instance
-        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
-    final walletId  = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+    final walletId = walletQuery.docs.first.id;
+    final walletRef = FirebaseFirestore.instance
+        .collection('wallets')
+        .doc(walletId);
 
-    final userRef     = await getUserDocRef(uid);
-    final id          = await _ids.generateId('transactions', prefixOverride: 'SAV');
-    final stxId       = await _ids.generateId('savings_transactions');
-    final notifId     = await _ids.generateId('notifications');
+    final userRef = await getUserDocRef(uid);
+    final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
+    final stxId = await _ids.generateId('savings_transactions');
+    final notifId = await _ids.generateId('notifications');
     final displayName = await _getDisplayName(uid);
     final amountInTHB = weightToSell * currentSellPricePerBaht;
     final fmt = NumberFormat('#,##0.00');
@@ -168,11 +191,12 @@ class SavingsService {
       final savingsRef = userRef.collection('savings').doc('account');
 
       // ── ALL reads before any writes ───────────────────────────────────────
-      final savingsDoc = await tx.get(savingsRef);   // READ 1
-      final walletSnap = await tx.get(walletRef);    // READ 2
+      final savingsDoc = await tx.get(savingsRef); // READ 1
+      final walletSnap = await tx.get(walletRef); // READ 2
 
       final currentWeight =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ?? 0.0 as num)
+          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ??
+                  0.0 as num)
               .toDouble();
 
       if (currentWeight < weightToSell) {
@@ -192,12 +216,16 @@ class SavingsService {
 
       final proportionSold = weightToSell / currentWeight;
       final currentInvested =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalAmountInvested'] ?? 0.0 as num)
+          ((savingsDoc.data()
+                      as Map<String, dynamic>?)?['totalAmountInvested'] ??
+                  0.0 as num)
               .toDouble();
 
       tx.set(savingsRef, {
         'totalWeightSaved': FieldValue.increment(-weightToSell),
-        'totalAmountInvested': FieldValue.increment(-(proportionSold * currentInvested)),
+        'totalAmountInvested': FieldValue.increment(
+          -(proportionSold * currentInvested),
+        ),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -225,14 +253,18 @@ class SavingsService {
         'userDisplayName': displayName,
       });
 
-      tx.set(userRef.collection('notifications').doc(notifId), NotificationItem(
-        id: notifId,
-        title: 'ขายทองออมสำเร็จ',
-        message: 'ขายทองออมจำนวน ${weightToSell.toStringAsFixed(4)} บาท สำเร็จแล้ว คุณได้รับเงิน ฿${fmt.format(amountInTHB)} กลับเข้าวอลเล็ต',
-        type: 'savings',
-        timestamp: DateTime.now(),
-        isRead: false,
-      ).toMap());
+      tx.set(
+        userRef.collection('notifications').doc(notifId),
+        NotificationItem(
+          id: notifId,
+          title: 'ขายทองออมสำเร็จ',
+          message:
+              'ขายทองออมจำนวน ${weightToSell.toStringAsFixed(4)} บาท สำเร็จแล้ว คุณได้รับเงิน ฿${fmt.format(amountInTHB)} กลับเข้าวอลเล็ต',
+          type: 'savings',
+          timestamp: DateTime.now(),
+          isRead: false,
+        ).toMap(),
+      );
     });
   }
 
@@ -240,6 +272,7 @@ class SavingsService {
 
   /// Returns the new asset ID of the created gold bar asset.
   Future<String> withdrawPhysicalGoldBar(
+    // ออกจาก Saving โดยการ Withdraw
     double weightToWithdraw,
     double currentBuyPricePerBaht,
     double premiumFee,
@@ -252,17 +285,22 @@ class SavingsService {
     }
 
     final walletQuery = await FirebaseFirestore.instance
-        .collection('wallets').where('userId', isEqualTo: uid).limit(1).get();
+        .collection('wallets')
+        .where('userId', isEqualTo: uid)
+        .limit(1)
+        .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
 
-    final userRef     = await getUserDocRef(uid);
-    final id          = await _ids.generateId('transactions', prefixOverride: 'SAV');
-    final assetId     = await _ids.generateId('assets', prefixOverride: 'AST');
-    final stxId       = await _ids.generateId('savings_transactions');
-    final notifId     = await _ids.generateId('notifications');
+    final userRef = await getUserDocRef(uid);
+    final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
+    final assetId = await _ids.generateId('assets', prefixOverride: 'AST');
+    final stxId = await _ids.generateId('savings_transactions');
+    final notifId = await _ids.generateId('notifications');
     final displayName = await _getDisplayName(uid);
-    final walletRef   = FirebaseFirestore.instance.collection('wallets').doc(walletId);
+    final walletRef = FirebaseFirestore.instance
+        .collection('wallets')
+        .doc(walletId);
 
     // Find the matching gold bar product before the transaction
     final productQuery = await FirebaseFirestore.instance
@@ -271,29 +309,33 @@ class SavingsService {
         .where('weight', isEqualTo: weightToWithdraw)
         .limit(1)
         .get();
-    final productDocRef =
-        productQuery.docs.isNotEmpty ? productQuery.docs.first.reference : null;
+    final productDocRef = productQuery.docs.isNotEmpty
+        ? productQuery.docs.first.reference
+        : null;
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final savingsRef = userRef.collection('savings').doc('account');
 
       // ── ALL reads before any writes ───────────────────────────────────────
-      final savingsDoc = await tx.get(savingsRef);    // READ 1
-      final walletSnap = await tx.get(walletRef);     // READ 2
+      final savingsDoc = await tx.get(savingsRef); // READ 1
+      final walletSnap = await tx.get(walletRef); // READ 2
       DocumentSnapshot? productSnap;
       if (productDocRef != null) {
-        productSnap = await tx.get(productDocRef);    // READ 3 (moved to top!)
+        productSnap = await tx.get(productDocRef); // READ 3 (moved to top!)
       }
 
       // ── Validate before writes ────────────────────────────────────────────
       final currentWeight =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ?? 0.0 as num)
+          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ??
+                  0.0 as num)
               .toDouble();
       if (currentWeight < weightToWithdraw) {
         throw Exception('คุณมีทองสะสมไม่เพียงพอสำหรับการถอน');
       }
       if (productSnap != null &&
-          ((productSnap.data() as Map<String, dynamic>?)?['stock'] ?? 0 as num).toInt() <= 0) {
+          ((productSnap.data() as Map<String, dynamic>?)?['stock'] ?? 0 as num)
+                  .toInt() <=
+              0) {
         throw Exception('ขออภัย ทองคำแท่งน้ำหนักนี้หมดสต็อกชั่วคราว');
       }
 
@@ -312,12 +354,16 @@ class SavingsService {
 
       final proportionSold = weightToWithdraw / currentWeight;
       final currentInvested =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalAmountInvested'] ?? 0.0 as num)
+          ((savingsDoc.data()
+                      as Map<String, dynamic>?)?['totalAmountInvested'] ??
+                  0.0 as num)
               .toDouble();
 
       tx.set(savingsRef, {
         'totalWeightSaved': FieldValue.increment(-weightToWithdraw),
-        'totalAmountInvested': FieldValue.increment(-(proportionSold * currentInvested)),
+        'totalAmountInvested': FieldValue.increment(
+          -(proportionSold * currentInvested),
+        ),
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -363,7 +409,8 @@ class SavingsService {
       tx.set(userRef.collection('notifications').doc(notifId), {
         'id': notifId,
         'title': 'ถอนทองแท่งสำเร็จ',
-        'message': 'คุณได้ถอนทองแท่งจำนวน $weightToWithdraw บาท จากบัญชีออมทองเรียบร้อยแล้ว กรุณานัดหมายวันรับสินค้า',
+        'message':
+            'คุณได้ถอนทองแท่งจำนวน $weightToWithdraw บาท จากบัญชีออมทองเรียบร้อยแล้ว กรุณานัดหมายวันรับสินค้า',
         'type': 'savings',
         'timestamp': FieldValue.serverTimestamp(),
         'isRead': false,

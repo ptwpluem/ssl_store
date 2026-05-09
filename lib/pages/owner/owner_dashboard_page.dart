@@ -104,7 +104,7 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'ห้างทองสุ้นเซ่งหลี',
+                'ห้างทองซุ่นเซ่งหลี',
                 style: TextStyle(
                   color: _primary,
                   fontSize: 15,

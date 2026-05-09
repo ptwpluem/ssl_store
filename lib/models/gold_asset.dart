@@ -1,17 +1,16 @@
 class GoldAsset {
-  final String id;
-  final String name;
-  final double weight; // in Baht
-  final String category;
+  final String id; // PRD-4GUNEfW32djCVMjx9c13
+  final String name; // สร้อยคอทองคำ ลายเบนซ์
+  final double weight; // 0.5
+  final String category; // สร้อยคอ
   final DateTime acquisitionDate;
-  final double acquisitionPrice;
+  final double acquisitionPrice; // ราคาซื้อ (ต้นทุน)
   final String status; // 'owned', 'sold', 'pawned'
-  final double? loanAmount;
-  final DateTime? pawnDate;
+  final double? loanAmount; // ยอดกู้ กรณีจำนำ
+  final DateTime? pawnDate; // วันที่จำนำ
   final DateTime? dueDate;
   final double? interestRate;
   final double purity; // 0.965 or 0.9999
-
 
   GoldAsset({
     required this.id,
@@ -30,15 +29,17 @@ class GoldAsset {
 
   // Calculate accrued interest (1.25% per month industry standard)
   double get accruedInterest {
-    if (status != 'pawned' || loanAmount == null || pawnDate == null) return 0.0;
-    
+    // ทุกครั้งที่อ่านค่าจะคำนวณให้อัตโนมัติ โดยไม่ต้องเก็บใน Firestore
+    if (status != 'pawned' || loanAmount == null || pawnDate == null)
+      return 0.0;
+
     final daysElapsed = DateTime.now().difference(pawnDate!).inDays;
     if (daysElapsed <= 0) return 0.0;
 
     // Monthly rate 1.25% -> Daily rate approximately 0.0125 / 30
     final monthlyRate = interestRate ?? 0.0125;
     final dailyRate = monthlyRate / 30;
-    
+
     return loanAmount! * dailyRate * daysElapsed;
   }
 

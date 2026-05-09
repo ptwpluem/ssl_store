@@ -30,7 +30,8 @@ class WalletTransaction {
         (e) => e.name == data['type'],
         orElse: () => WalletTransactionType.deposit,
       ),
-      resultingBalance: (data['resultingBalance'] ?? 0.0).toDouble(),
+      resultingBalance: (data['resultingBalance'] ?? 0.0)
+          .toDouble(), // เก็บยอดคงเหลือหลังจากทำธุรกรรม
       description: data['description'],
       referenceId: data['referenceId'],
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),

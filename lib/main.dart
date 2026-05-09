@@ -1,8 +1,8 @@
 import 'dart:ui' show PlatformDispatcher;
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:flutter/foundation.dart'; // เครื่องมือพื้นฐาน
+import 'package:flutter/material.dart'; // ชุด UI component เช่น button, text, AppBar
+import 'package:firebase_core/firebase_core.dart'; // Library เริ่มสำหรับ Firebase
+import 'firebase_options.dart'; // File Configure ที่ Filebase สร้างให้อัตโนมัติ
 
 // -- Pages / Widgets --
 import 'widgets/auth_gate.dart';
@@ -10,28 +10,21 @@ import 'pages/member/member_login_page.dart';
 import 'pages/member/member_appointment_page.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // async คือรอให้ Firebase เชื่อมต่อก่อน
+  WidgetsFlutterBinding.ensureInitialized(); // เรียกใช้เสมอถ้ามี await ใน main ()
 
-  // ── Error guards ────────────────────────────────────────────────────────────
-  // The '_dependents.isEmpty' assertion fires in DEBUG mode only when multiple
-  // Firestore streams update simultaneously and their StreamBuilders rebuild
-  // concurrently (e.g. wallet balance + savings account after a deposit).
-  // All data operations complete correctly — this is a debug-mode timing
-  // artefact that does NOT occur in release builds.
-  //
-  // We intercept it at TWO levels so it can never show the red error screen:
-  //   1. FlutterError.onError  — catches errors reported through Flutter's
-  //      rendering pipeline (most common path).
-  //   2. PlatformDispatcher.onError — catches any unhandled errors that escape
-  //      to the root zone before Flutter can present them.
+  // แก้ปัญหาเฉพาะของ Firestore: เมื่อ stream 2 ตัวอัปเดตพร้อมกัน (เช่น wallet + savings)
+  //Flutter debug mode จะขึ้น error หน้าแดง แต่ข้อมูลจริงถูกต้อง โค้ดนี้จึงซ่อน error นั้นไว้
 
   bool _isSuppressedError(Object error) =>
       error.toString().contains('_dependents.isEmpty');
 
   FlutterError.onError = (FlutterErrorDetails details) {
     if (_isSuppressedError(details.exception)) {
-      debugPrint('⚠️  Suppressed concurrent-stream assertion '
-          '(all data saved correctly): ${details.exceptionAsString()}');
+      debugPrint(
+        '⚠️  Suppressed concurrent-stream assertion '
+        '(all data saved correctly): ${details.exceptionAsString()}',
+      );
       return; // do NOT call presentError → no red screen
     }
     FlutterError.presentError(details); // surface all other errors normally
@@ -54,8 +47,10 @@ void main() async {
   // from appearing in the tree.
   ErrorWidget.builder = (FlutterErrorDetails details) {
     if (_isSuppressedError(details.exception)) {
-      debugPrint('⚠️  ErrorWidget suppressed — UI will recover on next stream '
-          'event: ${details.exceptionAsString()}');
+      debugPrint(
+        '⚠️  ErrorWidget suppressed — UI will recover on next stream '
+        'event: ${details.exceptionAsString()}',
+      );
       // Return an invisible widget; the StreamBuilder will repaint correctly
       // on the very next Firestore event (which arrives within milliseconds).
       return const SizedBox.shrink();
@@ -66,7 +61,7 @@ void main() async {
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
-  );
+  ); //เชื่อมต่อ Firebase และรอให้เชื่อมสำเร็จก่อนที่จะรัน App
 
   // User will now stay logged in between sessions
   // await FirebaseAuth.instance.signOut();
@@ -75,13 +70,14 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key}); // กำหนด Theme ของ App, static ไม่เปลี่ยน
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ห้างทองสุ้นเซ่งหลี',
-      debugShowCheckedModeBanner: false,
+      // กล่องใหญ่ที่เอามากำหนด Theme ของ App
+      title: 'ห้างทองซุ่นเซ่งหลี',
+      debugShowCheckedModeBanner: true,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -101,6 +97,7 @@ class MyApp extends StatelessWidget {
 
       initialRoute: '/',
       routes: {
+        // ตารางถนนของ App โดยเริ่มจากหน้าแรกคือเช็คว่า Login หรือยัง
         '/': (_) => const AuthGate(),
         '/login': (_) => const LoginPage(),
         '/appointment': (_) => const AppointmentPage(),

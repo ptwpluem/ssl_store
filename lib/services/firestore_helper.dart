@@ -1,13 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// Resolves the Firestore user document reference for a given Firebase Auth UID.
-/// Users are stored under /users/{sequentialId} with a 'uid' field that holds
-/// the Firebase Auth UID.
-///
-/// Includes a fallback search by email and self-healing logic to add the 'uid'
-/// field if it is missing from an existing document.
+// ค้นหา User ID เพื่อให้แอปรู้ว่า "คนที่ login อยู่ตอนนี้ คือ document ไหนใน Firestore" แล้วจึงดึงข้อมูลของคนนั้นได้ถูกต้อง
+
 Future<DocumentReference> getUserDocRef(String uid) async {
+  // ค้นหาด้วย uid field ก่อน
   int retryCount = 0;
   const maxRetries = 3;
 
@@ -30,14 +27,16 @@ Future<DocumentReference> getUserDocRef(String uid) async {
       final email = currentUser.email;
       if (email != null) {
         final emailQuery = await FirebaseFirestore.instance
-            .collection('users')
+            .collection(
+              'users',
+            ) // ใช้ sequcnetual id เช่น CST-0001 และไม่ใช้ row_id เพราะอ่านง่ายกว่า
             .where('email', isEqualTo: email)
             .limit(1)
             .get();
 
         if (emailQuery.docs.isNotEmpty) {
           final ref = emailQuery.docs.first.reference;
-          // Self-healing: add the missing UID field so future lookups are fast
+          // self-healing ถ้าเจอ user ที่ไม่มี uid (user เก่า) ระบบจะเติม uid ให้อัตโนมัติ ทำให้หาเจอเร็วขึ้นในครั้งต่อไป
           try {
             await ref.update({'uid': uid});
           } catch (_) {

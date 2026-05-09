@@ -4,12 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'id_generator_service.dart';
 import 'wallet_service.dart';
 
-
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final IdGeneratorService _idGeneratorService = IdGeneratorService();
   final WalletService _walletService = WalletService();
-
 
   // Stream of auth state/profile changes
   Stream<User?> get user => _auth.userChanges();
@@ -18,7 +16,10 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   // Sign in with email and password
-  Future<UserCredential?> signInWithEmailAndPassword(String email, String password) async {
+  Future<UserCredential?> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
     try {
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -42,13 +43,14 @@ class AuthService {
     if (e is FirebaseAuthException) {
       return e.code == 'network-request-failed' || e.code == 'unavailable';
     }
-    if (e.toString().contains('network_error') || e.toString().contains('unavailable')) {
+    if (e.toString().contains('network_error') ||
+        e.toString().contains('unavailable')) {
       return true;
     }
     return false;
   }
 
-  // Register with email and password
+  // สมัครสมาชิก สร้าง Forestore document, Wallet
   Future<UserCredential?> registerWithEmailAndPassword({
     required String email,
     required String password,
@@ -62,11 +64,11 @@ class AuthService {
         email: email,
         password: password,
       );
-      
+
       // Create user document with role and extra details
       if (credential.user != null) {
         final customId = await _idGeneratorService.generateId('users');
-        
+
         await FirebaseFirestore.instance.collection('users').doc(customId).set({
           'uid': credential.user!.uid, // Store the random UID as a field
           'email': email,
@@ -78,14 +80,14 @@ class AuthService {
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeen': FieldValue.serverTimestamp(),
         });
-        
+
         // Also update the local FirebaseAuth user profile with the display name
         await credential.user!.updateDisplayName('$firstName $lastName'.trim());
 
         // Ensure wallet document exists in 'wallets' collection
         await _walletService.createWalletForUser(credential.user!.uid);
       }
-      
+
       return credential;
     } on FirebaseAuthException {
       rethrow;
@@ -98,9 +100,11 @@ class AuthService {
     'owner_account2@test.com',
   ];
 
-  // Private helper to ensure user doc exists with basics
+  // Update lastSeen และ role โดยไม่ลด owner เป็น user
   Future<void> _syncUserDocument(User user) async {
-    final String intendedRole = _primaryOwners.contains(user.email) ? 'owner' : 'user';
+    final String intendedRole = _primaryOwners.contains(user.email)
+        ? 'owner'
+        : 'user';
 
     var query = await FirebaseFirestore.instance
         .collection('users')
@@ -122,11 +126,14 @@ class AuthService {
       final data = doc.data() as Map<String, dynamic>;
       final existingRole = data['role'];
 
-      final Map<String, dynamic> updates = {'lastSeen': FieldValue.serverTimestamp()};
+      final Map<String, dynamic> updates = {
+        'lastSeen': FieldValue.serverTimestamp(),
+      };
       if (data['uid'] == null) updates['uid'] = user.uid;
       // Never downgrade a manually-elevated 'owner' back to 'user'.
       // Only update role if: promoting to owner, OR the user isn't already an owner.
-      if (existingRole != intendedRole && !(existingRole == 'owner' && intendedRole == 'user')) {
+      if (existingRole != intendedRole &&
+          !(existingRole == 'owner' && intendedRole == 'user')) {
         updates['role'] = intendedRole;
       }
 
@@ -155,10 +162,10 @@ class AuthService {
   /// Writes a small mirror document at /roles/{authUID} so that Firestore
   /// security rules can check the user role without a collection query.
   Future<void> _syncRoleMirror(String uid, String role) async {
-    await FirebaseFirestore.instance.collection('roles').doc(uid).set(
-      {'role': role, 'updatedAt': FieldValue.serverTimestamp()},
-      SetOptions(merge: true),
-    );
+    await FirebaseFirestore.instance.collection('roles').doc(uid).set({
+      'role': role,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   // Send password reset email

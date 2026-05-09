@@ -1,8 +1,8 @@
 class GoldRate {
-  final double buyPrice;
-  final double sellPrice;
+  final double buyPrice; // ราคาที่ร้านซื้อจากลูกค้า
+  final double sellPrice; // ราคาที่ร้านขายให้กับลูกค้า
   final DateTime timestamp;
-  final String trend;
+  final String trend; // up, down, stable
 
   GoldRate({
     required this.buyPrice,

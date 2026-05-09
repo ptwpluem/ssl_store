@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GoldSavingsAccount {
-  final double totalWeightSaved;
-  final double totalAmountInvested;
+  // บัญชีสรุป
+  final double totalWeightSaved; // น้ำหนักรวมที่ออมไว้ (บาท)
+  final double totalAmountInvested; // เงินรวมที่ลงทุนไป (บาท)
   final DateTime lastUpdated;
 
   GoldSavingsAccount({
@@ -16,8 +17,10 @@ class GoldSavingsAccount {
       // Fix: parentheses around the null-coalescing expression before casting.
       // Without them, `as num` binds only to the literal 0.0, not the whole expression.
       totalWeightSaved: ((data['totalWeightSaved'] ?? 0.0) as num).toDouble(),
-      totalAmountInvested: ((data['totalAmountInvested'] ?? 0.0) as num).toDouble(),
-      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      totalAmountInvested: ((data['totalAmountInvested'] ?? 0.0) as num)
+          .toDouble(),
+      lastUpdated:
+          (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -31,10 +34,11 @@ class GoldSavingsAccount {
 }
 
 class GoldSavingsTransaction {
-  final String id;
-  final double amountInvested;
-  final double weightGained;
-  final double buyPriceAtTransaction;
+  // บัญชีแยกแต่ละรายการฝาก
+  final String id; // transaction id
+  final double amountInvested; // เงินที่ฝากครั้งนี้
+  final double weightGained; // ทองที่ได้ครั้งนี้
+  final double buyPriceAtTransaction; // ราคา ณ เวลาที่ฝาก
   final DateTime timestamp;
 
   GoldSavingsTransaction({
@@ -45,12 +49,16 @@ class GoldSavingsTransaction {
     required this.timestamp,
   });
 
-  factory GoldSavingsTransaction.fromMap(String documentId, Map<String, dynamic> data) {
+  factory GoldSavingsTransaction.fromMap(
+    String documentId,
+    Map<String, dynamic> data,
+  ) {
     return GoldSavingsTransaction(
       id: documentId,
       amountInvested: ((data['amountInvested'] ?? 0.0) as num).toDouble(),
       weightGained: ((data['weightGained'] ?? 0.0) as num).toDouble(),
-      buyPriceAtTransaction: ((data['buyPriceAtTransaction'] ?? 0.0) as num).toDouble(),
+      buyPriceAtTransaction: ((data['buyPriceAtTransaction'] ?? 0.0) as num)
+          .toDouble(),
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -58,7 +66,8 @@ class GoldSavingsTransaction {
   Map<String, dynamic> toMap() {
     return {
       'amountInvested': amountInvested,
-      'weightGained': weightGained,
+      'weightGained':
+          weightGained, // amountInvested / buyPriceAtTransaction = 1000 / 41000 = 0.0244 weight
       'buyPriceAtTransaction': buyPriceAtTransaction,
       'timestamp': FieldValue.serverTimestamp(),
     };
