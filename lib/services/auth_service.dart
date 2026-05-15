@@ -9,8 +9,12 @@ class AuthService {
   final IdGeneratorService _idGeneratorService = IdGeneratorService();
   final WalletService _walletService = WalletService();
 
-  // Stream of auth state/profile changes
-  Stream<User?> get user => _auth.userChanges();
+  // Stream of auth state/profile changes.
+  // authStateChanges() fires ONLY on sign-in / sign-out.
+  // userChanges() also fires on token refresh and profile updates, which
+  // triggers unnecessary full-page rebuilds after every Firestore transaction
+  // and can cause a black screen during the modal dismiss animation overlap.
+  Stream<User?> get user => _auth.authStateChanges();
 
   // Get current user
   User? get currentUser => _auth.currentUser;

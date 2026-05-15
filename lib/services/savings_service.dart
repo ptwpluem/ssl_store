@@ -9,7 +9,9 @@ import 'firestore_helper.dart';
 import 'id_generator_service.dart';
 import 'wallet_service.dart';
 
-/// Handles gold savings (ออมทอง): deposit, sell, and physical withdrawal.
+// [1] ทองที่สะสมได้
+// [2] ยอดเงินสะสม
+
 class SavingsService {
   static final SavingsService _instance = SavingsService._internal();
   factory SavingsService() => _instance;
@@ -93,8 +95,11 @@ class SavingsService {
     final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
     final stxId = await _ids.generateId('savings_transactions');
     final notifId = await _ids.generateId('notifications');
-    final displayName = await _getDisplayName(uid);
-    final weightGained = amountInTHB / currentBuyPricePerBaht;
+    final displayName = await _getDisplayName(
+      userRef,
+    ); // reuse userRef — no extra Firestore call
+    final weightGained =
+        amountInTHB / currentBuyPricePerBaht; // [1] ทองที่สะสมได้
     final fmt = NumberFormat('#,##0.00');
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
@@ -115,7 +120,9 @@ class SavingsService {
       final savingsRef = userRef.collection('savings').doc('account');
       tx.set(savingsRef, {
         'totalWeightSaved': FieldValue.increment(weightGained),
-        'totalAmountInvested': FieldValue.increment(amountInTHB),
+        'totalAmountInvested': FieldValue.increment(
+          amountInTHB,
+        ), // [2] ยอดเงินสะสม เพิ่มเมื่อ Deposit, ลดเมื่อ Withdraw
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -183,7 +190,9 @@ class SavingsService {
     final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
     final stxId = await _ids.generateId('savings_transactions');
     final notifId = await _ids.generateId('notifications');
-    final displayName = await _getDisplayName(uid);
+    final displayName = await _getDisplayName(
+      userRef,
+    ); // reuse userRef — no extra Firestore call
     final amountInTHB = weightToSell * currentSellPricePerBaht;
     final fmt = NumberFormat('#,##0.00');
 
@@ -297,7 +306,9 @@ class SavingsService {
     final assetId = await _ids.generateId('assets', prefixOverride: 'AST');
     final stxId = await _ids.generateId('savings_transactions');
     final notifId = await _ids.generateId('notifications');
-    final displayName = await _getDisplayName(uid);
+    final displayName = await _getDisplayName(
+      userRef,
+    ); // reuse userRef — no extra Firestore call
     final walletRef = FirebaseFirestore.instance
         .collection('wallets')
         .doc(walletId);
@@ -422,10 +433,10 @@ class SavingsService {
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
-  Future<String> _getDisplayName(String uid) async {
+  // Accepts the already-fetched userRef to avoid a redundant getUserDocRef call.
+  Future<String> _getDisplayName(DocumentReference userRef) async {
     try {
-      final ref = await getUserDocRef(uid);
-      final doc = await ref.get();
+      final doc = await userRef.get();
       final data = doc.data() as Map<String, dynamic>?;
       if (data?['firstName'] != null && data?['lastName'] != null) {
         return '${data!['firstName']} ${data['lastName']}';

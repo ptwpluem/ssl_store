@@ -13,23 +13,21 @@ import '../../services/trading_service.dart';
 import '../../services/pawn_service.dart';
 import '../../widgets/gold_rate_card.dart';
 
-// Shared formatter — avoids per-build or per-dialog construction
+// [1] ประกาศนอก Class เพื่อให้ทุก Class ใช้เหมือนกัน ไม่ต้องทำซ้ำ
 final _fmt = NumberFormat('#,##0');
-
 // Snap a slider double to the nearest 0.25 multiple and format it cleanly
 // (e.g. 6.5000000000000001 → "6.5",  7.9999999999999999 → "8")
 double _snapWeight(double val) => (val * 4).round() / 4.0;
-
 String _fmtWeight(double w) {
   final s = w.toStringAsFixed(2);
   return s.replaceAll(RegExp(r'\.?0+$'), ''); // "8.00" → "8", "6.50" → "6.5"
 }
 
 // ─── Design tokens (matches owner dashboard) ──────────────────────────────────
-const Color _primary     = Color(0xFF800000);
+const Color _primary = Color(0xFF800000);
 const Color _primaryDark = Color(0xFF5C0000);
-const Color _gold        = Color(0xFFFFD700);
-const Color _bgColor     = Color(0xFFF5F7FA);
+const Color _gold = Color(0xFFFFD700);
+const Color _bgColor = Color(0xFFF5F7FA);
 
 class TradingPage extends StatefulWidget {
   final int initialTabIndex;
@@ -39,7 +37,8 @@ class TradingPage extends StatefulWidget {
   State<TradingPage> createState() => _TradingPageState();
 }
 
-class _TradingPageState extends State<TradingPage> with SingleTickerProviderStateMixin {
+class _TradingPageState extends State<TradingPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final MarketService _marketService = MarketService();
   final UserService _userService = UserService();
@@ -51,14 +50,19 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
 
   @override
   void initState() {
+    // [3] เตรียม 2 อย่างก่อนวาด UI??
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _rateSub = _marketService.getGoldRateStream().listen((rate) {
       if (mounted) setState(() => _currentRate = rate);
     });
   }
 
-  @override
+  @override // [4] คืน Resource 2 อย่าง??
   void dispose() {
     _tabController.dispose();
     _rateSub?.cancel();
@@ -68,14 +72,19 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
+      // [5] Check Log-in ถ้ายังไม่ Login Route ไปหน้า Login
       stream: _authService.user,
       builder: (context, authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (!authSnapshot.hasData) {
           return AnnotatedRegion<SystemUiOverlayStyle>(
-            value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+            value: SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
             child: Scaffold(
               backgroundColor: _bgColor,
               appBar: _buildAppBar(),
@@ -88,24 +97,55 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.lock_rounded, size: 52, color: _primary),
+                      child: const Icon(
+                        Icons.lock_rounded,
+                        size: 52,
+                        color: _primary,
+                      ),
                     ),
                     const SizedBox(height: 24),
-                    const Text('กรุณาเข้าสู่ระบบ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _primary)),
+                    const Text(
+                      'กรุณาเข้าสู่ระบบ',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: _primary,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('เพื่อใช้งานส่วนซื้อ-ขาย และบริการ', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    Text(
+                      'เพื่อใช้งานส่วนซื้อ-ขาย และบริการ',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: () => Navigator.pushNamed(context, '/login'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('เข้าสู่ระบบ / สมัครสมาชิก', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'เข้าสู่ระบบ / สมัครสมาชิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -115,7 +155,9 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
         }
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+          value: SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.transparent,
+          ),
           child: Scaffold(
             backgroundColor: _bgColor,
             appBar: _buildAppBar(),
@@ -126,7 +168,9 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: _currentRate != null
                       ? GoldRateCard(rate: _currentRate!)
-                      : const Center(child: CircularProgressIndicator(color: _primary)),
+                      : const Center(
+                          child: CircularProgressIndicator(color: _primary),
+                        ),
                 ),
                 // ── Tab bar ───────────────────────────────────────────────
                 Container(
@@ -135,7 +179,11 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3)),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
                     ],
                   ),
                   child: TabBar(
@@ -148,13 +196,28 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                     dividerColor: Colors.transparent,
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.grey[600],
-                    labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                     unselectedLabelStyle: const TextStyle(fontSize: 13),
                     padding: const EdgeInsets.all(5),
                     tabs: const [
-                      Tab(text: 'ซื้อ', icon: Icon(Icons.shopping_cart_rounded, size: 18)),
-                      Tab(text: 'ขาย', icon: Icon(Icons.sell_rounded, size: 18)),
-                      Tab(text: 'จำนำ', icon: Icon(Icons.account_balance_wallet_rounded, size: 18)),
+                      Tab(
+                        text: 'ซื้อ',
+                        icon: Icon(Icons.shopping_cart_rounded, size: 18),
+                      ),
+                      Tab(
+                        text: 'ขาย',
+                        icon: Icon(Icons.sell_rounded, size: 18),
+                      ),
+                      Tab(
+                        text: 'จำนำ',
+                        icon: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 18,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -162,11 +225,24 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
                 // ── Tab content ───────────────────────────────────────────
                 Expanded(
                   child: TabBarView(
-                    controller: _tabController,
+                    controller: _tabController, // [7] TabBar + TarBarView
                     children: [
-                      _BuyTab(userService: _userService, tradingService: _tradingService, currentRate: _currentRate),
-                      _SellTab(userService: _userService, tradingService: _tradingService, currentRate: _currentRate),
-                      _PawnTab(userService: _userService, tradingService: _tradingService, pawnService: _pawnService, currentRate: _currentRate),
+                      _BuyTab(
+                        userService: _userService,
+                        tradingService: _tradingService,
+                        currentRate: _currentRate,
+                      ),
+                      _SellTab(
+                        userService: _userService,
+                        tradingService: _tradingService,
+                        currentRate: _currentRate,
+                      ),
+                      _PawnTab(
+                        userService: _userService,
+                        tradingService: _tradingService,
+                        pawnService: _pawnService,
+                        currentRate: _currentRate,
+                      ),
                     ],
                   ),
                 ),
@@ -179,6 +255,7 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
   }
 
   PreferredSizeWidget _buildAppBar() {
+    // [6] ปุ่มย้อนกลับแบบ Dynamic
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -187,7 +264,11 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
       systemOverlayStyle: SystemUiOverlayStyle.dark,
       leading: Navigator.canPop(context)
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primary, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _primary,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             )
           : null,
@@ -211,7 +292,12 @@ class _TradingPageState extends State<TradingPage> with SingleTickerProviderStat
           const SizedBox(width: 10),
           const Text(
             'ซื้อ-ขาย และบริการ',
-            style: TextStyle(color: _primary, fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: 0.2),
+            style: TextStyle(
+              color: _primary,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),
@@ -228,9 +314,13 @@ class _BuyTab extends StatefulWidget {
   final UserService userService;
   final TradingService tradingService;
   final GoldRate? currentRate;
-  const _BuyTab({required this.userService, required this.tradingService, this.currentRate});
+  const _BuyTab({
+    required this.userService,
+    required this.tradingService,
+    this.currentRate,
+  });
 
-  @override
+  @override // [8] คำนวณราคาและ Slider
   State<_BuyTab> createState() => _BuyTabState();
 }
 
@@ -240,15 +330,19 @@ class _BuyTabState extends State<_BuyTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.currentRate == null) return const Center(child: CircularProgressIndicator());
+    if (widget.currentRate == null)
+      return const Center(child: CircularProgressIndicator());
 
     double total = _weight * widget.currentRate!.sellPrice;
 
     return StreamBuilder<double>(
+      // [9]ดึงยอด Wallet แบบ Real-Time
       stream: widget.userService.getWalletBalanceStream(),
       builder: (streamContext, snapshot) {
         final balance = snapshot.data ?? 0.0;
-        final hasEnoughFunds = balance >= total;
+        final hasEnoughFunds =
+            balance >=
+            total; // [10] สร้าง UI 3 จุด กล่อง Wallet, กล่อง Warning, ปุ่มยืนยัน
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -257,12 +351,21 @@ class _BuyTabState extends State<_BuyTab> {
             children: [
               // ── Wallet balance card ─────────────────────────────────────
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: _gold.withValues(alpha: 0.5)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -272,27 +375,53 @@ class _BuyTabState extends State<_BuyTab> {
                         color: const Color(0xFF2E7D32).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF2E7D32), size: 20),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('ยอดเงินในวอลเล็ต', style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
-                          Text('฿ ${_fmt.format(balance)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32), fontSize: 18)),
+                          const Text(
+                            'ยอดเงินในวอลเล็ต',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF666666),
+                            ),
+                          ),
+                          Text(
+                            '฿ ${_fmt.format(balance)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2E7D32),
+                              fontSize: 18,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     if (!hasEnoughFunds)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('ไม่เพียงพอ', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'ไม่เพียงพอ',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -305,12 +434,25 @@ class _BuyTabState extends State<_BuyTab> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('เลือกน้ำหนัก (บาท)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
+                    const Text(
+                      'เลือกน้ำหนัก (บาท)',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A2E),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
@@ -318,7 +460,9 @@ class _BuyTabState extends State<_BuyTab> {
                         inactiveTrackColor: _primary.withValues(alpha: 0.15),
                         thumbColor: _primary,
                         overlayColor: _primary.withValues(alpha: 0.12),
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 10,
+                        ),
                         trackHeight: 4,
                       ),
                       child: Slider(
@@ -327,19 +471,27 @@ class _BuyTabState extends State<_BuyTab> {
                         max: 10,
                         divisions: 39,
                         label: '${_fmtWeight(_weight)} บาท',
-                        onChanged: (val) => setState(() => _weight = _snapWeight(val)),
+                        onChanged: (val) =>
+                            setState(() => _weight = _snapWeight(val)),
                       ),
                     ),
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: _primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${_fmtWeight(_weight)} บาท',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primary),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: _primary,
+                          ),
                         ),
                       ),
                     ),
@@ -355,7 +507,13 @@ class _BuyTabState extends State<_BuyTab> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: _primary.withValues(alpha: 0.15)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -364,19 +522,40 @@ class _BuyTabState extends State<_BuyTab> {
                         Container(
                           width: 4,
                           height: 20,
-                          decoration: BoxDecoration(color: _gold, borderRadius: BorderRadius.circular(2)),
+                          decoration: BoxDecoration(
+                            color: _gold,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                         const SizedBox(width: 10),
-                        const Text('สรุปรายการ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primary)),
+                        const Text(
+                          'สรุปรายการ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _primary,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _rowItem('ราคาขายออก', '฿ ${_fmt.format(widget.currentRate!.sellPrice)} / บาท'),
+                    _rowItem(
+                      'ราคาขายออก',
+                      '฿ ${_fmt.format(widget.currentRate!.sellPrice)} / บาท',
+                    ),
                     const Divider(height: 20),
-                    _rowItem('ยอดรวมทั้งหมด', '฿ ${_fmt.format(total)}', isBold: true),
+                    _rowItem(
+                      'ยอดรวมทั้งหมด',
+                      '฿ ${_fmt.format(total)}',
+                      isBold: true,
+                    ),
                     if (balance >= total) ...[
                       const SizedBox(height: 4),
-                      _rowItem('ยอดเงินคงเหลือโดยประมาณ', '฿ ${_fmt.format(balance - total)}', isBold: true),
+                      _rowItem(
+                        'ยอดเงินคงเหลือโดยประมาณ',
+                        '฿ ${_fmt.format(balance - total)}',
+                        isBold: true,
+                      ),
                     ],
                   ],
                 ),
@@ -391,63 +570,107 @@ class _BuyTabState extends State<_BuyTab> {
                   decoration: BoxDecoration(
                     color: Colors.red.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: Colors.red, size: 16),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.red,
+                        size: 16,
+                      ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'ยอดเงินไม่เพียงพอ กรุณาเติมเงินที่หน้าโปรไฟล์หรือทองของฉัน',
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ElevatedButton(
-                onPressed: (_isProcessing || !hasEnoughFunds) ? null : () async {
-                  setState(() => _isProcessing = true);
-                  try {
-                    String? productId;
-                    if (_weight == 0.25) { productId = 'p_bar_025'; }
-                    else if (_weight == 0.5) { productId = 'p_bar_05'; }
-                    else if (_weight == 1.0) { productId = 'p_bar_1'; }
-                    else if (_weight == 2.0) { productId = 'p_bar_2'; }
-                    else if (_weight == 5.0) { productId = 'p_bar_5'; }
-                    else if (_weight == 10.0) { productId = 'p_bar_10'; }
+                // [11] ปุ่มยืนยันการซื้อ
+                onPressed: (_isProcessing || !hasEnoughFunds)
+                    ? null
+                    : () async {
+                        setState(() => _isProcessing = true);
+                        try {
+                          String? productId; // Recheck do we need product_id?
+                          if (_weight == 0.25) {
+                            productId = 'p_bar_025';
+                          } else if (_weight == 0.5) {
+                            productId = 'p_bar_05';
+                          } else if (_weight == 1.0) {
+                            productId = 'p_bar_1';
+                          } else if (_weight == 2.0) {
+                            productId = 'p_bar_2';
+                          } else if (_weight == 5.0) {
+                            productId = 'p_bar_5';
+                          } else if (_weight == 10.0) {
+                            productId = 'p_bar_10';
+                          }
 
-                    await widget.tradingService.createBuyTransaction(
-                      assetName: 'ทองคำแท่ง (${_fmtWeight(_weight)} บาท)',
-                      weight: _weight,
-                      amount: total,
-                      category: 'Gold Bar',
-                      productId: productId,
-                    );
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('การสั่งซื้อสำเร็จ!')));
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => _isProcessing = false);
-                  }
-                },
+                          await widget.tradingService.createBuyTransaction(
+                            assetName: 'ทองคำแท่ง (${_fmtWeight(_weight)} บาท)',
+                            weight: _weight,
+                            amount: total,
+                            category: 'Gold Bar',
+                            productId: productId,
+                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('การสั่งซื้อสำเร็จ!'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setState(() => _isProcessing = false);
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: hasEnoughFunds ? _primary : Colors.grey[400],
                   foregroundColor: Colors.white,
                   elevation: hasEnoughFunds ? 3 : 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: _isProcessing
-                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : const Text('ยืนยันการซื้อ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'ยืนยันการซื้อ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
               ),
             ],
           ),
@@ -462,8 +685,21 @@ class _BuyTabState extends State<_BuyTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: isBold ? const Color(0xFF1A1A2E) : Colors.grey[600])),
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: const Color(0xFF1A1A2E))),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: isBold ? const Color(0xFF1A1A2E) : Colors.grey[600],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: const Color(0xFF1A1A2E),
+            ),
+          ),
         ],
       ),
     );
@@ -488,7 +724,8 @@ class _PawnConfirmationDialog extends StatefulWidget {
   });
 
   @override
-  State<_PawnConfirmationDialog> createState() => _PawnConfirmationDialogState();
+  State<_PawnConfirmationDialog> createState() =>
+      _PawnConfirmationDialogState();
 }
 
 class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
@@ -501,7 +738,9 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
   void initState() {
     super.initState();
     _requestedLoan = widget.maxLoan;
-    _loanController = TextEditingController(text: widget.maxLoan.toStringAsFixed(0));
+    _loanController = TextEditingController(
+      text: widget.maxLoan.toStringAsFixed(0),
+    );
   }
 
   @override
@@ -514,7 +753,10 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
 
   Future<void> _confirm() async {
     if (!_isValid) return;
-    setState(() { _isLoading = true; _errorText = null; });
+    setState(() {
+      _isLoading = true;
+      _errorText = null;
+    });
     try {
       await widget.pawnService.pawnAsset(
         asset: widget.asset,
@@ -525,7 +767,8 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorText = 'เกิดข้อผิดพลาดในการจำนำ: ${e.toString().replaceAll('Exception: ', '')}';
+          _errorText =
+              'เกิดข้อผิดพลาดในการจำนำ: ${e.toString().replaceAll('Exception: ', '')}';
         });
       }
     }
@@ -554,34 +797,65 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
                 Text('สินค้า: ${widget.asset.name}'),
                 Text('น้ำหนัก: ${widget.asset.weight} บาท'),
                 const SizedBox(height: 12),
-                const Text('ระบุวงเงินที่ต้องการกู้ (บาท):', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'ระบุวงเงินที่ต้องการกู้ (บาท):',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _loanController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   enabled: !_isLoading,
                   decoration: InputDecoration(
                     labelText: 'วงเงินที่ต้องการ (฿)',
                     border: const OutlineInputBorder(),
                     suffixText: 'กู้ได้สูงสุด: ${_fmt.format(widget.maxLoan)}',
-                    errorText: (!_isValid && _loanController.text.isNotEmpty) ? 'วงเงินต้องอยู่ระหว่าง 1 ถึง ${_fmt.format(widget.maxLoan)}' : null,
+                    errorText: (!_isValid && _loanController.text.isNotEmpty)
+                        ? 'วงเงินต้องอยู่ระหว่าง 1 ถึง ${_fmt.format(widget.maxLoan)}'
+                        : null,
                   ),
                   onChanged: (val) => setState(() {
                     _requestedLoan = double.tryParse(val) ?? 0.0;
                   }),
                 ),
                 const SizedBox(height: 16),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('+ ฿ ${_fmt.format(_requestedLoan)}',
-                      style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
-                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'โอนเงินเข้าวอลเล็ต:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '+ ฿ ${_fmt.format(_requestedLoan)}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text('฿ ${_fmt.format(newBalance)}',
-                      style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
-                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'ยอดเงินใหม่ในวอลเล็ต:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '฿ ${_fmt.format(newBalance)}',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -592,16 +866,27 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('ครบกำหนดชำระ: $formattedDate (30 วัน)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange)),
-                      const Text('อัตราดอกเบี้ย 1.25% ต่อเดือน. หากชำระล่าช้าจะมีค่าปรับ 2% ต่อเดือน.',
-                          style: TextStyle(fontSize: 10, color: Colors.black87)),
+                      Text(
+                        'ครบกำหนดชำระ: $formattedDate (30 วัน)',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      const Text(
+                        'อัตราดอกเบี้ย 1.25% ต่อเดือน. หากชำระล่าช้าจะมีค่าปรับ 2% ต่อเดือน.',
+                        style: TextStyle(fontSize: 10, color: Colors.black87),
+                      ),
                     ],
                   ),
                 ),
                 if (_errorText != null) ...[
                   const SizedBox(height: 10),
-                  Text(_errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  Text(
+                    _errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
                 ],
               ],
             ),
@@ -615,10 +900,22 @@ class _PawnConfirmationDialogState extends State<_PawnConfirmationDialog> {
         ),
         ElevatedButton(
           onPressed: (_isLoading || !_isValid) ? null : _confirm,
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800000)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF800000),
+          ),
           child: _isLoading
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('ยืนยันการจำนำ', style: TextStyle(color: Colors.white)),
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'ยืนยันการจำนำ',
+                  style: TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );
@@ -640,7 +937,8 @@ class _SellConfirmationDialog extends StatefulWidget {
   });
 
   @override
-  State<_SellConfirmationDialog> createState() => _SellConfirmationDialogState();
+  State<_SellConfirmationDialog> createState() =>
+      _SellConfirmationDialogState();
 }
 
 class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
@@ -648,7 +946,10 @@ class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
   String? _errorText;
 
   Future<void> _confirm() async {
-    setState(() { _isLoading = true; _errorText = null; });
+    setState(() {
+      _isLoading = true;
+      _errorText = null;
+    });
     try {
       await widget.tradingService.sellAsset(
         asset: widget.asset,
@@ -659,7 +960,8 @@ class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorText = 'เกิดข้อผิดพลาดในการขายสินค้า: ${e.toString().replaceAll('Exception: ', '')}';
+          _errorText =
+              'เกิดข้อผิดพลาดในการขายสินค้า: ${e.toString().replaceAll('Exception: ', '')}';
         });
       }
     }
@@ -682,17 +984,41 @@ class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
               Text('สินค้า: ${widget.asset.name}'),
               Text('น้ำหนัก: ${widget.asset.weight} บาท'),
               const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('โอนเงินเข้าวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('+ ฿ ${_fmt.format(widget.estimatedValue)}',
-                    style: const TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold)),
-              ]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'โอนเงินเข้าวอลเล็ต:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '+ ฿ ${_fmt.format(widget.estimatedValue)}',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 8),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('ยอดเงินใหม่ในวอลเล็ต:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('฿ ${_fmt.format(newBalance)}',
-                    style: const TextStyle(color: Colors.blue, fontSize: 18, fontWeight: FontWeight.bold)),
-              ]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'ยอดเงินใหม่ในวอลเล็ต:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '฿ ${_fmt.format(newBalance)}',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               const Text(
                 'คุณแน่ใจหรือไม่ว่าต้องการขายสินค้าชิ้นนี้? ไม่สามารถยกเลิกรายการได้หลังการยืนยัน',
@@ -700,7 +1026,10 @@ class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
               ),
               if (_errorText != null) ...[
                 const SizedBox(height: 10),
-                Text(_errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                Text(
+                  _errorText!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
               ],
             ],
           );
@@ -715,8 +1044,18 @@ class _SellConfirmationDialogState extends State<_SellConfirmationDialog> {
           onPressed: _isLoading ? null : _confirm,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           child: _isLoading
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-              : const Text('ยืนยันการขาย', style: TextStyle(color: Colors.white)),
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'ยืนยันการขาย',
+                  style: TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );
@@ -728,14 +1067,22 @@ class _SellTab extends StatefulWidget {
   final UserService userService;
   final TradingService tradingService;
   final GoldRate? currentRate;
-  const _SellTab({required this.userService, required this.tradingService, this.currentRate});
+  const _SellTab({
+    required this.userService,
+    required this.tradingService,
+    this.currentRate,
+  });
 
   @override
   State<_SellTab> createState() => _SellTabState();
 }
 
 class _SellTabState extends State<_SellTab> {
-  void _showSellConfirmation(BuildContext context, GoldAsset asset, double estimatedValue) {
+  void _showSellConfirmation(
+    BuildContext context,
+    GoldAsset asset,
+    double estimatedValue,
+  ) {
     final messenger = ScaffoldMessenger.of(context);
     showDialog<bool>(
       context: context,
@@ -748,7 +1095,9 @@ class _SellTabState extends State<_SellTab> {
       ),
     ).then((confirmed) {
       if (confirmed == true && mounted) {
-        messenger.showSnackBar(const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('ขายสินค้าสำเร็จเรียบร้อยแล้ว!')),
+        );
       }
     });
   }
@@ -776,14 +1125,34 @@ class _SellTabState extends State<_SellTab> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.sell_rounded, size: 40, color: _primary),
+                  child: const Icon(
+                    Icons.sell_rounded,
+                    size: 40,
+                    color: _primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('ไม่มีสินค้าที่สามารถขายได้', style: TextStyle(fontWeight: FontWeight.bold, color: _primary, fontSize: 16)),
+                const Text(
+                  'ไม่มีสินค้าที่สามารถขายได้',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _primary,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text('ซื้อทองก่อน แล้วกลับมาขายได้ที่นี่', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                Text(
+                  'ซื้อทองก่อน แล้วกลับมาขายได้ที่นี่',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                ),
               ],
             ),
           );
@@ -794,7 +1163,8 @@ class _SellTabState extends State<_SellTab> {
           itemCount: assets.length,
           itemBuilder: (context, index) {
             final asset = assets[index];
-            final estimatedValue = asset.weight * (widget.currentRate?.buyPrice ?? 0);
+            final estimatedValue =
+                asset.weight * (widget.currentRate?.buyPrice ?? 0);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -802,27 +1172,63 @@ class _SellTabState extends State<_SellTab> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: _gold.withValues(alpha: 0.15), shape: BoxShape.circle),
-                  child: const Icon(Icons.sell_rounded, color: _primary, size: 20),
+                  decoration: BoxDecoration(
+                    color: _gold.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.sell_rounded,
+                    color: _primary,
+                    size: 20,
+                  ),
                 ),
-                title: Text(asset.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
-                subtitle: Text('${asset.weight} บาท', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                title: Text(
+                  asset.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+                subtitle: Text(
+                  '${asset.weight} บาท',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('ราคารับซื้อ', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
-                    Text('฿ ${_fmt.format(estimatedValue)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32), fontSize: 15)),
+                    Text(
+                      'ราคารับซื้อ',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                    ),
+                    Text(
+                      '฿ ${_fmt.format(estimatedValue)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E7D32),
+                        fontSize: 15,
+                      ),
+                    ),
                   ],
                 ),
-                onTap: () => _showSellConfirmation(context, asset, estimatedValue),
+                onTap: () =>
+                    _showSellConfirmation(context, asset, estimatedValue),
               ),
             );
           },
@@ -837,14 +1243,23 @@ class _PawnTab extends StatefulWidget {
   final TradingService tradingService;
   final PawnService pawnService;
   final GoldRate? currentRate;
-  const _PawnTab({required this.userService, required this.tradingService, required this.pawnService, this.currentRate});
+  const _PawnTab({
+    required this.userService,
+    required this.tradingService,
+    required this.pawnService,
+    this.currentRate,
+  });
 
   @override
   State<_PawnTab> createState() => _PawnTabState();
 }
 
 class _PawnTabState extends State<_PawnTab> {
-  void _showPawnConfirmation(BuildContext context, GoldAsset asset, double maxLoan) {
+  void _showPawnConfirmation(
+    BuildContext context,
+    GoldAsset asset,
+    double maxLoan,
+  ) {
     final messenger = ScaffoldMessenger.of(context);
     showDialog<bool>(
       context: context,
@@ -858,7 +1273,9 @@ class _PawnTabState extends State<_PawnTab> {
     ).then((confirmed) {
       if (confirmed == true && mounted) {
         messenger.showSnackBar(
-          SnackBar(content: Text('จำนำสินค้าสำเร็จ! ยอดเงินถูกโอนเข้าวอลเล็ตแล้ว')),
+          SnackBar(
+            content: Text('จำนำสินค้าสำเร็จ! ยอดเงินถูกโอนเข้าวอลเล็ตแล้ว'),
+          ),
         );
       }
     });
@@ -884,7 +1301,11 @@ class _PawnTabState extends State<_PawnTab> {
               const Expanded(
                 child: Text(
                   'อัตราดอกเบี้ย: 1.25% ต่อเดือน  •  กู้ได้สูงสุด 85% ของราคารับซื้อ',
-                  style: TextStyle(fontSize: 12.5, color: Color(0xFF555555), height: 1.4),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF555555),
+                    height: 1.4,
+                  ),
                 ),
               ),
             ],
@@ -898,14 +1319,18 @@ class _PawnTabState extends State<_PawnTab> {
             stream: widget.tradingService.getMemberAssetsStream(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: _primary));
+                return const Center(
+                  child: CircularProgressIndicator(color: _primary),
+                );
               }
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
 
               final allAssets = snapshot.data ?? [];
-              final ownedAssets = allAssets.where((a) => a.status == 'owned').toList();
+              final ownedAssets = allAssets
+                  .where((a) => a.status == 'owned')
+                  .toList();
 
               if (ownedAssets.isEmpty) {
                 return Center(
@@ -917,14 +1342,34 @@ class _PawnTabState extends State<_PawnTab> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Icon(Icons.shield_rounded, size: 40, color: _primary),
+                        child: const Icon(
+                          Icons.shield_rounded,
+                          size: 40,
+                          color: _primary,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      const Text('ไม่มีทรัพย์สินสำหรับจำนำ', style: TextStyle(fontWeight: FontWeight.bold, color: _primary, fontSize: 16)),
+                      const Text(
+                        'ไม่มีทรัพย์สินสำหรับจำนำ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _primary,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text('ซื้อทองก่อน แล้วกลับมาจำนำได้ที่นี่', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+                      Text(
+                        'ซื้อทองก่อน แล้วกลับมาจำนำได้ที่นี่',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      ),
                     ],
                   ),
                 );
@@ -935,29 +1380,57 @@ class _PawnTabState extends State<_PawnTab> {
                 itemCount: ownedAssets.length,
                 itemBuilder: (context, index) {
                   final asset = ownedAssets[index];
-                  final currentVal = asset.weight * (widget.currentRate?.buyPrice ?? 0);
-                  final maxLoan = widget.pawnService.calculatePawnLoan(asset.weight, widget.currentRate?.buyPrice ?? 0);
+                  final currentVal =
+                      asset.weight * (widget.currentRate?.buyPrice ?? 0);
+                  final maxLoan = widget.pawnService.calculatePawnLoan(
+                    asset.weight,
+                    widget.currentRate?.buyPrice ?? 0,
+                  );
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+                      border: Border.all(
+                        color: Colors.grey.withValues(alpha: 0.12),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF8E1),
                           shape: BoxShape.circle,
-                          border: Border.all(color: _gold.withValues(alpha: 0.4)),
+                          border: Border.all(
+                            color: _gold.withValues(alpha: 0.4),
+                          ),
                         ),
-                        child: const Icon(Icons.shield_rounded, color: _primary, size: 20),
+                        child: const Icon(
+                          Icons.shield_rounded,
+                          color: _primary,
+                          size: 20,
+                        ),
                       ),
-                      title: Text(asset.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1A1A2E))),
+                      title: Text(
+                        asset.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF1A1A2E),
+                        ),
+                      ),
                       subtitle: Text(
                         '${asset.weight} บาท  •  ประเมินราคา ฿${_fmt.format(currentVal)}',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -966,12 +1439,25 @@ class _PawnTabState extends State<_PawnTab> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('วงเงินสูงสุด', style: TextStyle(color: Colors.grey[500], fontSize: 10)),
-                          Text('฿ ${_fmt.format(maxLoan)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1565C0))),
+                          Text(
+                            'วงเงินสูงสุด',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            '฿ ${_fmt.format(maxLoan)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Color(0xFF1565C0),
+                            ),
+                          ),
                         ],
                       ),
-                      onTap: () => _showPawnConfirmation(context, asset, maxLoan),
+                      onTap: () =>
+                          _showPawnConfirmation(context, asset, maxLoan),
                     ),
                   );
                 },

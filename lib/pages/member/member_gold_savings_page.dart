@@ -10,6 +10,9 @@ import '../../services/savings_service.dart';
 import '../../models/gold_asset.dart';
 import 'member_appointment_page.dart';
 
+// [1] มูลค่า Port ปัจจุบัน
+// [2] XXX% ของเป้าหมาย 1 บาท
+
 class GoldSavingsPage extends StatefulWidget {
   const GoldSavingsPage({super.key});
 
@@ -41,11 +44,12 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
   @override
   void initState() {
     super.initState();
-    _authStream              = _authService.user;
-    _walletStream            = _userService.getWalletBalanceStream();
-    _goldRateStream          = _marketService.getGoldRateStream();
-    _savingsAccountStream    = _savingsService.getGoldSavingsAccountStream();
-    _savingsTransactionStream = _savingsService.getGoldSavingsTransactionsStream();
+    _authStream = _authService.user;
+    _walletStream = _userService.getWalletBalanceStream();
+    _goldRateStream = _marketService.getGoldRateStream();
+    _savingsAccountStream = _savingsService.getGoldSavingsAccountStream();
+    _savingsTransactionStream = _savingsService
+        .getGoldSavingsTransactionsStream();
   }
 
   @override
@@ -53,7 +57,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     super.dispose();
   }
 
-  void _deposit(double currentBuyPrice, double amount) async { // deposit gold to savings
+  void _deposit(double currentBuyPrice, double amount) async {
+    // deposit gold to savings
     if (amount <= 0) return;
 
     setState(() {
@@ -90,7 +95,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     }
   }
 
-  void _withdraw(double currentSellPrice, double weightToSell) async { // withdraw gold from savings
+  void _withdraw(double currentSellPrice, double weightToSell) async {
+    // withdraw gold from savings
     if (weightToSell <= 0) return;
 
     setState(() {
@@ -127,16 +133,24 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     }
   }
 
-  void _withdrawPhysical(double currentBuyPrice, double weightToWithdraw) async {
-    final premiumFee = weightToWithdraw * 300; // Example: 300 THB per Baht for premium
-    
+  void _withdrawPhysical(
+    double currentBuyPrice,
+    double weightToWithdraw,
+  ) async {
+    final premiumFee =
+        weightToWithdraw * 300; // Example: 300 THB per Baht for premium
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final assetId = await _savingsService.withdrawPhysicalGoldBar(weightToWithdraw, currentBuyPrice, premiumFee);
-      
+      final assetId = await _savingsService.withdrawPhysicalGoldBar(
+        weightToWithdraw,
+        currentBuyPrice,
+        premiumFee,
+      );
+
       if (!mounted) return;
 
       // Create a temporary asset object to pass to the scheduling page
@@ -164,7 +178,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
-      
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -190,7 +204,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     }
   }
 
-  void _showDepositSheet(double currentBuyPrice) { // show deposit sheet
+  void _showDepositSheet(double currentBuyPrice) {
+    // show deposit sheet
     // Local controller — owned by this sheet only. Disposing in .then()
     // (after the sheet is fully dismissed) avoids the TextEditingController-
     // used-after-disposed crash and prevents cross-sheet state contamination.
@@ -242,7 +257,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                       style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 24),
-                    TextField( // input amount to deposit
+                    TextField(
+                      // input amount to deposit
                       controller: depositCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -272,11 +288,23 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildQuickAmountButton(100, depositCtrl, setSheetState),
+                        _buildQuickAmountButton(
+                          100,
+                          depositCtrl,
+                          setSheetState,
+                        ),
                         const SizedBox(width: 8),
-                        _buildQuickAmountButton(500, depositCtrl, setSheetState),
+                        _buildQuickAmountButton(
+                          500,
+                          depositCtrl,
+                          setSheetState,
+                        ),
                         const SizedBox(width: 8),
-                        _buildQuickAmountButton(1000, depositCtrl, setSheetState),
+                        _buildQuickAmountButton(
+                          1000,
+                          depositCtrl,
+                          setSheetState,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -296,7 +324,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             color: const Color(0xFFFFF8E1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+                              color: const Color(
+                                0xFFFFD700,
+                              ).withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -334,9 +364,15 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   ) ??
                                   0;
                               if (amount > 0) {
-                                // Return amount to .then() handler — sheet must fully
-                                // close before _deposit is called to avoid the
-                                // '_dependents.isEmpty' InheritedElement assertion.
+                                // Dismiss keyboard BEFORE popping the sheet.
+                                // When the user typed manually, the keyboard is
+                                // still open.  Popping while the keyboard is
+                                // visible causes two concurrent dismiss
+                                // animations (sheet + keyboard) that overlap
+                                // and leave a black frame.  Unfocusing first
+                                // lets the keyboard close in the same frame so
+                                // only the sheet animation runs on pop.
+                                FocusManager.instance.primaryFocus?.unfocus();
                                 Navigator.pop(sheetCtx, amount);
                               }
                             },
@@ -364,12 +400,18 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           },
         );
       },
-    ).then((amount) {
-      // Sheet is fully dismissed — dispose the local controller now and
-      // trigger the deposit if the user confirmed.
+    ).then((amount) async {
+      // .then() fires as soon as Navigator.pop() is called — NOT when the
+      // sheet animation finishes.  With manual keyboard input the keyboard
+      // close animation (~300 ms) and the sheet dismiss animation (~250 ms)
+      // run in parallel.  Calling _deposit immediately triggers setState,
+      // which rebuilds the page mid-animation and can freeze the modal
+      // barrier dark.  Waiting 400 ms lets both animations fully complete
+      // before any page-level setState fires.
       depositCtrl.dispose();
       if (amount != null && amount > 0) {
-        _deposit(currentBuyPrice, amount);
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (mounted) _deposit(currentBuyPrice, amount);
       }
     });
   }
@@ -398,7 +440,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     );
   }
 
-  void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) { // show withdraw sheet
+  void _showWithdrawSheet(double currentSellPrice, double currentSavedWeight) {
+    // show withdraw sheet
     // Local controller — owned by this sheet only.
     final withdrawCtrl = TextEditingController();
 
@@ -486,9 +529,17 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildQuickWeightButton(0.25, withdrawCtrl, setSheetState),
+                        _buildQuickWeightButton(
+                          0.25,
+                          withdrawCtrl,
+                          setSheetState,
+                        ),
                         const SizedBox(width: 8),
-                        _buildQuickWeightButton(0.5, withdrawCtrl, setSheetState),
+                        _buildQuickWeightButton(
+                          0.5,
+                          withdrawCtrl,
+                          setSheetState,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton(
@@ -501,7 +552,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             ),
                             onPressed: () {
                               setSheetState(() {
-                                withdrawCtrl.text = currentSavedWeight.toString();
+                                withdrawCtrl.text = currentSavedWeight
+                                    .toString();
                               });
                             },
                             child: const Text('MAX'),
@@ -532,7 +584,9 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                             border: Border.all(
                               color: isOverLimit
                                   ? Colors.red
-                                  : const Color(0xFF64B5F6).withValues(alpha: 0.5),
+                                  : const Color(
+                                      0xFF64B5F6,
+                                    ).withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -575,8 +629,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   ) ??
                                   0;
                               if (val > 0 && val <= currentSavedWeight) {
-                                // Return weight to .then() handler — sheet must
-                                // fully close before _withdraw is called.
+                                // Dismiss keyboard before pop — same reason as
+                                // deposit sheet: prevents concurrent keyboard +
+                                // sheet dismiss animations causing black screen.
+                                FocusManager.instance.primaryFocus?.unfocus();
                                 Navigator.pop(sheetCtx, val);
                               } else if (val > currentSavedWeight) {
                                 ScaffoldMessenger.of(sheetCtx).showSnackBar(
@@ -612,12 +668,14 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
           },
         );
       },
-    ).then((weight) {
-      // Sheet is fully dismissed — dispose the local controller now and
-      // trigger the withdrawal if the user confirmed.
+    ).then((weight) async {
+      // Same animation-race fix as the deposit sheet — wait 400 ms for
+      // both the keyboard and sheet dismiss animations to complete before
+      // calling _withdraw (which calls setState).
       withdrawCtrl.dispose();
       if (weight != null && weight > 0) {
-        _withdraw(currentSellPrice, weight);
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (mounted) _withdraw(currentSellPrice, weight);
       }
     });
   }
@@ -644,7 +702,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     );
   }
 
-  void _showPhysicalWithdrawSheet(double currentBuyPrice, double currentSavedWeight) {
+  void _showPhysicalWithdrawSheet(
+    double currentBuyPrice,
+    double currentSavedWeight,
+  ) {
     showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
@@ -680,7 +741,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
               const SizedBox(height: 16),
               Text(
                 'คุณมีทองสะสมทั้งหมด: ${currentSavedWeight.toStringAsFixed(4)} บาท',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -693,38 +757,47 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: [0.25, 0.5, 1.0, 2.0].where((w) => w <= currentSavedWeight).map((w) {
-                  final fee = w * 300;
-                  return InkWell(
-                    onTap: () => Navigator.pop(sheetCtx, w), // Return weight; .then() calls _withdrawPhysical
-                    child: Container(
-                      width: (MediaQuery.of(sheetCtx).size.width - 60) / 2,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE65100)),
-                        borderRadius: BorderRadius.circular(12),
-                        color: const Color(0xFFFFF3E0),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '$w บาท',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFE65100),
-                            ),
+                children: [0.25, 0.5, 1.0, 2.0]
+                    .where((w) => w <= currentSavedWeight)
+                    .map((w) {
+                      final fee = w * 300;
+                      return InkWell(
+                        onTap: () => Navigator.pop(
+                          sheetCtx,
+                          w,
+                        ), // Return weight; .then() calls _withdrawPhysical
+                        child: Container(
+                          width: (MediaQuery.of(sheetCtx).size.width - 60) / 2,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFE65100)),
+                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFFFF3E0),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'ค่าธรรมเนียม: ฿${NumberFormat('#,##0').format(fee)}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          child: Column(
+                            children: [
+                              Text(
+                                '$w บาท',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFE65100),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'ค่าธรรมเนียม: ฿${NumberFormat('#,##0').format(fee)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                        ),
+                      );
+                    })
+                    .toList(),
               ),
               if (currentSavedWeight < 0.25)
                 const Padding(
@@ -776,7 +849,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
         ],
       ),
       backgroundColor: const Color(0xFFF5F5F7),
-      body: StreamBuilder<User?>( // check user login
+      body: StreamBuilder<User?>(
+        // check user login
         stream: _authStream,
         builder: (context, authSnapshot) {
           if (authSnapshot.connectionState == ConnectionState.waiting) {
@@ -893,8 +967,8 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                           vertical: 16,
                                         ),
                                         elevation: 4,
-                                        shadowColor: Colors.black.withValues(alpha: 
-                                          0.1,
+                                        shadowColor: Colors.black.withValues(
+                                          alpha: 0.1,
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -927,12 +1001,19 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
 
                             // New Withdrawal Button
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24.0,
+                                vertical: 8,
+                              ),
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE65100), // Physical gold color
+                                  backgroundColor: const Color(
+                                    0xFFE65100,
+                                  ), // Physical gold color
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   elevation: 4,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
@@ -947,7 +1028,10 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   ),
                                 ),
                                 onPressed: account.totalWeightSaved >= 0.25
-                                    ? () => _showPhysicalWithdrawSheet(currentBuyPrice, account.totalWeightSaved)
+                                    ? () => _showPhysicalWithdrawSheet(
+                                        currentBuyPrice,
+                                        account.totalWeightSaved,
+                                      )
                                     : null,
                               ),
                             ),
@@ -969,7 +1053,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
                                   Expanded(
                                     child: _buildStatCard(
                                       'มูลค่าทองปัจจุบัน',
-                                      '฿${NumberFormat('#,##0').format(account.totalWeightSaved * currentBuyPrice)}',
+                                      '฿${NumberFormat('#,##0').format(account.totalWeightSaved * currentBuyPrice)}', // [1] มูลค่าทองปัจจุบัน
                                     ),
                                   ),
                                 ],
@@ -1150,7 +1234,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     GoldSavingsAccount account,
     double currentBuyPrice,
   ) {
-    // Goal logic: Target is 1 Baht
+    // [2] XXX ของเป้าหมาย 1 บาท
     const double targetWeight = 1.0;
     final double progress = (account.totalWeightSaved / targetWeight).clamp(
       0.0,

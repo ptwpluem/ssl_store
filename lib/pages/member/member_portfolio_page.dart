@@ -212,15 +212,15 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   }
 
                   final assets = assetSnapshot.data ?? [];
-                  final totalWeight = assets.fold(0.0, (sum, item) => sum + item.weight) + savingsAccount.totalWeightSaved;
-                  final totalValue = totalWeight * (_currentRate?.buyPrice ?? 0);
+                  final totalWeight = assets.fold(0.0, (sum, item) => sum + item.weight) + savingsAccount.totalWeightSaved; // [2] น้ำหนักทองสะสมรวม น้ำหนักทองทั้งหมดที่ owned, pawned
+                  final totalValue = totalWeight * (_currentRate?.buyPrice ?? 0); // [3] มูลค่าประเมินรวม: น้ำหนัก * ราคาซื้อ
                   
                   // Calculate Profit/Loss
-                  final assetsCost = assets.fold(0.0, (sum, item) => sum + item.acquisitionPrice);
-                  final totalCost = assetsCost + savingsAccount.totalAmountInvested;
+                  final assetsCost = assets.fold(0.0, (sum, item) => sum + item.acquisitionPrice); // [4] asset cost
+                  final totalCost = assetsCost + savingsAccount.totalAmountInvested; // [5] total cost
                   
-                  final double pnl = totalValue - totalCost;
-                  final double pnlPercentage = totalCost > 0 ? (pnl / totalCost) * 100 : 0.0;
+                  final double pnl = totalValue - totalCost; // [6] profit/loss 
+                  final double pnlPercentage = totalCost > 0 ? (pnl / totalCost) * 100 : 0.0; // [7] profit/loss in pct
                   
                   final bool isProfit = pnl >= 0;
                   final Color pnlColor = isProfit ? const Color(0xFF00C853) : const Color(0xFFD32F2F);
@@ -265,7 +265,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text('฿ ${_portFmt.format(walletBalance)}',
+                              Text('฿ ${_portFmt.format(walletBalance)}', // [1] ยอดเงินใน Wallet
                                   style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                               const SizedBox(height: 16),
                               Row(
@@ -322,7 +322,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text('${totalWeight.toStringAsFixed(2)} บาท',
+                              Text('${totalWeight.toStringAsFixed(2)} บาท', // [2] น้ำหนักทองสะสมรวม
                                   style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                               const Divider(color: Colors.white24, height: 28),
                               Text('มูลค่าประเมินรวม', style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
@@ -365,7 +365,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       if (savingsAccount.totalWeightSaved > 0) ...[
                         const _SectionHeader(title: 'รายการออมทอง'),
                         const SizedBox(height: 12),
-                        _buildSavingsAssetCard(savingsAccount, _currentRate?.buyPrice ?? 40000.0),
+                        _buildSavingsAssetCard(savingsAccount, _currentRate?.buyPrice ?? 40000.0), // [3] รายการออมทอง
                         const SizedBox(height: 16),
                       ],
                       if (ownedAssets.isNotEmpty) ...[

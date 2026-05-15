@@ -30,34 +30,39 @@ class TradingService {
     if (uid == null) return Stream.value([]);
     final userRefFuture = getUserDocRef(uid);
     return Stream.fromFuture(userRefFuture).asyncExpand((userRef) {
-      return userRef.collection('assets').snapshots().map((snapshot) {
-        return snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              return GoldAsset(
-                id: doc.id,
-                name: data['name'] ?? 'Unknown Asset',
-                weight: (data['weight'] ?? 0 as num).toDouble(),
-                category: data['category'] ?? 'General',
-                acquisitionDate:
-                    (data['acquisitionDate'] as Timestamp?)?.toDate() ??
-                    DateTime.now(),
-                acquisitionPrice: (data['acquisitionPrice'] ?? 0 as num)
-                    .toDouble(),
-                status: data['status'] ?? 'owned',
-                loanAmount: (data['loanAmount'] as num?)?.toDouble(),
-                pawnDate: (data['pawnDate'] as Timestamp?)?.toDate(),
-                dueDate: (data['dueDate'] as Timestamp?)?.toDate(),
-                interestRate: (data['interestRate'] as num?)?.toDouble(),
-                purity: (data['purity'] ?? 0.965 as num).toDouble(),
-              );
-            })
-            // Exclude sold assets from the active portfolio view.
-            // Sold assets are retained in Firestore for reconciliation but
-            // should not appear in the customer's live holdings.
-            .where((a) => a.status != 'sold')
-            .toList();
-      });
+      return userRef
+          .collection('assets')
+          .orderBy("acquisitionDate", descending: true)
+          .snapshots()
+          .map((snapshot) {
+            // *** sort by purchase date
+            return snapshot.docs
+                .map((doc) {
+                  final data = doc.data();
+                  return GoldAsset(
+                    id: doc.id,
+                    name: data['name'] ?? 'Unknown Asset',
+                    weight: (data['weight'] ?? 0 as num).toDouble(),
+                    category: data['category'] ?? 'General',
+                    acquisitionDate:
+                        (data['acquisitionDate'] as Timestamp?)?.toDate() ??
+                        DateTime.now(),
+                    acquisitionPrice: (data['acquisitionPrice'] ?? 0 as num)
+                        .toDouble(),
+                    status: data['status'] ?? 'owned',
+                    loanAmount: (data['loanAmount'] as num?)?.toDouble(),
+                    pawnDate: (data['pawnDate'] as Timestamp?)?.toDate(),
+                    dueDate: (data['dueDate'] as Timestamp?)?.toDate(),
+                    interestRate: (data['interestRate'] as num?)?.toDouble(),
+                    purity: (data['purity'] ?? 0.965 as num).toDouble(),
+                  );
+                })
+                // Exclude sold assets from the active portfolio view.
+                // Sold assets are retained in Firestore for reconciliation but
+                // should not appear in the customer's live holdings.
+                .where((a) => a.status != 'sold')
+                .toList();
+          });
     });
   }
 

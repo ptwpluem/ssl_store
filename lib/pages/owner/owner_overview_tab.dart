@@ -85,13 +85,13 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .limit(5)
         .snapshots();
 
-    _walletTotalStream = FirebaseFirestore.instance
+    _walletTotalStream = FirebaseFirestore.instance 
         .collection('wallets')
         .snapshots()
         .map((snap) {
       double total = 0.0;
       for (var doc in snap.docs) {
-        total += (doc.data()['balance'] as num?)?.toDouble() ?? 0.0;
+        total += (doc.data()['balance'] as num?)?.toDouble() ?? 0.0; // [1] ยอดเงินใน Wallet ลูกค้า
       }
       return _formatCurrency(total);
     });
@@ -111,7 +111,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         final stock    = (pData['stock']    as num?)?.toInt()    ?? 0;
         final weight   = (pData['weight']   as num?)?.toDouble() ?? 0.0;
         final laborFee = (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
-        totalValue += stock * ((weight * sellRate) + laborFee);
+        totalValue += stock * ((weight * sellRate) + laborFee); // [2] คำนวณมูลค่าสต็อก
       }
       return _formatCurrency(totalValue);
     });
@@ -125,7 +125,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         final pData     = doc.data();
         final stock     = (pData['stock']     as num?)?.toInt()    ?? 0;
         final costBasis = (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
-        totalInvestment += stock * costBasis;
+        totalInvestment += stock * costBasis; // [3] เงินลงทุนในสต็อก
       }
       return _formatCurrency(totalInvestment);
     });
@@ -134,7 +134,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .collection('products')
         .where('stock', isGreaterThan: 0)
         .snapshots()
-        .map((snap) => snap.docs.length.toString());
+        .map((snap) => snap.docs.length.toString()); // [4] ประเภทสินค้า ที่มี Stock > 0
 
     _savingsLiabilityStream = FirebaseFirestore.instance
         .collectionGroup('savings')
@@ -154,7 +154,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
           .get();
       final sellPrice =
           (rateDoc.data()?['sellPrice'] as num?)?.toDouble() ?? 40000.0;
-      return _formatCurrency(totalWeight * sellPrice);
+      return _formatCurrency(totalWeight * sellPrice); // [6] หนี้สินออมทอง (ถ้าทุกคนออมทองวันนี้ ร้านต้องจ่าย XXX บาท)
     });
 
     // ── Date-filtered streams (initial build) ────────────────────────────────
@@ -217,7 +217,7 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
 
     _buyCountStream  = _getTypeCountStream(['buy']).map((c) => c.toString());
     _sellCountStream = _getTypeCountStream(['sell']).map((c) => c.toString());
-    _pawnCountStream = _getTypeCountStream(['pawn']).map((c) => c.toString());
+    _pawnCountStream = _getTypeCountStream(['pawn']).map((c) => c.toString()); // [5] ดูจำนวนทองที่จำนำ
     _savingsCountStream = _getTypeCountStream(
             ['savings_deposit', 'savings_withdraw'])
         .map((c) => c.toString());

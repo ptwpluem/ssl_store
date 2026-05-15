@@ -66,7 +66,7 @@ void main() async {
   // User will now stay logged in between sessions
   // await FirebaseAuth.instance.signOut();
 
-  runApp(const MyApp());
+  runApp(const MyApp()); // [1]
 }
 
 class MyApp extends StatelessWidget {
@@ -97,7 +97,7 @@ class MyApp extends StatelessWidget {
 
       initialRoute: '/',
       routes: {
-        // ตารางถนนของ App โดยเริ่มจากหน้าแรกคือเช็คว่า Login หรือยัง
+        // ลงทะเบียน 3 หน้านี้ไว้ใน Routes เพราะมีการเรียกใช้บ่อย เช่น Navigator.pushNamed(context, '/login') แต่หน้าอื่น ไม่ค่อยถูกเรียกใช้เลยไม่ได้ทำเป็น Route ไว้
         '/': (_) => const AuthGate(),
         '/login': (_) => const LoginPage(),
         '/appointment': (_) => const AppointmentPage(),

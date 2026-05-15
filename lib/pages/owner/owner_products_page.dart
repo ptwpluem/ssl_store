@@ -49,8 +49,7 @@ class OwnerProductsPage extends StatelessWidget {
             .doc('gold_rate')
             .snapshots(),
         builder: (context, rateSnap) {
-          final rateData =
-              rateSnap.data?.data() as Map<String, dynamic>?;
+          final rateData = rateSnap.data?.data() as Map<String, dynamic>?;
           final sellRate =
               (rateData?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
 
@@ -78,18 +77,19 @@ class OwnerProductsPage extends StatelessWidget {
                 final stock = (d['stock'] as num?)?.toInt() ?? 0;
                 final weight = (d['weight'] as num?)?.toDouble() ?? 0.0;
                 final laborFee =
-                    (d['laborFee'] as num?)?.toDouble() ?? 0.0;
-                final costBasis =
-                    (d['costBasis'] as num?)?.toDouble() ?? 0.0;
+                    (d['laborFee'] as num?)?.toDouble() ??
+                    0.0; // [8] Labor Fee ดึงจาก Firestore
+                final costBasis = (d['costBasis'] as num?)?.toDouble() ?? 0.0;
 
-                // Sell price = current market value + labor fee (craftsmanship)
-                final sellPrice = (weight * sellRate) + laborFee;
+                final sellPrice =
+                    (weight * sellRate) + laborFee; // [4] ราคาขายต่อชิ้น
                 // Margin per unit
-                final marginPerUnit = sellPrice - costBasis;
-                final marginPct =
-                    costBasis > 0 ? (marginPerUnit / costBasis) * 100 : 0.0;
+                final marginPerUnit = sellPrice - costBasis; // [5] กำรต่อชิ้น
+                final marginPct = costBasis > 0
+                    ? (marginPerUnit / costBasis) * 100
+                    : 0.0; // [6] กำไรต่อชิ้น %
                 // Current stock investment
-                final stockInvestment = stock * costBasis;
+                final stockInvestment = stock * costBasis; // [7] ทุนในสต็อก
 
                 return _ProductItem(
                   id: doc.id,
@@ -112,9 +112,10 @@ class OwnerProductsPage extends StatelessWidget {
               double totalRetailValue = 0;
               for (final item in items) {
                 if (item.stock > 0) {
-                  totalInStock++;
-                  totalInvestment += item.stockInvestment;
-                  totalRetailValue += item.stock * item.sellPrice;
+                  totalInStock++; // [1] ประเภทที่มีในสต็อก
+                  totalInvestment += item.stockInvestment; // [2] ทุนในสต็อก
+                  totalRetailValue +=
+                      item.stock * item.sellPrice; // [3] มูลค่าตามราคาขาย
                 }
               }
 
@@ -135,8 +136,7 @@ class OwnerProductsPage extends StatelessWidget {
                   ),
                   Expanded(
                     child: ListView(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       children: [
                         for (final category in grouped.keys) ...[
                           _CategoryHeader(
@@ -273,8 +273,7 @@ class _Cell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
           Text(
             value,
             style: TextStyle(
@@ -297,8 +296,7 @@ class _CategoryHeader extends StatelessWidget {
   final String category;
   final List<_ProductItem> items;
 
-  const _CategoryHeader(
-      {required this.category, required this.items});
+  const _CategoryHeader({required this.category, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -347,8 +345,9 @@ class _ProductCard extends StatelessWidget {
     final fmt = NumberFormat('#,##0.00');
     final fmtShort = NumberFormat('#,##0');
     final hasStock = item.stock > 0;
-    final marginColor =
-        item.marginPerUnit >= 0 ? const Color(0xFF2E7D32) : Colors.red;
+    final marginColor = item.marginPerUnit >= 0
+        ? const Color(0xFF2E7D32)
+        : Colors.red;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -374,15 +373,15 @@ class _ProductCard extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: hasStock
-                          ? Colors.black87
-                          : Colors.grey[400],
+                      color: hasStock ? Colors.black87 : Colors.grey[400],
                     ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: hasStock
                         ? Colors.green.withValues(alpha: 0.1)
@@ -394,9 +393,7 @@ class _ProductCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: hasStock
-                          ? Colors.green[700]
-                          : Colors.grey[400],
+                      color: hasStock ? Colors.green[700] : Colors.grey[400],
                     ),
                   ),
                 ),
@@ -411,13 +408,15 @@ class _ProductCard extends StatelessWidget {
               runSpacing: 4,
               children: [
                 _Pill(
-                    '${item.weight.toStringAsFixed(3)} บาท/ชิ้น',
-                    Colors.amber.withValues(alpha: 0.12),
-                    Colors.amber[800]!),
+                  '${item.weight.toStringAsFixed(3)} บาท/ชิ้น',
+                  Colors.amber.withValues(alpha: 0.12),
+                  Colors.amber[800]!,
+                ),
                 _Pill(
-                    'กำเหน็จ ฿${fmtShort.format(item.laborFee)}',
-                    Colors.blue.withValues(alpha: 0.08),
-                    Colors.blue[700]!),
+                  'กำเหน็จ ฿${fmtShort.format(item.laborFee)}',
+                  Colors.blue.withValues(alpha: 0.08),
+                  Colors.blue[700]!,
+                ),
               ],
             ),
 
@@ -428,7 +427,10 @@ class _ProductCard extends StatelessWidget {
             if (item.costBasis == 0)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
@@ -481,10 +483,7 @@ class _ProductCard extends StatelessWidget {
                 children: [
                   Text(
                     'ทุนในสต็อก: ฿${fmt.format(item.stockInvestment)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -522,9 +521,7 @@ class _PriceBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style:
-                  TextStyle(fontSize: 9, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
           const SizedBox(height: 2),
           Text(
             value,
@@ -553,8 +550,10 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: Text(label, style: TextStyle(fontSize: 11, color: fg)),
     );
   }
@@ -670,7 +669,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ เพิ่ม "${_nameCtrl.text.trim()}" สำเร็จ (ID: $id)'),
+            content: Text(
+              '✅ เพิ่ม "${_nameCtrl.text.trim()}" สำเร็จ (ID: $id)',
+            ),
             backgroundColor: const Color(0xFF2E7D32),
             behavior: SnackBarBehavior.floating,
           ),
@@ -713,8 +714,11 @@ class _AddProductDialogState extends State<_AddProductDialog> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.add_box_rounded,
-                      color: Colors.white70, size: 20),
+                  const Icon(
+                    Icons.add_box_rounded,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -747,8 +751,7 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                       _label('ชื่อสินค้า *'),
                       TextFormField(
                         controller: _nameCtrl,
-                        decoration:
-                            _deco('เช่น สร้อยคอทองคำ ลายดอกไม้'),
+                        decoration: _deco('เช่น สร้อยคอทองคำ ลายดอกไม้'),
                         validator: (v) => v?.trim().isEmpty == true
                             ? 'กรุณาใส่ชื่อสินค้า'
                             : null,
@@ -761,7 +764,8 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                         controller: _descCtrl,
                         maxLines: 2,
                         decoration: _deco(
-                            'เช่น ทองคำแท้ 96.5% ลายดอกไม้ งานละเอียด'),
+                          'เช่น ทองคำแท้ 96.5% ลายดอกไม้ งานละเอียด',
+                        ),
                         validator: (v) => v?.trim().isEmpty == true
                             ? 'กรุณาใส่คำอธิบาย'
                             : null,
@@ -782,16 +786,22 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                                   decoration: _deco('เลือก'),
                                   isExpanded: true,
                                   items: _categories
-                                      .map((c) => DropdownMenuItem(
-                                            value: c,
-                                            child: Text(c,
-                                                style: const TextStyle(
-                                                    fontSize: 13)),
-                                          ))
+                                      .map(
+                                        (c) => DropdownMenuItem(
+                                          value: c,
+                                          child: Text(
+                                            c,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      )
                                       .toList(),
                                   onChanged: (v) => setState(() {
                                     _selectedCategory = v;
-                                    _selectedImage = null; // reset image when category changes
+                                    _selectedImage =
+                                        null; // reset image when category changes
                                   }),
                                   validator: (v) =>
                                       v == null ? 'เลือกหมวดหมู่' : null,
@@ -810,16 +820,19 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                                   decoration: _deco('เลือก'),
                                   isExpanded: true,
                                   items: _weights
-                                      .map((w) => DropdownMenuItem(
-                                            value: w,
-                                            child: Text(
-                                              w == w.truncateToDouble()
-                                                  ? '${w.toInt()} บาท'
-                                                  : '$w บาท',
-                                              style: const TextStyle(
-                                                  fontSize: 13),
+                                      .map(
+                                        (w) => DropdownMenuItem(
+                                          value: w,
+                                          child: Text(
+                                            w == w.truncateToDouble()
+                                                ? '${w.toInt()} บาท'
+                                                : '$w บาท',
+                                            style: const TextStyle(
+                                              fontSize: 13,
                                             ),
-                                          ))
+                                          ),
+                                        ),
+                                      )
                                       .toList(),
                                   onChanged: (v) => setState(() {
                                     _selectedWeight = v;
@@ -840,10 +853,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                         controller: _laborFeeCtrl,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
-                        decoration:
-                            _deco('เช่น 1500', prefixText: '฿ '),
+                        decoration: _deco('เช่น 1500', prefixText: '฿ '),
                         validator: (v) {
                           if (v == null || v.isEmpty) {
                             return 'กรุณาใส่ค่ากำเหน็จ';
@@ -866,12 +878,16 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                             onTap: () => setState(() {
                               _useCustomUrl = !_useCustomUrl;
                               // Clear selections when switching modes
-                              if (_useCustomUrl) _selectedImage = null;
-                              else _customUrlCtrl.clear();
+                              if (_useCustomUrl)
+                                _selectedImage = null;
+                              else
+                                _customUrlCtrl.clear();
                             }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: _useCustomUrl
                                     ? const Color(0xFF800000)
@@ -884,7 +900,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                                 ),
                               ),
                               child: Text(
-                                _useCustomUrl ? '← เลือกจากรูปที่มี' : 'ใช้ URL แทน →',
+                                _useCustomUrl
+                                    ? '← เลือกจากรูปที่มี'
+                                    : 'ใช้ URL แทน →',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -919,7 +937,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                           child: Text(
                             'ใส่ URL จากอินเทอร์เน็ต หรือ path ของไฟล์ใน assets',
                             style: TextStyle(
-                                fontSize: 10, color: Colors.grey[500]),
+                              fontSize: 10,
+                              color: Colors.grey[500],
+                            ),
                           ),
                         ),
                       ] else ...[
@@ -927,8 +947,7 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                         if (_selectedCategory == null)
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
                               color: Colors.grey[50],
                               borderRadius: BorderRadius.circular(10),
@@ -938,7 +957,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                               'เลือกหมวดหมู่ก่อนเพื่อดูรูปภาพที่เหมาะสม',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[400]),
+                                fontSize: 12,
+                                color: Colors.grey[400],
+                              ),
                             ),
                           )
                         else
@@ -957,15 +978,17 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                                 // Category-specific tiles
                                 ...(_imagesByCategory[_selectedCategory] ?? [])
                                     .map((entry) {
-                                  final (path, lbl) = entry;
-                                  return Row(
-                                    children: [
-                                      _buildImageTile(
-                                          path: path, label: lbl),
-                                      const SizedBox(width: 8),
-                                    ],
-                                  );
-                                }),
+                                      final (path, lbl) = entry;
+                                      return Row(
+                                        children: [
+                                          _buildImageTile(
+                                            path: path,
+                                            label: lbl,
+                                          ),
+                                          const SizedBox(width: 8),
+                                        ],
+                                      );
+                                    }),
                               ],
                             ),
                           ),
@@ -975,7 +998,9 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                             child: Text(
                               'กรุณาเลือกรูปภาพ',
                               style: TextStyle(
-                                  fontSize: 11, color: Colors.red[700]),
+                                fontSize: 11,
+                                color: Colors.red[700],
+                              ),
                             ),
                           ),
                       ],
@@ -999,12 +1024,14 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.grey),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('ยกเลิก',
-                          style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1016,20 +1043,23 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                         backgroundColor: const Color(0xFF800000),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: _isSaving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : const Text('บันทึกสินค้า',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold)),
+                          : const Text(
+                              'บันทึกสินค้า',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
                 ],
@@ -1056,9 +1086,7 @@ class _AddProductDialogState extends State<_AddProductDialog> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF800000)
-                : Colors.grey[200]!,
+            color: isSelected ? const Color(0xFF800000) : Colors.grey[200]!,
             width: isSelected ? 2.5 : 1,
           ),
           color: isSelected
@@ -1070,8 +1098,7 @@ class _AddProductDialogState extends State<_AddProductDialog> {
           children: [
             // Image or generic icon
             if (isGeneric && !isSelected)
-              Icon(Icons.image_outlined,
-                  size: 30, color: Colors.grey[400])
+              Icon(Icons.image_outlined, size: 30, color: Colors.grey[400])
             else
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
@@ -1109,8 +1136,8 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                 color: isSelected
                     ? const Color(0xFF800000)
                     : isGeneric
-                        ? Colors.grey[500]
-                        : Colors.grey[700],
+                    ? Colors.grey[500]
+                    : Colors.grey[700],
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1123,33 +1150,29 @@ class _AddProductDialogState extends State<_AddProductDialog> {
   }
 
   Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1A1A2E),
+      ),
+    ),
+  );
 
-  InputDecoration _deco(String hint, {String? prefixText}) =>
-      InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-        prefixText: prefixText,
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: Color(0xFF800000), width: 2),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFFAFAFA),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        isDense: true,
-      );
+  InputDecoration _deco(String hint, {String? prefixText}) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+    prefixText: prefixText,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: Color(0xFF800000), width: 2),
+    ),
+    filled: true,
+    fillColor: const Color(0xFFFAFAFA),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    isDense: true,
+  );
 }

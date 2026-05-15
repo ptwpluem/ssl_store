@@ -15,30 +15,39 @@ import '../../models/notification_item.dart';
 import 'package:ssl_store/pages/member/member_gold_savings_page.dart';
 import 'package:ssl_store/pages/member/member_buy_selection_page.dart';
 
-// ─── Design tokens (matches owner dashboard) ──────────────────────────────────
-const Color _homePrimary     = Color(0xFF800000);
-const Color _homePrimaryDark = Color(0xFF5C0000);
-const Color _homeGold        = Color(0xFFFFD700);
-const Color _homeBg          = Color(0xFFF5F7FA);
+// [1] Import Tools เพื่เอาไว้ใช้
 
+// [2] กำหนดสีเอาไว้คุม Theme
+const Color _homePrimary = Color(0xFF800000);
+const Color _homePrimaryDark = Color(0xFF5C0000);
+const Color _homeGold = Color(0xFFFFD700);
+const Color _homeBg = Color(0xFFF5F7FA);
+
+// [3] กำหนดให้เป็น StatefulWidget เพราะหน้านี้ต้องแสดงข้อมูล real-time (ราคาทอง, ข่าว)
 class HomePage extends StatefulWidget {
-  // Make the page is interactive such as gold prive updates, notifications, slide banner
   const HomePage({super.key});
 
+  // [4] createState(): สร้าง State object ที่จะเก็บตัวแปรและ logic ทั้งหมด
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
+// [5] ประกาศตัวแปร (instance variables)
 class _HomePageState extends State<HomePage> {
-  final MarketService _marketService = MarketService();
+  final MarketService _marketService =
+      MarketService(); // final = กำหนดค่าครั้งเดียว ไม่เปลี่ยนอีก
   final NotificationService _notificationService = NotificationService();
-  late Stream<GoldRate> _goldRateStream;
-  late final List<Map<String, Object>> _menuItems;
+  late Stream<GoldRate>
+  _goldRateStream; // Stream<GoldRate> = "ท่อน้ำ" รอรับราคาทองแบบ real-time จาก Firestore
+  late final List<Map<String, Object>>
+  _menuItems; // List<Map<String, Object>> = รายการเมนู แต่ละเมนูเก็บเป็น Map (key → value)
 
+  // [6] initState(): ทำงานครั้งเดียวตอน widget "เกิดใหม่" ก่อนวาด UI
   @override
   void initState() {
     super.initState();
-    _goldRateStream = _marketService.getGoldRateStream();
+    _goldRateStream = _marketService
+        .getGoldRateStream(); // _menuItems = List<Map<String, Object>>: รายการเมนู 4 อัน
     _menuItems = [
       {
         'title': 'ซื้อทองจากร้าน',
@@ -79,11 +88,15 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      // [10] ควบคุมสีของ status bar (แถบที่แสดงเวลา/แบตบนสุดโทรศัพท์)
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: _homeBg,
         appBar: _buildAppBar(),
         body: SingleChildScrollView(
+          // [12] SingleChildScrollView = ทำให้ scroll ได้ เพราะเนื้อหายาวกว่าหน้าจอ
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -91,17 +104,25 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: StreamBuilder<GoldRate>(
-                  stream: _goldRateStream,
+                  // [13] widget พิเศษที่ "นั่งรอ" ข้อมูลจาก stream
+                  stream: _goldRateStream, // ท่อข้อมูลที่เปิดไว้ใน initState
                   builder: (context, snapshot) {
-                    if (snapshot.hasData) return GoldRateCard(rate: snapshot.data!);
-                    return const Center(child: CircularProgressIndicator(color: _homePrimary));
+                    // ทุกครั้งที่มีข้อมูลใหม่มา → Flutter เรียก builder นี้วาด UI ใหม่
+                    if (snapshot.hasData)
+                      return GoldRateCard(rate: snapshot.data!);
+                    return const Center(
+                      child: CircularProgressIndicator(color: _homePrimary),
+                    );
                   },
                 ),
               ),
               const SizedBox(height: 16),
 
               // ── Promotional banner carousel ───────────────────────────────
-              SizedBox(height: 148, child: _PromotionCarousel()),
+              SizedBox(
+                height: 148,
+                child: _PromotionCarousel(),
+              ), // [15] _PromotionCarousel(): เรียก class ที่ 2 ที่อยู่ด้านล่างของไฟล์นี้
               const SizedBox(height: 24),
 
               // ── Section header: Menu ──────────────────────────────────────
@@ -118,8 +139,10 @@ class _HomePageState extends State<HomePage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = _menuItems[index];
-                    final iconColor = item['iconColor'] as Color? ?? _homePrimary;
-                    final bgColor  = item['color'] as Color? ?? const Color(0xFFFFF8E1);
+                    final iconColor =
+                        item['iconColor'] as Color? ?? _homePrimary;
+                    final bgColor =
+                        item['color'] as Color? ?? const Color(0xFFFFF8E1);
 
                     return Material(
                       color: Colors.white,
@@ -128,13 +151,16 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(16),
                         splashColor: _homePrimary.withValues(alpha: 0.05),
                         onTap: () {
+                          // [20] ตรวจว่า item['page'] มีค่าหรือเปล่า ถ้าไม่มี (null) → แสดง SnackBar "กำลังปรับปรุง" แทน
                           if (item['page'] != null) {
                             _navigateTo(item['page'] as Widget);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: _homePrimary,
-                                content: Text('ฟังก์ชัน ${item['title']} กำลังปรับปรุงเร็วๆ นี้!'),
+                                content: Text(
+                                  'ฟังก์ชัน ${item['title']} กำลังปรับปรุงเร็วๆ นี้!',
+                                ),
                               ),
                             );
                           }
@@ -142,9 +168,15 @@ class _HomePageState extends State<HomePage> {
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
+                            border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.12),
+                            ),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3)),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
                             ],
                           ),
                           child: Row(
@@ -155,15 +187,24 @@ class _HomePageState extends State<HomePage> {
                                 height: 72,
                                 decoration: BoxDecoration(
                                   color: _homeGold,
-                                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+                                  borderRadius: const BorderRadius.horizontal(
+                                    left: Radius.circular(16),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 14),
                               // Icon
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-                                child: Icon(item['icon'] as IconData, size: 24, color: iconColor),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  item['icon'] as IconData,
+                                  size: 24,
+                                  color: iconColor,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               // Text
@@ -179,7 +220,11 @@ class _HomePageState extends State<HomePage> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.only(right: 14),
-                                child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
+                                child: Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14,
+                                  color: Colors.grey[400],
+                                ),
                               ),
                             ],
                           ),
@@ -192,7 +237,10 @@ class _HomePageState extends State<HomePage> {
 
               // ── Section header: News ──────────────────────────────────────
               const SizedBox(height: 28),
-              _buildSectionHeader('ข่าวสารและสาระน่ารู้', Icons.newspaper_rounded),
+              _buildSectionHeader(
+                'ข่าวสารและสาระน่ารู้',
+                Icons.newspaper_rounded,
+              ),
               const SizedBox(height: 12),
 
               Padding(
@@ -201,7 +249,9 @@ class _HomePageState extends State<HomePage> {
                   stream: _marketService.getNewsStream(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator(color: _homePrimary));
+                      return const Center(
+                        child: CircularProgressIndicator(color: _homePrimary),
+                      );
                     }
                     final newsList = snapshot.data!;
                     if (newsList.isEmpty) {
@@ -219,7 +269,11 @@ class _HomePageState extends State<HomePage> {
                           newsItem: newsList[index],
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('กำลังอ่าน: ${newsList[index].title}')),
+                              SnackBar(
+                                content: Text(
+                                  'กำลังอ่าน: ${newsList[index].title}',
+                                ),
+                              ),
                             );
                           },
                         );
@@ -231,7 +285,10 @@ class _HomePageState extends State<HomePage> {
 
               // ── Section header: Store info ────────────────────────────────
               const SizedBox(height: 28),
-              _buildSectionHeader('ที่ตั้งร้านของเรา', Icons.location_on_rounded),
+              _buildSectionHeader(
+                'ที่ตั้งร้านของเรา',
+                Icons.location_on_rounded,
+              ),
               const SizedBox(height: 12),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -244,13 +301,18 @@ class _HomePageState extends State<HomePage> {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('กำลังเปิด LINE Official Account...')),
+              const SnackBar(
+                content: Text('กำลังเปิด LINE Official Account...'),
+              ),
             );
           },
           backgroundColor: const Color(0xFF06C755),
           elevation: 4,
           icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
-          label: const Text('พูดคุยกับเรา', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          label: const Text(
+            'พูดคุยกับเรา',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -258,6 +320,7 @@ class _HomePageState extends State<HomePage> {
 
   // ─── AppBar ───────────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar() {
+    // [23] เป็นตัวช่วย Design App Bar เพราะเขียนยาวมาก
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -287,11 +350,22 @@ class _HomePageState extends State<HomePage> {
             children: [
               const Text(
                 'ห้างทองซุ่นเซ่งหลี',
-                style: TextStyle(color: _homePrimary, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2, height: 1.25),
+                style: TextStyle(
+                  color: _homePrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
+                  height: 1.25,
+                ),
               ),
               Text(
                 'ทองคำบริสุทธิ์ 96.5%',
-                style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.normal, height: 1.25),
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 11,
+                  fontWeight: FontWeight.normal,
+                  height: 1.25,
+                ),
               ),
             ],
           ),
@@ -299,10 +373,13 @@ class _HomePageState extends State<HomePage> {
       ),
       actions: [
         StreamBuilder<List<NotificationItem>>(
+          // [24] ดึง List<NotificationItem> แบบ real-time
           stream: _notificationService.getNotificationsStream(),
           builder: (context, snapshot) {
             final unreadCount = snapshot.hasData
-                ? snapshot.data!.where((n) => !n.isRead).length
+                ? snapshot.data!
+                      .where((n) => !n.isRead)
+                      .length // นับเฉพาะที่ยังไม่ได้อ่าน
                 : 0;
             return Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -310,7 +387,10 @@ class _HomePageState extends State<HomePage> {
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_rounded, color: _homePrimary),
+                    const Icon(
+                      Icons.notifications_rounded,
+                      color: _homePrimary,
+                    ),
                     if (unreadCount > 0)
                       Positioned(
                         right: -4,
@@ -322,17 +402,27 @@ class _HomePageState extends State<HomePage> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: Colors.white, width: 1.5),
                           ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
                           child: Text(
                             unreadCount > 99 ? '99+' : unreadCount.toString(),
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ),
                   ],
                 ),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                ),
               ),
             );
           },
@@ -354,14 +444,21 @@ class _HomePageState extends State<HomePage> {
           Container(
             width: 4,
             height: 20,
-            decoration: BoxDecoration(color: _homeGold, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(
+              color: _homeGold,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           const SizedBox(width: 10),
           Icon(icon, size: 18, color: _homePrimary),
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: _homePrimary),
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: _homePrimary,
+            ),
           ),
         ],
       ),
@@ -371,6 +468,7 @@ class _HomePageState extends State<HomePage> {
 
 // Mock Widget for Carousel
 class _PromotionCarousel extends StatefulWidget {
+  // [27] ต้องเป็น StatefulWidget เพราะต้องเก็บ _currentPage (อยู่หน้า slide ที่เท่าไหร่)
   @override
   State<_PromotionCarousel> createState() => _PromotionCarouselState();
 }
@@ -380,7 +478,7 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
   int _currentPage = 0;
   final MarketService _marketService = MarketService();
 
-  @override
+  @override // [29] dispose(): ให้ Carousel กลับมาอยู่หน้าแรกหลังจากปิด App
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -396,17 +494,19 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
         }
 
         final promotions = snapshot.data!;
-        
+
         // Safety check to reset current page if promotions list shrinks
         if (_currentPage >= promotions.length && promotions.isNotEmpty) {
-           _currentPage = promotions.length - 1;
+          _currentPage = promotions.length - 1;
         }
 
         return Column(
           children: [
             Expanded(
-              child: PageView.builder( // slide banner
-                controller: _pageController, // create slide based on #promotion, change current location
+              child: PageView.builder(
+                // slide banner
+                controller:
+                    _pageController, // create slide based on #promotion, change current location
                 itemCount: promotions.length,
                 onPageChanged: (index) {
                   setState(() {
@@ -417,11 +517,22 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                   final promo = promotions[index];
                   return GestureDetector(
                     onTap: () {
-                      final category = promo['category'] as String? ?? 'catalog';
+                      final category =
+                          promo['category'] as String? ?? 'catalog';
                       if (category == 'savings') {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const GoldSavingsPage()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GoldSavingsPage(),
+                          ),
+                        );
                       } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CatalogPage()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CatalogPage(),
+                          ),
+                        );
                       }
                     },
                     child: Container(
@@ -446,7 +557,9 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                         child: Text(
                           promo['title'] as String? ?? '',
                           style: TextStyle(
-                            color: Color(promo['textColor'] as int? ?? 0xFFFFFFFF),
+                            color: Color(
+                              promo['textColor'] as int? ?? 0xFFFFFFFF,
+                            ),
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                             shadows: [
@@ -472,7 +585,9 @@ class _PromotionCarouselState extends State<_PromotionCarousel> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == index ? 24 : 8, // Show wide for current
+                  width: _currentPage == index
+                      ? 24
+                      : 8, // Show wide for current
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index

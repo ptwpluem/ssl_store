@@ -9,6 +9,8 @@ import 'firestore_helper.dart';
 import 'id_generator_service.dart';
 import 'wallet_service.dart';
 
+// [1] Interest Rate
+
 /// Handles pawn (จำนำ) and redeem (ไถ่ถอน) transactions.
 class PawnService {
   static final PawnService _instance = PawnService._internal();
@@ -81,7 +83,7 @@ class PawnService {
         'loanAmount': loanAmount,
         'pawnDate': FieldValue.serverTimestamp(),
         'dueDate': Timestamp.fromDate(dueDate),
-        'interestRate': 0.0125,
+        'interestRate': 0.0125, // [1] Interest Rate
         'loanId': id, // ← cross-reference to pawn_loans document
       });
 
@@ -281,10 +283,16 @@ class PawnService {
     DateTime dueDate,
     double monthlyRate,
   ) {
+    // [2] สูตรคำนวนณแบบปกติ = 30557.5 * 0.0125 * (1/30) = 12.73 -> 13
+    // ยอดชำระรวม = 30558 + 13 = 30,570
     final now = DateTime.now();
     int daysPawned = now.difference(pawnDate).inDays;
     if (daysPawned < 1) daysPawned = 1;
 
+    // [3] สูตรคำนวนแบบพิเศษ | เริม 14 May -> make the 1st payment at 13 July (50 days)
+    // Normal Rate: 30557 * 0.0125 * (50/30) = 636.7
+    // Special Rate: 30557 * 0.02 * (20/30) = 407.4 -> ส่วนต่างที่ค้างจ่าย 20 วัน
+    // Total Paid = 30557 + 636 + 407 = 31,601
     final standardInterest = principal * monthlyRate * (daysPawned / 30.0);
     double penaltyInterest = 0.0;
     if (now.isAfter(dueDate)) {

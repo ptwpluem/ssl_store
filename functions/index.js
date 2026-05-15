@@ -40,10 +40,13 @@ exports.scrapeGoldPrice = onSchedule("every 1 hours", async (event) => {
       return null;
     }
 
-    const newTrend = "up";
-
     const db = admin.firestore();
     const docRef = db.collection("market").doc("gold_rate");
+
+    // Read current price before overwriting to compute real trend direction
+    const currentDoc = await docRef.get();
+    const previousBuy = currentDoc.exists ? (currentDoc.data().buyPrice || buyPrice) : buyPrice;
+    const newTrend = buyPrice > previousBuy ? "up" : buyPrice < previousBuy ? "down" : "stable";
 
     await docRef.set({
       buyPrice: buyPrice,

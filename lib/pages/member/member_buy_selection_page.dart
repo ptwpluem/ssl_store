@@ -4,22 +4,27 @@ import 'package:flutter/services.dart';
 import 'member_trading_page.dart';
 import 'member_catalog_page.dart';
 
-// ─── Design tokens (matches owner dashboard) ──────────────────────────────────
-const Color _primary     = Color(0xFF800000);
+// [1] Import tools
+
+// [2] กำหนด Theme ของสี
+const Color _primary = Color(0xFF800000);
 const Color _primaryDark = Color(0xFF5C0000);
-const Color _gold        = Color(0xFFFFD700);
-const Color _bgColor     = Color(0xFFF5F7FA);
+const Color _gold = Color(0xFFFFD700);
+const Color _bgColor = Color(0xFFF5F7FA);
 
 class BuySelectionPage extends StatelessWidget {
   const BuySelectionPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // [3] Build โครงสร้างหลัก สี, app bar, จัดรูป
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: _bgColor,
-        appBar: _buildAppBar(context),
+        appBar: _buildAppBar(context), // [4] รับ Contenxt เป็น Parameter
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -32,8 +37,10 @@ class BuySelectionPage extends StatelessWidget {
                   children: [
                     // ── Gold Bar card ──────────────────────────────────────
                     _SelectionCard(
+                      // [6] การ์ดแรก ทองคำแท่ง ถ้ากดแล้วจะไป TradingPage
                       title: 'ทองคำแท่ง',
-                      description: 'ทองคำแท่งบริสุทธิ์เพื่อการลงทุน\nซื้อขายตามราคาสมาคมฯ',
+                      description:
+                          'ทองคำแท่งบริสุทธิ์เพื่อการลงทุน\nซื้อขายตามราคาสมาคมฯ',
                       badge: 'ทอง 96.5%',
                       icon: Icons.currency_exchange_rounded,
                       accentColor: const Color(0xFFF57C00),
@@ -50,8 +57,10 @@ class BuySelectionPage extends StatelessWidget {
 
                     // ── Gold Ornament card ─────────────────────────────────
                     _SelectionCard(
+                      // [7] การ์ดที่สองกดแล้วจะไป CatalogPage
                       title: 'ทองรูปพรรณ',
-                      description: 'เครื่องประดับทองคำสวยงาม\nสร้อยคอ แหวน กำไล และอื่นๆ',
+                      description:
+                          'เครื่องประดับทองคำสวยงาม\nสร้อยคอ แหวน กำไล และอื่นๆ',
                       badge: 'เครื่องประดับ',
                       icon: Icons.auto_awesome_rounded,
                       accentColor: _primary,
@@ -66,11 +75,14 @@ class BuySelectionPage extends StatelessWidget {
 
                     // ── Info footer ────────────────────────────────────────
                     Container(
+                      // [8] Information Box แจ้งข้อมูลเพิ่มเติม
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: _gold.withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: _gold.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -80,13 +92,21 @@ class BuySelectionPage extends StatelessWidget {
                               color: _gold.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.verified_rounded, color: _primary, size: 20),
+                            child: const Icon(
+                              Icons.verified_rounded,
+                              color: _primary,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
                               'ราคาทองอ้างอิงจากสมาคมค้าทองคำ และอัปเดตแบบเรียลไทม์',
-                              style: TextStyle(fontSize: 12.5, color: Color(0xFF555555), height: 1.5),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Color(0xFF555555),
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ],
@@ -111,8 +131,14 @@ class BuySelectionPage extends StatelessWidget {
       shadowColor: Colors.black.withValues(alpha: 0.08),
       systemOverlayStyle: SystemUiOverlayStyle.dark,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _primary, size: 20),
-        onPressed: () => Navigator.pop(context),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: _primary,
+          size: 20,
+        ),
+        onPressed: () => Navigator.pop(
+          context,
+        ), // [4] มี icon Back เมื่อกดแล้วจะ Navigate ไปหน้าก่อนหน้า
       ),
       title: const Text(
         'ซื้อทอง',
@@ -133,6 +159,7 @@ class BuySelectionPage extends StatelessWidget {
 
   // ─── Decorative header banner ─────────────────────────────────────────────
   Widget _buildHeaderBanner() {
+    // [5] เป็น UI ข้างบน
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       decoration: const BoxDecoration(
@@ -153,7 +180,11 @@ class BuySelectionPage extends StatelessWidget {
                   color: _gold.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.shopping_bag_rounded, color: _gold, size: 22),
+                child: const Icon(
+                  Icons.shopping_bag_rounded,
+                  color: _gold,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -230,90 +261,95 @@ class _SelectionCard extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE8E8E8)),
             ),
             child: Row(
-            children: [
-              // Left gold accent stripe
-              Container(
-                width: 5,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: _gold,
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
-                ),
-              ),
-              const SizedBox(width: 18),
-
-              // Icon
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: accentBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, size: 30, color: accentColor),
-              ),
-              const SizedBox(width: 16),
-
-              // Text block
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: _primary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: _gold.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              badge,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF7A5800),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF888888),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
+              children: [
+                // Left gold accent stripe
+                Container(
+                  width: 5,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: _gold,
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(18),
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 16,
-                  color: accentColor.withValues(alpha: 0.7),
+                const SizedBox(width: 18),
+
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: accentBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, size: 30, color: accentColor),
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+
+                // Text block
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: _primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _gold.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                badge,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF7A5800),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF888888),
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 14),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: accentColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 }
