@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/gold_savings.dart';
 import '../models/notification_item.dart';
 import '../models/wallet_transaction.dart';
+import '../utils/app_logger.dart';
 import 'firestore_helper.dart';
 import 'id_generator_service.dart';
 import 'wallet_service.dart';
@@ -478,7 +479,9 @@ class SavingsService {
       if (data?['firstName'] != null && data?['lastName'] != null) {
         return '${data!['firstName']} ${data['lastName']}';
       }
-    } catch (_) {}
+    } catch (e, s) {
+      AppLogger.debug('Could not resolve display name', error: e, stackTrace: s);
+    }
     return 'Unknown User';
   }
 }

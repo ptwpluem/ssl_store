@@ -15,6 +15,7 @@ import 'owner_savings_transactions_page.dart';
 import '../../services/trading_service.dart';
 import '../../services/market_service.dart';
 import '../../widgets/owner_metric_card.dart';
+import '../../utils/app_logger.dart';
 import '../../utils/date_formatters.dart';
 
 class OwnerOverviewTab extends StatefulWidget {
@@ -69,7 +70,10 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   @override
   void initState() {
     super.initState();
-    TradingService().repairAllTransactions().catchError((_) {});
+    TradingService().repairAllTransactions().catchError((Object e, StackTrace s) {
+      AppLogger.warning('Background repairAllTransactions failed',
+          error: e, stackTrace: s);
+    });
 
     // ── Non-date streams ─────────────────────────────────────────────────────
     _goldRateDocStream = FirebaseFirestore.instance

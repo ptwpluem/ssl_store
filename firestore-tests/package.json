@@ -1,0 +1,13 @@
+{
+  "name": "ssl-store-firestore-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Security-rules tests for firestore.rules, run against the Firebase emulator.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-ssl-rules \"node rules.test.js\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.13.2"
+  }
+}

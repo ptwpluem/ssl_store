@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../utils/app_logger.dart';
+
 // ค้นหา User ID เพื่อให้แอปรู้ว่า "คนที่ login อยู่ตอนนี้ คือ document ไหนใน Firestore" แล้วจึงดึงข้อมูลของคนนั้นได้ถูกต้อง
 
 // [firestore] and [auth] are injectable for testing; both default to the live
@@ -48,8 +50,10 @@ Future<DocumentReference> getUserDocRef(
           // self-healing ถ้าเจอ user ที่ไม่มี uid (user เก่า) ระบบจะเติม uid ให้อัตโนมัติ ทำให้หาเจอเร็วขึ้นในครั้งต่อไป
           try {
             await ref.update({'uid': uid});
-          } catch (_) {
-            // Non-blocking repair
+          } catch (e, s) {
+            // Non-blocking repair — log so a persistent failure is visible.
+            AppLogger.debug('uid self-heal write failed',
+                error: e, stackTrace: s);
           }
           return ref;
         }

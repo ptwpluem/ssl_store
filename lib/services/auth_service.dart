@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/app_logger.dart';
 import 'id_generator_service.dart';
 import 'wallet_service.dart';
 
@@ -32,8 +33,11 @@ class AuthService {
       if (credential.user != null) {
         try {
           await _syncUserDocument(credential.user!);
-        } catch (_) {
-          // Non-blocking — user is still authenticated even if sync fails.
+        } catch (e, s) {
+          // Non-blocking — user is still authenticated even if sync fails,
+          // but surface it so a persistently-failing sync is visible.
+          AppLogger.warning('User document sync failed after sign-in',
+              error: e, stackTrace: s);
         }
       }
       return credential;

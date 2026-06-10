@@ -6,6 +6,9 @@
 *.zip
 .DS_Store
 users.json
+node_modules/
+firebase-debug.log
+firestore-debug.log
 .atom/
 .build/
 .buildlog/

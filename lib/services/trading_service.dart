@@ -6,6 +6,7 @@ import '../models/gold_asset.dart';
 import '../models/gold_transaction.dart';
 import '../models/notification_item.dart';
 import '../models/wallet_transaction.dart';
+import '../utils/app_logger.dart';
 import 'firestore_helper.dart';
 import 'id_generator_service.dart';
 import 'inventory_lot_service.dart';
@@ -658,7 +659,9 @@ class TradingService {
       if (data?['firstName'] != null && data?['lastName'] != null) {
         return '${data!['firstName']} ${data['lastName']}';
       }
-    } catch (_) {}
+    } catch (e, s) {
+      AppLogger.debug('Could not resolve display name', error: e, stackTrace: s);
+    }
     return 'Unknown User';
   }
 }

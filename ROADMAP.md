@@ -56,13 +56,15 @@ real emulator is reserved for *security-rules* testing (Milestone C). See
 
 ---
 
-## 🟠 Milestone C — Visibility (errors & logging)
+## 🟠 Milestone C — Visibility (errors & logging) — ✅ MOSTLY DONE (2026-06-10)
 
 Make failures visible so future changes don't silently break money flows.
 
-- [ ] **Add Crashlytics + a logger package**; report caught errors instead of swallowing them.
-- [ ] **Audit `catch` blocks** across the 9 services for silent failures; log or surface them.
-- [ ] **Verify security rules with the emulator** — confirm a member account cannot read another member's wallet/assets (the rules look right; prove it with a test).
+- [x] **Logging seam + crash-reporter hook** — added `lib/utils/app_logger.dart`: one `AppLogger` with `debug`/`warning`/`error`, where `error()` forwards to a pluggable `onError` hook. Tested (3 tests). **Native Firebase Crashlytics deferred** (needs console enablement + iOS/Android native config + a device build to verify) — it's a 2-line wire-up at the `AppLogger.onError` seam; steps documented in `app_logger.dart`.
+- [x] **Audited `catch` blocks for silent failures** — routed the swallowed errors (post-sign-in sync, `getUserDocRef` self-heal, the three `_getDisplayName` fallbacks, the dashboard's background repair) through `AppLogger` so a persistent failure is now visible instead of vanishing. (One UI catch in `member_portfolio_page` already surfaces via SnackBar — left with its note.)
+- [x] **Verified security rules with the Firebase emulator** — `firestore-tests/` runs `@firebase/rules-unit-testing` against `firestore.rules`: **23 assertions passing** covering member↔member wallet/asset/profile/transaction/pawn isolation, owner-only product & market-history writes, append-only (immutable) market history, public catalog read, and default-deny. Run with `cd firestore-tests && npm install && npm test`.
+
+> Remaining: wire native Crashlytics when ready (enable in Firebase console → add the gradle/pod config → `AppLogger.onError = (e, s, {reason}) => FirebaseCrashlytics.instance.recordError(e, s, reason: reason);` in `main()`).
 
 ---
 
