@@ -1,10 +1,9 @@
 // lib/pages/member/member_home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../models/gold_rate.dart';
 import '../../services/market_service.dart';
 import '../../services/notification_service.dart';
-import '../../widgets/gold_rate_card.dart';
+import '../../widgets/gold_rate_consumer.dart';
 import '../../models/news_item.dart';
 import '../../widgets/news_card.dart';
 import '../../widgets/store_info_card.dart';
@@ -37,8 +36,6 @@ class _HomePageState extends State<HomePage> {
   final MarketService _marketService =
       MarketService(); // final = กำหนดค่าครั้งเดียว ไม่เปลี่ยนอีก
   final NotificationService _notificationService = NotificationService();
-  late Stream<GoldRate>
-  _goldRateStream; // Stream<GoldRate> = "ท่อน้ำ" รอรับราคาทองแบบ real-time จาก Firestore
   late final List<Map<String, Object>>
   _menuItems; // List<Map<String, Object>> = รายการเมนู แต่ละเมนูเก็บเป็น Map (key → value)
 
@@ -46,8 +43,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _goldRateStream = _marketService
-        .getGoldRateStream(); // _menuItems = List<Map<String, Object>>: รายการเมนู 4 อัน
+    // The live gold rate now comes from goldRateProvider (see GoldRateConsumer).
     _menuItems = [
       {
         'title': 'ซื้อทองจากร้าน',
@@ -101,21 +97,10 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Gold rate card ────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: StreamBuilder<GoldRate>(
-                  // [13] widget พิเศษที่ "นั่งรอ" ข้อมูลจาก stream
-                  stream: _goldRateStream, // ท่อข้อมูลที่เปิดไว้ใน initState
-                  builder: (context, snapshot) {
-                    // ทุกครั้งที่มีข้อมูลใหม่มา → Flutter เรียก builder นี้วาด UI ใหม่
-                    if (snapshot.hasData) {
-                      return GoldRateCard(rate: snapshot.data!);
-                    }
-                    return const Center(
-                      child: CircularProgressIndicator(color: _homePrimary),
-                    );
-                  },
-                ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                // [13] Reads goldRateProvider and renders the rate / loader / error.
+                child: GoldRateConsumer(loadingColor: _homePrimary),
               ),
               const SizedBox(height: 16),
 

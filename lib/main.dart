@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart'; // เครื่องมือพื้นฐาน
 import 'package:flutter/material.dart'; // ชุด UI component เช่น button, text, AppBar
 import 'package:firebase_core/firebase_core.dart'; // Library เริ่มสำหรับ Firebase
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart'; // File Configure ที่ Filebase สร้างให้อัตโนมัติ
 
 // -- Pages / Widgets --
@@ -65,7 +66,7 @@ void main() async {
   // User will now stay logged in between sessions
   // await FirebaseAuth.instance.signOut();
 
-  runApp(const MyApp()); // [1]
+  runApp(const ProviderScope(child: MyApp())); // [1]
 }
 
 class MyApp extends StatelessWidget {
