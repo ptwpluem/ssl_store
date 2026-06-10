@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import '../../services/auth_service.dart';
+import '../../utils/validators.dart';
 
 // ─── Design tokens (matches owner dashboard) ──────────────────────────────────
 const Color _loginPrimary     = Color(0xFF800000);
@@ -272,7 +273,7 @@ class _LoginPageState extends State<LoginPage> {
               label: 'เบอร์โทรศัพท์',
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'กรุณากรอกเบอร์โทรศัพท์' : null,
+              validator: Validators.thaiPhone,
             ),
             const SizedBox(height: 14),
             _buildField(
@@ -291,13 +292,7 @@ class _LoginPageState extends State<LoginPage> {
             label: 'อีเมล',
             icon: Icons.email_rounded,
             keyboardType: TextInputType.emailAddress,
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'กรุณากรอกอีเมล';
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
-                return 'รูปแบบอีเมลไม่ถูกต้อง';
-              }
-              return null;
-            },
+            validator: Validators.email,
           ),
           const SizedBox(height: 14),
 
@@ -477,9 +472,11 @@ class _LoginPageState extends State<LoginPage> {
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
       ),
-      validator: (v) => (v == null || v.length < 6)
-          ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
-          : null,
+      // On login we only require a non-empty password (the account's password
+      // already exists); strength rules apply only when registering.
+      validator: (v) => _isLogin
+          ? Validators.requiredField(v, field: 'รหัสผ่าน')
+          : Validators.password(v),
     );
   }
 }

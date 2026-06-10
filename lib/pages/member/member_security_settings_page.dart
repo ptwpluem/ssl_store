@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../utils/validators.dart';
 
 class SecuritySettingsPage extends StatefulWidget {
   const SecuritySettingsPage({super.key});
@@ -52,12 +53,15 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                 ),
                 ElevatedButton(
                   onPressed: isLoading ? null : () async {
-                    if (newPasswordController.text != confirmPasswordController.text) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('รหัสผ่านไม่ตรงกัน')));
+                    final strengthError = Validators.password(newPasswordController.text);
+                    if (strengthError != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strengthError)));
                       return;
                     }
-                    if (newPasswordController.text.length < 6) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')));
+                    final matchError = Validators.confirmPassword(
+                        confirmPasswordController.text, newPasswordController.text);
+                    if (matchError != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(matchError)));
                       return;
                     }
 
