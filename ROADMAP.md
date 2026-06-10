@@ -91,13 +91,17 @@ Device/native-only items (FCM, share/PDF delivery, scheduled backups) are
 deferred — they need native config + a device to verify, so the verifiable
 *logic* is built and tested here and the delivery is a thin wire-up later.
 
-- [ ] **Push notifications (FCM)** — remind customers when a pawn is due/overdue. **Deferred** (native + device, like Crashlytics).
+- [ ] **Push notifications (FCM)** — remind customers when a pawn is due/overdue. **Deferred to device** — exact steps in `docs/DEVICE_SETUP.md` §3.
 - [x] **Offline support** — Firestore persistence enabled in `main()` (`persistenceEnabled` + unlimited cache).
-- [~] **Receipt / transaction export** — pure `lib/utils/receipt_formatter.dart` builds the Thai receipt (tested, 4 tests). Share-sheet/PDF *delivery* deferred (device-only).
-- [x] **Input validation** — `lib/utils/validators.dart` (email, Thai phone, password strength, amounts incl. ceiling, quarter-baht weight); 13 tests; wired into the edit-profile form (phone now format-validated). Apply to the remaining forms as they're touched.
+- [~] **Receipt / transaction export** — pure `lib/utils/receipt_formatter.dart` builds the Thai receipt (4 tests). Share-sheet/PDF *delivery* deferred to device — `docs/DEVICE_SETUP.md` §2 (copy-paste-ready).
+- [x] **Input validation** — `lib/utils/validators.dart` (email, Thai phone, password strength, amounts incl. ceiling, quarter-baht weight); 13 tests. Wired into edit-profile, **login/register** (email + phone; password strength on register only), and the **change-password** dialog.
 - [ ] **English localization** alongside Thai (`intl` already present). Not started — large, cross-cutting.
-- [~] **Owner: low-stock alerts** — pure `lib/utils/owner_alerts.dart` (`lowStock` neediest-first, `outOfStock`); 4 tests. End-of-day summary = `OwnerMetrics` over a single-day range (already available); dashboard banner wiring remains.
-- [ ] **Scheduled Firestore backups** — **Deferred** (Cloud Functions / ops).
+- [x] **Owner: low-stock alerts** — `lib/utils/owner_alerts.dart` (`lowStock` neediest-first, `outOfStock`, 4 tests) surfaced via `LowStockBanner` (3 tests) at the top of the owner dashboard. End-of-day summary available via `OwnerMetrics` over a single-day range.
+- [ ] **Scheduled Firestore backups** — **Deferred** (ops) — `docs/DEVICE_SETUP.md` "Not started".
+
+> **Crashlytics** (Milestone C leftover) and the device items above are all
+> documented step-by-step in `docs/DEVICE_SETUP.md`, ready to execute on a
+> device-capable machine.
 
 ---
 
