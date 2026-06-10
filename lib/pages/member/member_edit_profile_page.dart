@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/user_service.dart';
+import '../../utils/validators.dart';
 import 'dart:typed_data';
 
 class EditProfilePage extends StatefulWidget {
@@ -186,7 +187,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'กรุณาระบุชื่อ' : null,
+                    validator: (val) => Validators.requiredField(val, field: 'ชื่อ'),
                   ),
                   const SizedBox(height: 16),
                   
@@ -199,7 +200,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'กรุณาระบุนามสกุล' : null,
+                    validator: (val) => Validators.requiredField(val, field: 'นามสกุล'),
                   ),
                   const SizedBox(height: 16),
                   
@@ -213,7 +214,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       prefixIcon: const Icon(Icons.phone_outlined),
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'กรุณาระบุเบอร์โทรศัพท์' : null,
+                    validator: Validators.thaiPhone,
                   ),
                   const SizedBox(height: 48),
 
