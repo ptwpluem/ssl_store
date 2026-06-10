@@ -16,6 +16,7 @@ import '../../services/trading_service.dart';
 import '../../services/market_service.dart';
 import '../../widgets/owner_metric_card.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/owner_metrics.dart';
 import '../../utils/date_formatters.dart';
 
 class OwnerOverviewTab extends StatefulWidget {
@@ -92,13 +93,10 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
     _walletTotalStream = FirebaseFirestore.instance 
         .collection('wallets')
         .snapshots()
-        .map((snap) {
-      double total = 0.0;
-      for (var doc in snap.docs) {
-        total += (doc.data()['balance'] as num?)?.toDouble() ?? 0.0; // [1] ยอดเงินใน Wallet ลูกค้า
-      }
-      return _formatCurrency(total);
-    });
+        .map((snap) => _formatCurrency(
+              // [1] ยอดเงินใน Wallet ลูกค้า
+              OwnerMetrics.walletTotal(snap.docs.map((d) => d.data())),
+            ));
 
     _stockValueStream = FirebaseFirestore.instance
         .collection('market')
@@ -109,30 +107,19 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
       final sellRate = (data?['sellPrice'] as num?)?.toDouble() ?? 42000.0;
       final productSnap =
           await FirebaseFirestore.instance.collection('products').get();
-      double totalValue = 0.0;
-      for (var doc in productSnap.docs) {
-        final pData = doc.data();
-        final stock    = (pData['stock']    as num?)?.toInt()    ?? 0;
-        final weight   = (pData['weight']   as num?)?.toDouble() ?? 0.0;
-        final laborFee = (pData['laborFee'] as num?)?.toDouble() ?? 0.0;
-        totalValue += stock * ((weight * sellRate) + laborFee); // [2] คำนวณมูลค่าสต็อก
-      }
-      return _formatCurrency(totalValue);
+      // [2] คำนวณมูลค่าสต็อก
+      return _formatCurrency(
+        OwnerMetrics.stockValue(productSnap.docs.map((d) => d.data()), sellRate),
+      );
     });
 
     _stockInvestmentStream = FirebaseFirestore.instance
         .collection('products')
         .snapshots()
-        .map((productSnap) {
-      double totalInvestment = 0.0;
-      for (var doc in productSnap.docs) {
-        final pData     = doc.data();
-        final stock     = (pData['stock']     as num?)?.toInt()    ?? 0;
-        final costBasis = (pData['costBasis'] as num?)?.toDouble() ?? 0.0;
-        totalInvestment += stock * costBasis; // [3] เงินลงทุนในสต็อก
-      }
-      return _formatCurrency(totalInvestment);
-    });
+        .map((productSnap) => _formatCurrency(
+              // [3] เงินลงทุนในสต็อก
+              OwnerMetrics.stockInvestment(productSnap.docs.map((d) => d.data())),
+            ));
 
     _productCountStream = FirebaseFirestore.instance
         .collection('products')
@@ -144,14 +131,9 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .collectionGroup('savings')
         .snapshots()
         .asyncMap((snap) async {
-      double totalWeight = 0.0;
-      for (var doc in snap.docs) {
-        if (doc.id == 'account') {
-          final data = doc.data();
-          totalWeight +=
-              (data['totalWeightSaved'] as num?)?.toDouble() ?? 0.0;
-        }
-      }
+      final totalWeight = OwnerMetrics.savingsWeight(
+        snap.docs.where((d) => d.id == 'account').map((d) => d.data()),
+      );
       final rateDoc = await FirebaseFirestore.instance
           .collection('market')
           .doc('gold_rate')
@@ -173,51 +155,34 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .collection('transactions')
         .where('type', whereIn: ['buy', 'redeem'])
         .snapshots()
-        .map((snap) {
-      double total = 0.0;
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        final ts = (data['timestamp'] as Timestamp?)?.toDate();
-        if (!_inRange(ts)) continue;
-        total += (data['profit'] as num?)?.toDouble() ?? 0.0;
-      }
-      return _formatCurrency(total);
-    });
+        .map((snap) => _formatCurrency(
+              OwnerMetrics.profit(
+                snap.docs.map((d) => d.data()),
+                _selectedDateRange,
+              ),
+            ));
 
     _revenueStream = FirebaseFirestore.instance
         .collection('transactions')
         .where('type', whereIn: ['buy', 'redeem'])
         .snapshots()
-        .map((snap) {
-      double total = 0.0;
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        final type = data['type'] as String?;
-        final ts   = (data['timestamp'] as Timestamp?)?.toDate();
-        if (!_inRange(ts)) continue;
-        if (type == 'buy') {
-          total += (data['amount'] as num?)?.toDouble() ?? 0.0;
-        } else if (type == 'redeem') {
-          total += (data['profit'] as num?)?.toDouble() ?? 0.0;
-        }
-      }
-      return _formatCurrency(total);
-    });
+        .map((snap) => _formatCurrency(
+              OwnerMetrics.revenue(
+                snap.docs.map((d) => d.data()),
+                _selectedDateRange,
+              ),
+            ));
 
     _costStream = FirebaseFirestore.instance
         .collection('transactions')
         .where('type', whereIn: ['buy', 'redeem'])
         .snapshots()
-        .map((snap) {
-      double total = 0.0;
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        final ts = (data['timestamp'] as Timestamp?)?.toDate();
-        if (!_inRange(ts)) continue;
-        total += (data['cost'] as num?)?.toDouble() ?? 0.0;
-      }
-      return _formatCurrency(total);
-    });
+        .map((snap) => _formatCurrency(
+              OwnerMetrics.cost(
+                snap.docs.map((d) => d.data()),
+                _selectedDateRange,
+              ),
+            ));
 
     _buyCountStream  = _getTypeCountStream(['buy']).map((c) => c.toString());
     _sellCountStream = _getTypeCountStream(['sell']).map((c) => c.toString());
@@ -229,25 +194,6 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
 
   // ─── Date range helpers ───────────────────────────────────────────────────
 
-  /// Returns true if [timestamp] falls within [_selectedDateRange] (inclusive
-  /// of the full start day through the last millisecond of the end day).
-  /// Always returns true when no date range is selected.
-  bool _inRange(DateTime? timestamp) {
-    if (_selectedDateRange == null || timestamp == null) return true;
-    final startDay = DateTime(
-      _selectedDateRange!.start.year,
-      _selectedDateRange!.start.month,
-      _selectedDateRange!.start.day,
-    );
-    final endDay = DateTime(
-      _selectedDateRange!.end.year,
-      _selectedDateRange!.end.month,
-      _selectedDateRange!.end.day,
-      23, 59, 59, 999,
-    );
-    return !timestamp.isBefore(startDay) && !timestamp.isAfter(endDay);
-  }
-
   // ─── Data helpers ─────────────────────────────────────────────────────────
 
   Stream<int> _getTypeCountStream(List<String> types) {
@@ -255,29 +201,13 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .collection('transactions')
         .where('type', whereIn: types)
         .snapshots()
-        .map((snap) {
-      int count = 0;
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-        if (!_inRange(timestamp)) continue;
-        count++;
-      }
-      return count;
-    });
+        .map((snap) => OwnerMetrics.countInRange(
+              snap.docs.map((d) => d.data()),
+              _selectedDateRange,
+            ));
   }
 
-  String _formatCurrency(double amount) {
-    bool isNegative = amount < 0;
-    double absAmount = amount.abs();
-    String prefix = isNegative ? '-฿' : '฿';
-    if (absAmount >= 1000000) {
-      return '$prefix${(absAmount / 1000000).toStringAsFixed(1)}M';
-    } else if (absAmount >= 1000) {
-      return '$prefix${(absAmount / 1000).toStringAsFixed(1)}k';
-    }
-    return '$prefix${absAmount.toStringAsFixed(0)}';
-  }
+  String _formatCurrency(double amount) => OwnerMetrics.formatCurrency(amount);
 
   // ─── Build ────────────────────────────────────────────────────────────────
 

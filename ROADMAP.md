@@ -72,7 +72,7 @@ Make failures visible so future changes don't silently break money flows.
 
 The services are clean now, but the pages are still huge — logic and Firestore wiring live in the UI. Shrink them with tests (Milestone B) as a safety net.
 
-- [ ] **`owner_overview_tab.dart` (1,508)** — extract calculations/queries into the owner/services layer; the widget should mostly render.
+- [x] **`owner_overview_tab.dart`** — extracted all dashboard financial aggregations (wallet float, stock value/investment, savings liability, period profit/revenue/cost, counts, currency formatting, date-range filter) into a pure, unit-tested `lib/utils/owner_metrics.dart` (**14 tests**). Stream callbacks are now one-liners; behaviour unchanged. This is the template for the rest.
 - [ ] **`member_trading_page.dart` (1,471)** — move buy/sell/pawn orchestration into `trading_service` / `pawn_service`.
 - [ ] **`member_gold_savings_page.dart` (1,362)** — move deposit/withdraw math into `savings_service`.
 - [ ] **`owner_products_page.dart` (1,178)** and **`member_portfolio_page.dart` (1,015)** — same treatment.
