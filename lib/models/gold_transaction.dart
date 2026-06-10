@@ -1,3 +1,8 @@
+// ignore_for_file: constant_identifier_names
+// The savings_* values are persisted as literal Firestore strings in the
+// `transactions` collection and matched across the owner/ledger pages.
+// Renaming them to lowerCamelCase would desync existing stored data — keep
+// snake_case intentionally.
 enum TransactionType {
   buy,
   sell,

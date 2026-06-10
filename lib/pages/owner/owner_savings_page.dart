@@ -61,7 +61,7 @@ class OwnerSavingsPage extends StatelessWidget {
                     .map((snap) => snap.docs
                         .where((doc) =>
                             doc.id == 'account' &&
-                            ((doc.data() as Map<String, dynamic>)['totalWeightSaved'] as num?)
+                            ((doc.data())['totalWeightSaved'] as num?)
                                     ?.toDouble() !=
                                 0.0)
                         .toList()),

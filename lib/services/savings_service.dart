@@ -204,7 +204,7 @@ class SavingsService {
       final walletSnap = await tx.get(walletRef); // READ 2
 
       final currentWeight =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ??
+          ((savingsDoc.data())?['totalWeightSaved'] ??
                   0.0 as num)
               .toDouble();
 
@@ -225,8 +225,7 @@ class SavingsService {
 
       final proportionSold = weightToSell / currentWeight;
       final currentInvested =
-          ((savingsDoc.data()
-                      as Map<String, dynamic>?)?['totalAmountInvested'] ??
+          ((savingsDoc.data())?['totalAmountInvested'] ??
                   0.0 as num)
               .toDouble();
 
@@ -337,7 +336,7 @@ class SavingsService {
 
       // ── Validate before writes ────────────────────────────────────────────
       final currentWeight =
-          ((savingsDoc.data() as Map<String, dynamic>?)?['totalWeightSaved'] ??
+          ((savingsDoc.data())?['totalWeightSaved'] ??
                   0.0 as num)
               .toDouble();
       if (currentWeight < weightToWithdraw) {
@@ -365,8 +364,7 @@ class SavingsService {
 
       final proportionSold = weightToWithdraw / currentWeight;
       final currentInvested =
-          ((savingsDoc.data()
-                      as Map<String, dynamic>?)?['totalAmountInvested'] ??
+          ((savingsDoc.data())?['totalAmountInvested'] ??
                   0.0 as num)
               .toDouble();
 

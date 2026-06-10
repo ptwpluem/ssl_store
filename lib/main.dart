@@ -1,4 +1,3 @@
-import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart'; // เครื่องมือพื้นฐาน
 import 'package:flutter/material.dart'; // ชุด UI component เช่น button, text, AppBar
 import 'package:firebase_core/firebase_core.dart'; // Library เริ่มสำหรับ Firebase
@@ -16,11 +15,11 @@ void main() async {
   // แก้ปัญหาเฉพาะของ Firestore: เมื่อ stream 2 ตัวอัปเดตพร้อมกัน (เช่น wallet + savings)
   //Flutter debug mode จะขึ้น error หน้าแดง แต่ข้อมูลจริงถูกต้อง โค้ดนี้จึงซ่อน error นั้นไว้
 
-  bool _isSuppressedError(Object error) =>
+  bool isSuppressedError(Object error) =>
       error.toString().contains('_dependents.isEmpty');
 
   FlutterError.onError = (FlutterErrorDetails details) {
-    if (_isSuppressedError(details.exception)) {
+    if (isSuppressedError(details.exception)) {
       debugPrint(
         '⚠️  Suppressed concurrent-stream assertion '
         '(all data saved correctly): ${details.exceptionAsString()}',
@@ -31,7 +30,7 @@ void main() async {
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
-    if (_isSuppressedError(error)) {
+    if (isSuppressedError(error)) {
       debugPrint('⚠️  Suppressed at platform level: $error');
       return true; // handled — prevents zone crash
     }
@@ -46,7 +45,7 @@ void main() async {
   // Overriding this builder is the only way to prevent the red screen widget
   // from appearing in the tree.
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    if (_isSuppressedError(details.exception)) {
+    if (isSuppressedError(details.exception)) {
       debugPrint(
         '⚠️  ErrorWidget suppressed — UI will recover on next stream '
         'event: ${details.exceptionAsString()}',

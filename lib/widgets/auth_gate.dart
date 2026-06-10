@@ -92,7 +92,6 @@ class AuthGate extends StatelessWidget {
   Widget _buildPlatformByRole(DocumentSnapshot userSnapshot) {
     final data = userSnapshot.data() as Map<String, dynamic>?;
     final role = data?['role'] ?? 'user';
-    final email = data?['email'] ?? 'unknown';
 
     if (role == 'owner') {
       return const OwnerDashboardPage(); // ถ้าเป็น owner, route ไปหน้า owner pages

@@ -190,7 +190,7 @@ class TradingService {
       if (lotRef != null) {
         await _lotService.consumeFromLotWithTx(
           transaction: tx,
-          lotRef: lotRef!,
+          lotRef: lotRef,
           quantity: quantity,
         );
       }
@@ -416,8 +416,9 @@ class TradingService {
       // INCLUDING those resolved via FIFO lot cost (costMethod == 'fifo').
       // Only repair truly missing or corrupted legacy records.
       final costMethod = data['costMethod'] as String?;
-      if (costMethod == 'fifo')
+      if (costMethod == 'fifo') {
         continue; // FIFO cost is authoritative — never overwrite.
+      }
 
       if (cost == null ||
           profit == null ||
@@ -487,8 +488,9 @@ class TradingService {
           .where('loanId', isEqualTo: txDoc.id)
           .limit(1)
           .get();
-      if (existingByLoanId.docs.isNotEmpty)
+      if (existingByLoanId.docs.isNotEmpty) {
         continue; // Real asset exists — skip.
+      }
 
       // Also check the legacy a{digits} pattern in case a prior repair ran.
       final txId = txDoc.id.replaceAll(RegExp(r'[^0-9]'), '');
@@ -496,8 +498,9 @@ class TradingService {
           .collection('assets')
           .doc('a$txId')
           .get();
-      if (legacyAssetDoc.exists)
+      if (legacyAssetDoc.exists) {
         continue; // Legacy phantom exists — skip creation.
+      }
 
       // Truly missing: create a repair asset.
       // acquisitionPrice uses goldValue (weight × pricePerBaht from the transaction),

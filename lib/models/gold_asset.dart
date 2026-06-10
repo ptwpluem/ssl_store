@@ -30,8 +30,9 @@ class GoldAsset {
   // Calculate accrued interest (1.25% per month industry standard)
   double get accruedInterest {
     // ทุกครั้งที่อ่านค่าจะคำนวณให้อัตโนมัติ โดยไม่ต้องเก็บใน Firestore
-    if (status != 'pawned' || loanAmount == null || pawnDate == null)
+    if (status != 'pawned' || loanAmount == null || pawnDate == null) {
       return 0.0;
+    }
 
     final daysElapsed = DateTime.now().difference(pawnDate!).inDays;
     if (daysElapsed <= 0) return 0.0;

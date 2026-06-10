@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/auth_service.dart';
 
 class SecuritySettingsPage extends StatefulWidget {
   const SecuritySettingsPage({super.key});
@@ -10,7 +9,6 @@ class SecuritySettingsPage extends StatefulWidget {
 }
 
 class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
-  final AuthService _authService = AuthService();
   bool _isBiometricEnabled = false;
 
   void _showChangePasswordDialog() {
@@ -33,7 +31,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                     obscureText: true,
                     decoration: const InputDecoration(
                         labelText: 'รหัสผ่านใหม่',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(),
                       ),
                   ),
                   const SizedBox(height: 16),
@@ -42,7 +40,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                     obscureText: true,
                     decoration: const InputDecoration(
                         labelText: 'ยืนยันรหัสผ่านใหม่',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(),
                       ),
                   ),
                 ],

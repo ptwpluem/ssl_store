@@ -108,8 +108,9 @@ class _HomePageState extends State<HomePage> {
                   stream: _goldRateStream, // ท่อข้อมูลที่เปิดไว้ใน initState
                   builder: (context, snapshot) {
                     // ทุกครั้งที่มีข้อมูลใหม่มา → Flutter เรียก builder นี้วาด UI ใหม่
-                    if (snapshot.hasData)
+                    if (snapshot.hasData) {
                       return GoldRateCard(rate: snapshot.data!);
+                    }
                     return const Center(
                       child: CircularProgressIndicator(color: _homePrimary),
                     );

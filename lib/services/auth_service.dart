@@ -127,7 +127,7 @@ class AuthService {
 
     if (query.docs.isNotEmpty) {
       final doc = query.docs.first;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data();
       final existingRole = data['role'];
 
       final Map<String, dynamic> updates = {
@@ -183,7 +183,7 @@ class AuthService {
       return await _auth.signOut();
     } catch (e) {
       debugPrint('Sign out error: ${e.toString()}');
-      return null;
+      return;
     }
   }
 }

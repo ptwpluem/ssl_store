@@ -878,10 +878,11 @@ class _AddProductDialogState extends State<_AddProductDialog> {
                             onTap: () => setState(() {
                               _useCustomUrl = !_useCustomUrl;
                               // Clear selections when switching modes
-                              if (_useCustomUrl)
+                              if (_useCustomUrl) {
                                 _selectedImage = null;
-                              else
+                              } else {
                                 _customUrlCtrl.clear();
+                              }
                             }),
                             child: Container(
                               padding: const EdgeInsets.symmetric(

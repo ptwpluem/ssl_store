@@ -330,8 +330,9 @@ class _BuyTabState extends State<_BuyTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.currentRate == null)
+    if (widget.currentRate == null) {
       return const Center(child: CircularProgressIndicator());
+    }
 
     double total = _weight * widget.currentRate!.sellPrice;
 
@@ -624,7 +625,7 @@ class _BuyTabState extends State<_BuyTab> {
                             category: 'Gold Bar',
                             productId: productId,
                           );
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('การสั่งซื้อสำเร็จ!'),
@@ -632,7 +633,7 @@ class _BuyTabState extends State<_BuyTab> {
                             );
                           }
                         } catch (e) {
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

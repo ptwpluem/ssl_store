@@ -20,14 +20,14 @@
 
 ---
 
-## 🧹 Milestone A — Tidy the repo (quick, do first)
+## 🧹 Milestone A — Tidy the repo ✅ DONE (2026-06-10)
 
 Small loose ends from the big refactor. Low effort, removes noise.
 
-- [ ] **Remove `lib.zip` from the repo** (227 KB binary backup) and add `*.zip` to `.gitignore`. Source backups don't belong in git.
-- [ ] **Decide on `users.json`** — if it's test/seed data, delete it; secrets shouldn't sit at repo root.
-- [ ] **Move design docs into a `docs/` folder** — `database_design_academic_review.md`, `firebase_database_assessment.md`, `ssl_store_firestore_er*.xml`, `UC10_appointment_management.xml`. Keep the root clean.
-- [ ] **Finish the analyzer mop-up (28 → 0).** Fix the 2 remaining `use_build_context_synchronously` (guard with `if (!mounted) return;`), then the mechanical ones: `curly_braces` (8), `unnecessary_cast` (6), `constant_identifier_names` (3), etc.
+- [x] **Remove `lib.zip` from the repo** (227 KB binary backup) and add `*.zip` to `.gitignore`. Source backups don't belong in git.
+- [x] **Decide on `users.json`** — was a Firebase Auth export (test user + password hash); deleted and gitignored.
+- [x] **Move design docs into a `docs/` folder** — `database_design_academic_review.md`, `firebase_database_assessment.md`, `ssl_store_firestore_er*.xml`, `UC10_appointment_management.xml`. Root is clean.
+- [x] **Finish the analyzer mop-up (28 → 0).** Fixed `use_build_context_synchronously` (used `context.mounted`), `curly_braces`, `unnecessary_cast`, unused imports/fields, etc. Renaming the `TransactionType` enum was avoided (values persist as Firestore strings) — suppressed with a documented `ignore`. **`flutter analyze`: No issues found.**
 
 ---
 
