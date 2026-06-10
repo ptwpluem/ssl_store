@@ -15,7 +15,9 @@ import 'owner_savings_transactions_page.dart';
 import '../../services/trading_service.dart';
 import '../../services/market_service.dart';
 import '../../widgets/owner_metric_card.dart';
+import '../../widgets/low_stock_banner.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/owner_alerts.dart';
 import '../../utils/owner_metrics.dart';
 import '../../utils/date_formatters.dart';
 
@@ -42,6 +44,8 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
   late final Stream<String> _stockInvestmentStream;
   late final Stream<String> _productCountStream;
   late final Stream<String> _savingsLiabilityStream;
+  late final Stream<(List<Map<String, dynamic>>, List<Map<String, dynamic>>)>
+      _stockAlertStream;
 
   // ── Date-filtered streams (recreated in _rebuildFilteredStreams()) ─────────
   // These must be NEW objects whenever _selectedDateRange changes so that
@@ -126,6 +130,15 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
         .where('stock', isGreaterThan: 0)
         .snapshots()
         .map((snap) => snap.docs.length.toString()); // [4] ประเภทสินค้า ที่มี Stock > 0
+
+    // Restock alerts: low-stock + out-of-stock products for the dashboard banner.
+    _stockAlertStream = FirebaseFirestore.instance
+        .collection('products')
+        .snapshots()
+        .map((snap) {
+      final products = snap.docs.map((d) => d.data()).toList();
+      return (OwnerAlerts.lowStock(products), OwnerAlerts.outOfStock(products));
+    });
 
     _savingsLiabilityStream = FirebaseFirestore.instance
         .collectionGroup('savings')
@@ -223,6 +236,15 @@ class _OwnerOverviewTabState extends State<OwnerOverviewTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                StreamBuilder<
+                    (List<Map<String, dynamic>>, List<Map<String, dynamic>>)>(
+                  stream: _stockAlertStream,
+                  builder: (context, snap) {
+                    final (low, out) = snap.data ??
+                        (<Map<String, dynamic>>[], <Map<String, dynamic>>[]);
+                    return LowStockBanner(lowStock: low, outOfStock: out);
+                  },
+                ),
                 _buildGoldRateCard(),
                 const SizedBox(height: 14),
                 _buildRateHistoryCard(),
