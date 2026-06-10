@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../services/id_generator_service.dart';
+import '../../utils/product_pricing.dart';
 
 /// Owner catalog view — shows all products grouped by category.
 ///
@@ -81,15 +82,14 @@ class OwnerProductsPage extends StatelessWidget {
                     0.0; // [8] Labor Fee ดึงจาก Firestore
                 final costBasis = (d['costBasis'] as num?)?.toDouble() ?? 0.0;
 
-                final sellPrice =
-                    (weight * sellRate) + laborFee; // [4] ราคาขายต่อชิ้น
-                // Margin per unit
-                final marginPerUnit = sellPrice - costBasis; // [5] กำรต่อชิ้น
-                final marginPct = costBasis > 0
-                    ? (marginPerUnit / costBasis) * 100
-                    : 0.0; // [6] กำไรต่อชิ้น %
-                // Current stock investment
-                final stockInvestment = stock * costBasis; // [7] ทุนในสต็อก
+                final sellPrice = ProductPricing.unitSellPrice(
+                    weight, sellRate, laborFee); // [4] ราคาขายต่อชิ้น
+                final marginPerUnit = ProductPricing.marginPerUnit(
+                    sellPrice, costBasis); // [5] กำรต่อชิ้น
+                final marginPct = ProductPricing.marginPct(
+                    marginPerUnit, costBasis); // [6] กำไรต่อชิ้น %
+                final stockInvestment = ProductPricing.stockInvestment(
+                    stock, costBasis); // [7] ทุนในสต็อก
 
                 return _ProductItem(
                   id: doc.id,

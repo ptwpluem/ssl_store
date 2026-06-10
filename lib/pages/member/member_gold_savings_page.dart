@@ -7,6 +7,7 @@ import '../../models/gold_savings.dart'; // gold savings model
 import '../../services/market_service.dart';
 import '../../services/user_service.dart';
 import '../../services/savings_service.dart';
+import '../../utils/savings_rules.dart';
 import '../../models/gold_asset.dart';
 import 'member_appointment_page.dart';
 
@@ -137,8 +138,7 @@ class _GoldSavingsPageState extends State<GoldSavingsPage> {
     double currentBuyPrice,
     double weightToWithdraw,
   ) async {
-    final premiumFee =
-        weightToWithdraw * 300; // Example: 300 THB per Baht for premium
+    final premiumFee = SavingsRules.physicalWithdrawalFee(weightToWithdraw);
 
     setState(() {
       _isLoading = true;

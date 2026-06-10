@@ -73,11 +73,12 @@ Make failures visible so future changes don't silently break money flows.
 The services are clean now, but the pages are still huge — logic and Firestore wiring live in the UI. Shrink them with tests (Milestone B) as a safety net.
 
 - [x] **`owner_overview_tab.dart`** — extracted all dashboard financial aggregations (wallet float, stock value/investment, savings liability, period profit/revenue/cost, counts, currency formatting, date-range filter) into a pure, unit-tested `lib/utils/owner_metrics.dart` (**14 tests**). Stream callbacks are now one-liners; behaviour unchanged. This is the template for the rest.
-- [ ] **`member_trading_page.dart` (1,471)** — move buy/sell/pawn orchestration into `trading_service` / `pawn_service`.
-- [ ] **`member_gold_savings_page.dart` (1,362)** — move deposit/withdraw math into `savings_service`.
-- [ ] **`owner_products_page.dart` (1,178)** and **`member_portfolio_page.dart` (1,015)** — same treatment.
-- [ ] **Consider a state-management layer** (Riverpod) once pages are thinner — pilot on the gold-rate stream first.
-- [ ] **Centralize config** — interest rate, labor-fee tiers, fallback prices into one `AppConfig` / Firestore `config` doc.
+- [x] **`member_trading_page.dart`** — extracted `TradingMath` (snap-to-0.25, weight formatting, buy cost / sell value). (Buy/sell/pawn *mutations* already live in the services — covered in Milestone B.)
+- [x] **`member_gold_savings_page.dart`** — extracted `SavingsRules` (physical-withdrawal premium fee, quarter-baht withdrawal rule), removing inline magic numbers.
+- [x] **`owner_products_page.dart` + `member_portfolio_page.dart`** — extracted `ProductPricing` (unit sell price, per-unit margin / margin %, stock investment) and `PortfolioMath` (total weight incl. savings, total cost, market value).
+- All four helpers are pure and unit-tested (`test/unit/screen_math_test.dart`, **12 tests**). **Honest note:** the goal here is *logic out of the UI into tested helpers*, not line count — the screens' bulk is `build()` rendering, so line counts barely moved. Aggressive widget-tree restructuring is deferred until there are widget tests to catch regressions.
+- [ ] **Consider a state-management layer** (Riverpod) — still pending; the biggest structural change, best done with widget-test coverage first.
+- [~] **Centralize config** — started (savings premium fee is now a named constant; pawn rate/labor tiers already live in their services). A single `AppConfig` / Firestore `config` doc is still worthwhile.
 
 ---
 

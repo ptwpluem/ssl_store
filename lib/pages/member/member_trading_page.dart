@@ -11,17 +11,14 @@ import '../../services/market_service.dart';
 import '../../services/user_service.dart';
 import '../../services/trading_service.dart';
 import '../../services/pawn_service.dart';
+import '../../utils/trading_math.dart';
 import '../../widgets/gold_rate_card.dart';
 
 // [1] ประกาศนอก Class เพื่อให้ทุก Class ใช้เหมือนกัน ไม่ต้องทำซ้ำ
 final _fmt = NumberFormat('#,##0');
-// Snap a slider double to the nearest 0.25 multiple and format it cleanly
-// (e.g. 6.5000000000000001 → "6.5",  7.9999999999999999 → "8")
-double _snapWeight(double val) => (val * 4).round() / 4.0;
-String _fmtWeight(double w) {
-  final s = w.toStringAsFixed(2);
-  return s.replaceAll(RegExp(r'\.?0+$'), ''); // "8.00" → "8", "6.50" → "6.5"
-}
+// Snap/format helpers delegate to the tested TradingMath.
+double _snapWeight(double val) => TradingMath.snapWeight(val);
+String _fmtWeight(double w) => TradingMath.formatWeight(w);
 
 // ─── Design tokens (matches owner dashboard) ──────────────────────────────────
 const Color _primary = Color(0xFF800000);
@@ -334,7 +331,7 @@ class _BuyTabState extends State<_BuyTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    double total = _weight * widget.currentRate!.sellPrice;
+    double total = TradingMath.buyCost(_weight, widget.currentRate!.sellPrice);
 
     return StreamBuilder<double>(
       // [9]ดึงยอด Wallet แบบ Real-Time
@@ -1164,8 +1161,10 @@ class _SellTabState extends State<_SellTab> {
           itemCount: assets.length,
           itemBuilder: (context, index) {
             final asset = assets[index];
-            final estimatedValue =
-                asset.weight * (widget.currentRate?.buyPrice ?? 0);
+            final estimatedValue = TradingMath.sellValue(
+              asset.weight,
+              widget.currentRate?.buyPrice ?? 0,
+            );
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -1381,8 +1380,10 @@ class _PawnTabState extends State<_PawnTab> {
                 itemCount: ownedAssets.length,
                 itemBuilder: (context, index) {
                   final asset = ownedAssets[index];
-                  final currentVal =
-                      asset.weight * (widget.currentRate?.buyPrice ?? 0);
+                  final currentVal = TradingMath.sellValue(
+                    asset.weight,
+                    widget.currentRate?.buyPrice ?? 0,
+                  );
                   final maxLoan = widget.pawnService.calculatePawnLoan(
                     asset.weight,
                     widget.currentRate?.buyPrice ?? 0,

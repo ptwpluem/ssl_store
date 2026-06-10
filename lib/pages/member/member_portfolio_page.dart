@@ -12,6 +12,7 @@ import '../../services/savings_service.dart';
 import '../../services/pawn_service.dart';
 import '../../models/gold_asset.dart';
 import '../../models/gold_savings.dart';
+import '../../utils/portfolio_math.dart';
 import '../../models/gold_transaction.dart';
 import '../../models/gold_rate.dart';
 import 'member_gold_savings_page.dart';
@@ -212,11 +213,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   }
 
                   final assets = assetSnapshot.data ?? [];
-                  final totalWeight = assets.fold(0.0, (sum, item) => sum + item.weight) + savingsAccount.totalWeightSaved; // [2] น้ำหนักทองสะสมรวม น้ำหนักทองทั้งหมดที่ owned, pawned
-                  final totalValue = totalWeight * (_currentRate?.buyPrice ?? 0); // [3] มูลค่าประเมินรวม: น้ำหนัก * ราคาซื้อ
-                  
+                  final totalWeight = PortfolioMath.totalWeight(assets, savingsAccount.totalWeightSaved); // [2] น้ำหนักทองสะสมรวม น้ำหนักทองทั้งหมดที่ owned, pawned
+                  final totalValue = PortfolioMath.marketValue(totalWeight, _currentRate?.buyPrice ?? 0); // [3] มูลค่าประเมินรวม: น้ำหนัก * ราคาซื้อ
+
                   // Calculate Profit/Loss
-                  final assetsCost = assets.fold(0.0, (sum, item) => sum + item.acquisitionPrice); // [4] asset cost
+                  final assetsCost = PortfolioMath.totalCost(assets); // [4] asset cost
                   final totalCost = assetsCost + savingsAccount.totalAmountInvested; // [5] total cost
                   
                   final double pnl = totalValue - totalCost; // [6] profit/loss 
@@ -924,7 +925,8 @@ class _AssetCardState extends State<_AssetCard> {
   Widget build(BuildContext context) {
     bool isPawned = widget.asset.status == 'pawned';
     bool isScheduled = widget.asset.status == 'pickup_scheduled';
-    double currentVal = widget.asset.weight * (widget.currentRate?.buyPrice ?? 0);
+    double currentVal = PortfolioMath.marketValue(
+        widget.asset.weight, widget.currentRate?.buyPrice ?? 0);
     double profit = currentVal - widget.asset.acquisitionPrice;
 
     // Pawn Calculations
