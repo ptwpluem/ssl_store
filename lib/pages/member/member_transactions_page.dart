@@ -1,13 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../services/user_service.dart';
 import '../../models/gold_transaction.dart';
+import '../../providers/app_providers.dart';
 
-class TransactionHistoryPage extends StatelessWidget {
+/// Filter buckets shown as chips. Each maps to a predicate over
+/// [TransactionType], so related types (pawn+redeem, the three savings kinds)
+/// group naturally.
+enum TxFilter { all, buy, sell, pawnRedeem, savings }
+
+extension TxFilterX on TxFilter {
+  String get label => switch (this) {
+        TxFilter.all => 'ทั้งหมด',
+        TxFilter.buy => 'ซื้อ',
+        TxFilter.sell => 'ขาย',
+        TxFilter.pawnRedeem => 'จำนำ/ไถ่ถอน',
+        TxFilter.savings => 'ออมทอง',
+      };
+
+  bool matches(TransactionType type) => switch (this) {
+        TxFilter.all => true,
+        TxFilter.buy => type == TransactionType.buy,
+        TxFilter.sell => type == TransactionType.sell,
+        TxFilter.pawnRedeem =>
+          type == TransactionType.pawn || type == TransactionType.redeem,
+        TxFilter.savings => type == TransactionType.savings_deposit ||
+            type == TransactionType.savings_withdraw ||
+            type == TransactionType.savings_physical_withdraw,
+      };
+}
+
+/// Transaction history, now driven by [transactionHistoryProvider] (Riverpod)
+/// with a local type filter. ConsumerStatefulWidget = reactive provider data +
+/// local UI state; the whole screen is testable by overriding the provider.
+class TransactionHistoryPage extends ConsumerStatefulWidget {
   const TransactionHistoryPage({super.key});
 
   @override
+  ConsumerState<TransactionHistoryPage> createState() =>
+      _TransactionHistoryPageState();
+}
+
+class _TransactionHistoryPageState
+    extends ConsumerState<TransactionHistoryPage> {
+  TxFilter _filter = TxFilter.all;
+
+  @override
   Widget build(BuildContext context) {
+    final txAsync = ref.watch(transactionHistoryProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
@@ -15,39 +55,71 @@ class TransactionHistoryPage extends StatelessWidget {
         backgroundColor: const Color(0xFF800000),
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<List<GoldTransaction>>(
-        stream: UserService().getTransactionHistoryStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF800000)),
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final transactions = snapshot.data ?? [];
-          if (transactions.isEmpty) {
-            return const Center(
-              child: Text(
-                'ไม่พบประวัติการทำรายการ',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: transactions.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final tx = transactions[index];
-              return _buildTransactionCard(tx);
-            },
-          );
-        },
+      body: Column(
+        children: [
+          _buildFilterBar(),
+          Expanded(child: _buildBody(txAsync)),
+        ],
       ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return SizedBox(
+      height: 56,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: [
+          for (final f in TxFilter.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(f.label),
+                selected: _filter == f,
+                selectedColor: const Color(0xFF800000),
+                labelStyle: TextStyle(
+                  color: _filter == f ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+                onSelected: (_) => setState(() => _filter = f),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(AsyncValue<List<GoldTransaction>> txAsync) {
+    // Error first: a stream that errors before its first value sits in a
+    // loading-with-error state that `.when` would otherwise show as loading.
+    if (txAsync.hasError) {
+      return Center(child: Text('Error: ${txAsync.error}'));
+    }
+    return txAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF800000)),
+      ),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (all) {
+        final transactions =
+            all.where((t) => _filter.matches(t.type)).toList();
+        if (transactions.isEmpty) {
+          return const Center(
+            child: Text(
+              'ไม่พบประวัติการทำรายการ',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16.0),
+          itemCount: transactions.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) =>
+              _buildTransactionCard(transactions[index]),
+        );
+      },
     );
   }
 
