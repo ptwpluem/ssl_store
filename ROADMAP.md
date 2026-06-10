@@ -77,7 +77,8 @@ The services are clean now, but the pages are still huge — logic and Firestore
 - [x] **`member_gold_savings_page.dart`** — extracted `SavingsRules` (physical-withdrawal premium fee, quarter-baht withdrawal rule), removing inline magic numbers.
 - [x] **`owner_products_page.dart` + `member_portfolio_page.dart`** — extracted `ProductPricing` (unit sell price, per-unit margin / margin %, stock investment) and `PortfolioMath` (total weight incl. savings, total cost, market value).
 - All four helpers are pure and unit-tested (`test/unit/screen_math_test.dart`, **12 tests**). **Honest note:** the goal here is *logic out of the UI into tested helpers*, not line count — the screens' bulk is `build()` rendering, so line counts barely moved. Aggressive widget-tree restructuring is deferred until there are widget tests to catch regressions.
-- [ ] **Consider a state-management layer** (Riverpod) — still pending; the biggest structural change, best done with widget-test coverage first.
+- [x] **Widget tests for the reusable presentation layer** — `test/widgets/widgets_test.dart` (**8 tests**): `ProductCard` (price math, loading state, in-/out-of-stock tap behaviour), `NewsCard`, `OwnerMetricCard` (skeleton→streamed value, tap), `StoreInfoCard`. Firebase-free, so they run in plain `flutter test`. This is the safety net for any UI restructuring.
+- [ ] **Consider a state-management layer** (Riverpod) — still pending. Full-*screen* widget tests need the screens to take injected services first (they currently call `FirebaseAuth.instance` / service singletons directly); that injectable-screen refactor is the same prerequisite as the Riverpod migration, now de-risked by the widget-level tests above.
 - [~] **Centralize config** — started (savings premium fee is now a named constant; pawn rate/labor tiers already live in their services). A single `AppConfig` / Firestore `config` doc is still worthwhile.
 
 ---
