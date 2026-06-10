@@ -7,14 +7,16 @@ class PriceCalculationService {
 
     if (normalizedCategory.contains('bar') || normalizedCategory.contains('แท่ง')) {
       return _calculateGoldBarFee(weight);
+    } else if (normalizedCategory.contains('earring') || normalizedCategory.contains('ต่างหู')) {
+      // NOTE: earring MUST be checked before ring — 'earring'.contains('ring')
+      // is true, so the ring branch would otherwise swallow every earring.
+      return _calculateEarringFee(weight);
     } else if (normalizedCategory.contains('ring') || normalizedCategory.contains('แหวน')) {
       return _calculateRingFee(weight);
     } else if (normalizedCategory.contains('necklace') || normalizedCategory.contains('necklet') || normalizedCategory.contains('สร้อยคอ')) {
       return _calculateNecklaceFee(weight);
     } else if (normalizedCategory.contains('bracelet') || normalizedCategory.contains('ข้อมือ')) {
       return _calculateBraceletFee(weight);
-    } else if (normalizedCategory.contains('earring') || normalizedCategory.contains('ต่างหู')) {
-      return _calculateEarringFee(weight);
     }
 
     // Default fallback for general jewelry

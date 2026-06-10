@@ -4,8 +4,15 @@ import '../models/wallet_transaction.dart';
 import 'id_generator_service.dart';
 
 class WalletService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final IdGeneratorService _ids = IdGeneratorService();
+  /// [firestore] and [ids] are injectable for testing; both default to the
+  /// live Firestore instance so production call sites (`WalletService()`)
+  /// behave exactly as before.
+  WalletService({FirebaseFirestore? firestore, IdGeneratorService? ids})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _ids = ids ?? IdGeneratorService(firestore: firestore);
+
+  final FirebaseFirestore _firestore;
+  final IdGeneratorService _ids;
 
   // Get stream of user's wallet
   Stream<Wallet?> getWalletStream(String userId) {

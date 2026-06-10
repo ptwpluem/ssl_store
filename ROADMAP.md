@@ -31,17 +31,25 @@ Small loose ends from the big refactor. Low effort, removes noise.
 
 ---
 
-## 🟢 Milestone B — Trust the money (testing) — TOP PRIORITY
+## 🟢 Milestone B — Trust the money (testing) — IN PROGRESS
 
-There are still **zero real tests** (only the 30-line placeholder). The 9 new services are now cleanly separable and finally testable. Lock the money math down before changing more.
+Foundation laid; **52 tests passing, `flutter test` green, no network/emulator needed.**
 
-- [ ] **Set up the Firebase emulator** for local Firestore/Auth so tests never touch production.
-- [ ] **Unit-test pawn interest** (`pawn_service.dart` / `gold_asset.dart`, 1.25%/month accrual) — known inputs → known THB.
-- [ ] **Unit-test labor-fee / pricing** logic.
-- [ ] **Unit-test wallet** (`wallet_service.dart`) — deposit, withdraw, insufficient balance, atomicity.
-- [ ] **Integration-test the buy flow** (`trading_service.dart`) — stock decremented, wallet debited, transaction recorded, all-or-nothing.
-- [ ] **Integration-test gold-savings** deposit/withdraw round-trip (THB→weight→THB) via `savings_service.dart`.
-- [ ] **Replace placeholder `widget_test.dart`** with a real boot/login smoke test.
+**Infra decision:** using `fake_cloud_firestore` (in-memory) for business-logic
+tests instead of the live emulator — faster, deterministic, CI-friendly. The
+real emulator is reserved for *security-rules* testing (Milestone C). See
+`test/README.md`.
+
+- [x] ~~Set up the Firebase emulator~~ → chose `fake_cloud_firestore` + `firebase_auth_mocks` for logic tests (emulator deferred to rules testing in Milestone C).
+- [x] **Unit-test pawn interest** (`gold_asset.dart`, 1.25%/month accrual) — not-pawned/zero-day/30-day/60-day/custom-rate cases.
+- [x] **Unit-test labor-fee / pricing** logic — every tier & boundary across all 6 categories (Thai + English). **Found & fixed a bug:** `'earring'.contains('ring')` made earrings get ring fees.
+- [x] **Unit-test wallet** (`wallet_service.dart`) — deposit/sale credit, withdrawal/purchase debit, insufficient-funds, exact-balance boundary, **atomic rollback**, cumulative running balance, streams. (Made `WalletService` + `IdGeneratorService` injectable.)
+- [x] **Money-model round-trips** — `Wallet` / `WalletTransaction` toMap↔fromFirestore, int→double coercion, unknown-enum fallback.
+- [x] **Replace placeholder `widget_test.dart`** — now a real `GoldRateCard` render test (full app-boot test needs Firebase Core mocks; deferred).
+- [ ] **Make `TradingService` injectable** (refactor inline `FirebaseFirestore.instance`/`getUserDocRef`) using `WalletService` as the template.
+- [ ] **Integration-test the buy flow** (`trading_service.dart`) — stock decremented, wallet debited, asset created, transaction recorded, all-or-nothing.
+- [ ] **Make `SavingsService` injectable + integration-test** deposit/withdraw round-trip (THB→weight→THB).
+- [ ] **Unit-test `pawn_service.dart`** pawn/redeem flow once injectable.
 
 ---
 

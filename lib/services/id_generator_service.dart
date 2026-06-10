@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class IdGeneratorService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  /// [firestore] is injectable for testing; defaults to the live instance.
+  IdGeneratorService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _firestore;
 
   /// Prefix mappings for best practice naming
   static const Map<String, String> _prefixMap = {
