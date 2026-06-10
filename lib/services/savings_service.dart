@@ -13,14 +13,53 @@ import 'wallet_service.dart';
 // [2] ยอดเงินสะสม
 
 class SavingsService {
-  static final SavingsService _instance = SavingsService._internal();
-  factory SavingsService() => _instance;
-  SavingsService._internal();
+  /// No-arg `SavingsService()` returns the app-wide singleton (production,
+  /// unchanged). Passing any dependency builds an isolated instance for tests;
+  /// sub-services default to ones backed by the injected [firestore].
+  factory SavingsService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    WalletService? walletService,
+    IdGeneratorService? ids,
+  }) {
+    if (firestore == null &&
+        auth == null &&
+        walletService == null &&
+        ids == null) {
+      return _instance;
+    }
+    final db = firestore ?? FirebaseFirestore.instance;
+    return SavingsService._(
+      firestore: db,
+      auth: auth ?? FirebaseAuth.instance,
+      walletService: walletService ?? WalletService(firestore: db),
+      ids: ids ?? IdGeneratorService(firestore: db),
+    );
+  }
 
-  final WalletService _walletService = WalletService();
-  final IdGeneratorService _ids = IdGeneratorService();
+  static final SavingsService _instance = SavingsService._(
+    firestore: FirebaseFirestore.instance,
+    auth: FirebaseAuth.instance,
+    walletService: WalletService(),
+    ids: IdGeneratorService(),
+  );
 
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+  SavingsService._({
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+    required WalletService walletService,
+    required IdGeneratorService ids,
+  })  : _firestore = firestore,
+        _auth = auth,
+        _walletService = walletService,
+        _ids = ids;
+
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final WalletService _walletService;
+  final IdGeneratorService _ids;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   // ─── Streams ──────────────────────────────────────────────────────────────
 
@@ -35,7 +74,7 @@ class SavingsService {
         ),
       );
     }
-    return Stream.fromFuture(getUserDocRef(uid)).asyncExpand((userRef) {
+    return Stream.fromFuture(getUserDocRef(uid, firestore: _firestore, auth: _auth)).asyncExpand((userRef) {
       return userRef.collection('savings').doc('account').snapshots().map((
         snapshot,
       ) {
@@ -54,7 +93,7 @@ class SavingsService {
   Stream<List<GoldSavingsTransaction>> getGoldSavingsTransactionsStream() {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
-    return Stream.fromFuture(getUserDocRef(uid)).asyncExpand((userRef) {
+    return Stream.fromFuture(getUserDocRef(uid, firestore: _firestore, auth: _auth)).asyncExpand((userRef) {
       return userRef
           .collection('savings')
           .doc('account')
@@ -80,18 +119,18 @@ class SavingsService {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final walletQuery = await FirebaseFirestore.instance
+    final walletQuery = await _firestore
         .collection('wallets')
         .where('userId', isEqualTo: uid)
         .limit(1)
         .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance
+    final walletRef = _firestore
         .collection('wallets')
         .doc(walletId);
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
     final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
     final stxId = await _ids.generateId('savings_transactions');
     final notifId = await _ids.generateId('notifications');
@@ -102,7 +141,7 @@ class SavingsService {
         amountInTHB / currentBuyPricePerBaht; // [1] ทองที่สะสมได้
     final fmt = NumberFormat('#,##0.00');
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await _firestore.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
       final walletSnap = await tx.get(walletRef); // READ 1
 
@@ -137,7 +176,7 @@ class SavingsService {
         ).toMap(),
       );
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': 'savings',
         'type': 'savings_deposit',
         'amount': amountInTHB,
@@ -146,7 +185,7 @@ class SavingsService {
         'timestamp': FieldValue.serverTimestamp(),
         'details': 'ออมทอง: ฝาก ฿${fmt.format(amountInTHB)}',
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -175,18 +214,18 @@ class SavingsService {
     final uid = _uid;
     if (uid == null) throw Exception('User not logged in');
 
-    final walletQuery = await FirebaseFirestore.instance
+    final walletQuery = await _firestore
         .collection('wallets')
         .where('userId', isEqualTo: uid)
         .limit(1)
         .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance
+    final walletRef = _firestore
         .collection('wallets')
         .doc(walletId);
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
     final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
     final stxId = await _ids.generateId('savings_transactions');
     final notifId = await _ids.generateId('notifications');
@@ -196,7 +235,7 @@ class SavingsService {
     final amountInTHB = weightToSell * currentSellPricePerBaht;
     final fmt = NumberFormat('#,##0.00');
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await _firestore.runTransaction((tx) async {
       final savingsRef = userRef.collection('savings').doc('account');
 
       // ── ALL reads before any writes ───────────────────────────────────────
@@ -248,7 +287,7 @@ class SavingsService {
         ).toMap(),
       );
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': 'savings',
         'type': 'savings_withdraw',
         'amount': amountInTHB,
@@ -257,7 +296,7 @@ class SavingsService {
         'timestamp': FieldValue.serverTimestamp(),
         'details': 'ออมทอง: ขาย ${weightToSell.toStringAsFixed(4)} บาท',
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -292,7 +331,7 @@ class SavingsService {
       throw Exception('น้ำหนักทองที่ถอนได้ต้องเป็นทวีคูณของ 0.25 บาทเท่านั้น');
     }
 
-    final walletQuery = await FirebaseFirestore.instance
+    final walletQuery = await _firestore
         .collection('wallets')
         .where('userId', isEqualTo: uid)
         .limit(1)
@@ -300,7 +339,7 @@ class SavingsService {
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
     final id = await _ids.generateId('transactions', prefixOverride: 'SAV');
     final assetId = await _ids.generateId('assets', prefixOverride: 'AST');
     final stxId = await _ids.generateId('savings_transactions');
@@ -308,12 +347,12 @@ class SavingsService {
     final displayName = await _getDisplayName(
       userRef,
     ); // reuse userRef — no extra Firestore call
-    final walletRef = FirebaseFirestore.instance
+    final walletRef = _firestore
         .collection('wallets')
         .doc(walletId);
 
     // Find the matching gold bar product before the transaction
-    final productQuery = await FirebaseFirestore.instance
+    final productQuery = await _firestore
         .collection('products')
         .where('category', isEqualTo: 'ทองคำแท่ง')
         .where('weight', isEqualTo: weightToWithdraw)
@@ -323,7 +362,7 @@ class SavingsService {
         ? productQuery.docs.first.reference
         : null;
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await _firestore.runTransaction((tx) async {
       final savingsRef = userRef.collection('savings').doc('account');
 
       // ── ALL reads before any writes ───────────────────────────────────────
@@ -402,7 +441,7 @@ class SavingsService {
         tx.update(productDocRef, {'stock': FieldValue.increment(-1)});
       }
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': assetId,
         'type': 'savings_physical_withdraw',
         'amount': premiumFee,
@@ -411,7 +450,7 @@ class SavingsService {
         'timestamp': FieldValue.serverTimestamp(),
         'details': 'ออมทอง: ถอนทองแท่ง $weightToWithdraw บาท',
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 

@@ -48,7 +48,7 @@ real emulator is reserved for *security-rules* testing (Milestone C). See
 - [x] **Replace placeholder `widget_test.dart`** — now a real `GoldRateCard` render test (full app-boot test needs Firebase Core mocks; deferred).
 - [x] **Make `TradingService` injectable** — factory-injection pattern (no-arg call still returns the production singleton). Also made `InventoryLotService` and the `getUserDocRef` helper injectable.
 - [x] **Integration-test the buy & sell flows** (`trading_service.dart`) — market-rate & FIFO cost basis, wallet debit, stock + lot draw-down, asset creation, ledger row, reward points; insufficient-funds & out-of-stock both reject atomically (no side effects); sell credits wallet, soft-deletes asset, records profit. **59 tests total.**
-- [ ] **Make `SavingsService` injectable + integration-test** deposit/withdraw round-trip (THB→weight→THB).
+- [x] **Make `SavingsService` injectable + integration-test** — deposit (wallet debit, weight/invested credit, both ledgers), sell (wallet credit, ledger rows), **THB→weight→THB round-trip conserves money**, physical-bar withdrawal (0.25 multiple guard, premium fee, asset mint, stock −1), insufficient-funds & over-sell reject atomically. **67 tests total.** (Documented a `fake_cloud_firestore` limitation: `set(merge)+FieldValue.increment` in a tx isn't applied correctly, so the savings aggregate cache after a decrement is left to the emulator suite.)
 - [ ] **Unit-test `pawn_service.dart`** pawn/redeem flow once injectable.
 
 ---
