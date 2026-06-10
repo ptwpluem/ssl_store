@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart'; // เครื่องมือพื้นฐาน
 import 'package:flutter/material.dart'; // ชุด UI component เช่น button, text, AppBar
 import 'package:firebase_core/firebase_core.dart'; // Library เริ่มสำหรับ Firebase
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart'; // File Configure ที่ Filebase สร้างให้อัตโนมัติ
 
@@ -62,6 +63,14 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   ); //เชื่อมต่อ Firebase และรอให้เชื่อมสำเร็จก่อนที่จะรัน App
+
+  // Offline support: persist Firestore data on-device so the app keeps working
+  // on flaky in-shop wifi and syncs back when the connection returns.
+  // (Persistence is on by default on mobile; set explicitly + unlimited cache.)
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 
   // User will now stay logged in between sessions
   // await FirebaseAuth.instance.signOut();
