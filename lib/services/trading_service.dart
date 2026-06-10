@@ -13,22 +13,67 @@ import 'wallet_service.dart';
 
 /// Handles buy and sell transactions and manages a user's asset portfolio.
 class TradingService {
-  static final TradingService _instance = TradingService._internal();
-  factory TradingService() => _instance;
-  TradingService._internal();
+  /// No-arg `TradingService()` returns the app-wide singleton (production,
+  /// unchanged). Passing any dependency builds an isolated instance for tests;
+  /// sub-services default to ones backed by the injected [firestore].
+  factory TradingService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    WalletService? walletService,
+    IdGeneratorService? ids,
+    InventoryLotService? lotService,
+  }) {
+    if (firestore == null &&
+        auth == null &&
+        walletService == null &&
+        ids == null &&
+        lotService == null) {
+      return _instance;
+    }
+    final db = firestore ?? FirebaseFirestore.instance;
+    return TradingService._(
+      firestore: db,
+      auth: auth ?? FirebaseAuth.instance,
+      walletService: walletService ?? WalletService(firestore: db),
+      ids: ids ?? IdGeneratorService(firestore: db),
+      lotService: lotService ?? InventoryLotService(firestore: db),
+    );
+  }
 
-  final WalletService _walletService = WalletService();
-  final IdGeneratorService _ids = IdGeneratorService();
-  final InventoryLotService _lotService = InventoryLotService();
+  static final TradingService _instance = TradingService._(
+    firestore: FirebaseFirestore.instance,
+    auth: FirebaseAuth.instance,
+    walletService: WalletService(),
+    ids: IdGeneratorService(),
+    lotService: InventoryLotService(),
+  );
 
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+  TradingService._({
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+    required WalletService walletService,
+    required IdGeneratorService ids,
+    required InventoryLotService lotService,
+  })  : _firestore = firestore,
+        _auth = auth,
+        _walletService = walletService,
+        _ids = ids,
+        _lotService = lotService;
+
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final WalletService _walletService;
+  final IdGeneratorService _ids;
+  final InventoryLotService _lotService;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   // ─── Asset portfolio ──────────────────────────────────────────────────────
 
   Stream<List<GoldAsset>> getMemberAssetsStream() {
     final uid = _uid;
     if (uid == null) return Stream.value([]);
-    final userRefFuture = getUserDocRef(uid);
+    final userRefFuture = getUserDocRef(uid, firestore: _firestore, auth: _auth);
     return Stream.fromFuture(userRefFuture).asyncExpand((userRef) {
       return userRef
           .collection('assets')
@@ -112,7 +157,7 @@ class TradingService {
       } else {
         // No lot records exist yet (pre-existing stock before this feature
         // was added). Gracefully fall back to live market rate.
-        final rateDoc = await FirebaseFirestore.instance
+        final rateDoc = await _firestore
             .collection('market')
             .doc('gold_rate')
             .get();
@@ -122,7 +167,7 @@ class TradingService {
       }
     } else {
       // No catalog product — raw gold trade. Use live market buy rate.
-      final rateDoc = await FirebaseFirestore.instance
+      final rateDoc = await _firestore
           .collection('market')
           .doc('gold_rate')
           .get();
@@ -149,9 +194,9 @@ class TradingService {
     }
 
     // ── Atomic Firestore transaction ──────────────────────────────────────
-    final userRef = await getUserDocRef(uid);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
-      final walletQuery = await FirebaseFirestore.instance
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
+    await _firestore.runTransaction((tx) async {
+      final walletQuery = await _firestore
           .collection('wallets')
           .where('userId', isEqualTo: uid)
           .limit(1)
@@ -165,7 +210,7 @@ class TradingService {
       DocumentSnapshot? productDoc;
       if (productId != null) {
         productDoc = await tx.get(
-          FirebaseFirestore.instance.collection('products').doc(productId),
+          _firestore.collection('products').doc(productId),
         );
         if (productDoc.exists) {
           if ((productDoc.data() as Map<String, dynamic>)['stock'] <= 0) {
@@ -180,7 +225,7 @@ class TradingService {
       // "all reads before writes" constraint when consumeFromLotWithTx
       // issues its tx.update(lotRef) write below.
       final walletId = walletQuery.docs.first.id;
-      final walletRef = FirebaseFirestore.instance
+      final walletRef = _firestore
           .collection('wallets')
           .doc(walletId);
       final preReadWalletSnapshot = await tx.get(walletRef);
@@ -246,7 +291,7 @@ class TradingService {
         'totalBuyAmount': FieldValue.increment(amount),
       }, SetOptions(merge: true));
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         // Primary asset ID (first unit); assetIds contains the full list when
         // quantity > 1, allowing reconciliation of every portfolio entry.
         'assetId': assetIds[0],
@@ -266,7 +311,7 @@ class TradingService {
         if (consumedLotId != null) 'lotId': consumedLotId,
         'costMethod': consumedLotId != null ? 'fifo' : 'market_rate',
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -300,9 +345,9 @@ class TradingService {
     final id = await _ids.generateId('transactions', prefixOverride: 'SEL');
     final displayName = await _getDisplayName(uid);
 
-    final userRef = await getUserDocRef(uid);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
-      final walletQuery = await FirebaseFirestore.instance
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
+    await _firestore.runTransaction((tx) async {
+      final walletQuery = await _firestore
           .collection('wallets')
           .where('userId', isEqualTo: uid)
           .limit(1)
@@ -342,7 +387,7 @@ class TradingService {
         'soldPrice': sellPrice,
       });
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': asset.id,
         'type': TransactionType.sell.name,
         'amount': sellPrice,
@@ -354,7 +399,7 @@ class TradingService {
         'profit': profit,
         'purity': asset.purity,
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -393,18 +438,18 @@ class TradingService {
   }
 
   Future<void> repairAllTransactions() async {
-    final rateDoc = await FirebaseFirestore.instance
+    final rateDoc = await _firestore
         .collection('market')
         .doc('gold_rate')
         .get();
     final buyRate =
         (rateDoc.data()?['buyPrice'] as num?)?.toDouble() ?? 41000.0;
 
-    final buyTxQuery = await FirebaseFirestore.instance
+    final buyTxQuery = await _firestore
         .collection('transactions')
         .where('type', isEqualTo: 'buy')
         .get();
-    var batch = FirebaseFirestore.instance.batch();
+    var batch = _firestore.batch();
     bool needed = false;
     for (var doc in buyTxQuery.docs) {
       final data = doc.data();
@@ -436,11 +481,11 @@ class TradingService {
     }
     if (needed) {
       await batch.commit();
-      batch = FirebaseFirestore.instance.batch();
+      batch = _firestore.batch();
       needed = false;
     }
 
-    final redeemQuery = await FirebaseFirestore.instance
+    final redeemQuery = await _firestore
         .collection('transactions')
         .where('type', isEqualTo: 'redeem')
         .get();
@@ -465,15 +510,15 @@ class TradingService {
     final uid = _uid;
     if (uid == null) return;
 
-    final query = await FirebaseFirestore.instance
+    final query = await _firestore
         .collection('transactions')
         .where('type', isEqualTo: 'pawn')
         .where('userId', isEqualTo: uid)
         .get();
     if (query.docs.isEmpty) return;
 
-    final userRef = await getUserDocRef(uid);
-    final batch = FirebaseFirestore.instance.batch();
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
+    final batch = _firestore.batch();
     bool needed = false;
 
     for (var txDoc in query.docs) {
@@ -545,9 +590,9 @@ class TradingService {
     final uid = _uid;
     if (uid == null) return;
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
 
-    final ownPawnSnap = await FirebaseFirestore.instance
+    final ownPawnSnap = await _firestore
         .collection('transactions')
         .where('type', isEqualTo: 'pawn')
         .where('userId', isEqualTo: uid)
@@ -560,7 +605,7 @@ class TradingService {
         .toSet();
 
     final assetsSnap = await userRef.collection('assets').get();
-    final batch = FirebaseFirestore.instance.batch();
+    final batch = _firestore.batch();
     bool needed = false;
 
     for (var assetDoc in assetsSnap.docs) {
@@ -607,7 +652,7 @@ class TradingService {
 
   Future<String> _getDisplayName(String uid) async {
     try {
-      final ref = await getUserDocRef(uid);
+      final ref = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
       final doc = await ref.get();
       final data = doc.data() as Map<String, dynamic>?;
       if (data?['firstName'] != null && data?['lastName'] != null) {

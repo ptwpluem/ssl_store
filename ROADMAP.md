@@ -46,8 +46,8 @@ real emulator is reserved for *security-rules* testing (Milestone C). See
 - [x] **Unit-test wallet** (`wallet_service.dart`) — deposit/sale credit, withdrawal/purchase debit, insufficient-funds, exact-balance boundary, **atomic rollback**, cumulative running balance, streams. (Made `WalletService` + `IdGeneratorService` injectable.)
 - [x] **Money-model round-trips** — `Wallet` / `WalletTransaction` toMap↔fromFirestore, int→double coercion, unknown-enum fallback.
 - [x] **Replace placeholder `widget_test.dart`** — now a real `GoldRateCard` render test (full app-boot test needs Firebase Core mocks; deferred).
-- [ ] **Make `TradingService` injectable** (refactor inline `FirebaseFirestore.instance`/`getUserDocRef`) using `WalletService` as the template.
-- [ ] **Integration-test the buy flow** (`trading_service.dart`) — stock decremented, wallet debited, asset created, transaction recorded, all-or-nothing.
+- [x] **Make `TradingService` injectable** — factory-injection pattern (no-arg call still returns the production singleton). Also made `InventoryLotService` and the `getUserDocRef` helper injectable.
+- [x] **Integration-test the buy & sell flows** (`trading_service.dart`) — market-rate & FIFO cost basis, wallet debit, stock + lot draw-down, asset creation, ledger row, reward points; insufficient-funds & out-of-stock both reject atomically (no side effects); sell credits wallet, soft-deletes asset, records profit. **59 tests total.**
 - [ ] **Make `SavingsService` injectable + integration-test** deposit/withdraw round-trip (THB→weight→THB).
 - [ ] **Unit-test `pawn_service.dart`** pawn/redeem flow once injectable.
 

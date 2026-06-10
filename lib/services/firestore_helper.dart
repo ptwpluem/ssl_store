@@ -3,14 +3,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 // ค้นหา User ID เพื่อให้แอปรู้ว่า "คนที่ login อยู่ตอนนี้ คือ document ไหนใน Firestore" แล้วจึงดึงข้อมูลของคนนั้นได้ถูกต้อง
 
-Future<DocumentReference> getUserDocRef(String uid) async {
+// [firestore] and [auth] are injectable for testing; both default to the live
+// instances, so existing callers (`getUserDocRef(uid)`) are unaffected.
+Future<DocumentReference> getUserDocRef(
+  String uid, {
+  FirebaseFirestore? firestore,
+  FirebaseAuth? auth,
+}) async {
+  final db = firestore ?? FirebaseFirestore.instance;
+  final authInstance = auth ?? FirebaseAuth.instance;
+
   // ค้นหาด้วย uid field ก่อน
   int retryCount = 0;
   const maxRetries = 3;
 
   while (retryCount < maxRetries) {
     // 1. Primary check: search by the 'uid' field
-    final query = await FirebaseFirestore.instance
+    final query = await db
         .collection('users')
         .where('uid', isEqualTo: uid)
         .limit(1)
@@ -22,11 +31,11 @@ Future<DocumentReference> getUserDocRef(String uid) async {
     //    Never use the current user's email to resolve a different user's UID —
     //    that would silently return the wrong document for cross-user operations
     //    such as repair functions that iterate all transactions.
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = authInstance.currentUser;
     if (currentUser != null && currentUser.uid == uid) {
       final email = currentUser.email;
       if (email != null) {
-        final emailQuery = await FirebaseFirestore.instance
+        final emailQuery = await db
             .collection(
               'users',
             ) // ใช้ sequcnetual id เช่น CST-0001 และไม่ใช้ row_id เพราะอ่านง่ายกว่า

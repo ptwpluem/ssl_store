@@ -14,11 +14,17 @@ import '../models/inventory_lot.dart';
 /// This ensures the profit on every sale is calculated against what the owner
 /// *actually paid* for that specific unit — not the live market rate.
 class InventoryLotService {
-  static final InventoryLotService _instance = InventoryLotService._internal();
-  factory InventoryLotService() => _instance;
-  InventoryLotService._internal();
+  /// No-arg `InventoryLotService()` returns the app-wide singleton (production,
+  /// unchanged). Passing [firestore] builds an isolated instance for tests.
+  factory InventoryLotService({FirebaseFirestore? firestore}) =>
+      firestore == null ? _instance : InventoryLotService._(firestore);
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final InventoryLotService _instance =
+      InventoryLotService._(FirebaseFirestore.instance);
+
+  InventoryLotService._(this._db);
+
+  final FirebaseFirestore _db;
 
   // ─── Subcollection reference helper ──────────────────────────────────────
 
