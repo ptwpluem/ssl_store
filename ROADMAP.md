@@ -87,14 +87,17 @@ The services are clean now, but the pages are still huge — logic and Firestore
 ## 🔵 Milestone E — Make it grow (features & UX)
 
 Once the foundation holds. Reorder freely based on what the shop needs.
+Device/native-only items (FCM, share/PDF delivery, scheduled backups) are
+deferred — they need native config + a device to verify, so the verifiable
+*logic* is built and tested here and the delivery is a thin wire-up later.
 
-- [ ] **Push notifications (FCM)** — remind customers when a pawn is due/overdue.
-- [ ] **Offline support** — Firestore persistence for flaky in-shop wifi.
-- [ ] **Receipt / transaction export** (PDF or share sheet).
-- [ ] **Input validation everywhere** — weights, prices, phone, password strength before writes.
-- [ ] **English localization** alongside Thai (`intl` already present).
-- [ ] **Owner: low-stock alerts** + end-of-day sales summary.
-- [ ] **Scheduled Firestore backups** so business data is never lost.
+- [ ] **Push notifications (FCM)** — remind customers when a pawn is due/overdue. **Deferred** (native + device, like Crashlytics).
+- [x] **Offline support** — Firestore persistence enabled in `main()` (`persistenceEnabled` + unlimited cache).
+- [~] **Receipt / transaction export** — pure `lib/utils/receipt_formatter.dart` builds the Thai receipt (tested, 4 tests). Share-sheet/PDF *delivery* deferred (device-only).
+- [x] **Input validation** — `lib/utils/validators.dart` (email, Thai phone, password strength, amounts incl. ceiling, quarter-baht weight); 13 tests; wired into the edit-profile form (phone now format-validated). Apply to the remaining forms as they're touched.
+- [ ] **English localization** alongside Thai (`intl` already present). Not started — large, cross-cutting.
+- [~] **Owner: low-stock alerts** — pure `lib/utils/owner_alerts.dart` (`lowStock` neediest-first, `outOfStock`); 4 tests. End-of-day summary = `OwnerMetrics` over a single-day range (already available); dashboard banner wiring remains.
+- [ ] **Scheduled Firestore backups** — **Deferred** (Cloud Functions / ops).
 
 ---
 
