@@ -31,9 +31,12 @@ Small loose ends from the big refactor. Low effort, removes noise.
 
 ---
 
-## 🟢 Milestone B — Trust the money (testing) — IN PROGRESS
+## 🟢 Milestone B — Trust the money (testing) — ✅ DONE (2026-06-10)
 
-Foundation laid; **52 tests passing, `flutter test` green, no network/emulator needed.**
+**78 tests passing, `flutter test` green, `flutter analyze` clean, no network/emulator needed.**
+Every money service (wallet, trading, savings, pawn) plus the pure money math
+(pawn interest, labor fees) is now covered. All four services use the same
+factory-injection pattern (no-arg call returns the production singleton).
 
 **Infra decision:** using `fake_cloud_firestore` (in-memory) for business-logic
 tests instead of the live emulator — faster, deterministic, CI-friendly. The
@@ -49,7 +52,7 @@ real emulator is reserved for *security-rules* testing (Milestone C). See
 - [x] **Make `TradingService` injectable** — factory-injection pattern (no-arg call still returns the production singleton). Also made `InventoryLotService` and the `getUserDocRef` helper injectable.
 - [x] **Integration-test the buy & sell flows** (`trading_service.dart`) — market-rate & FIFO cost basis, wallet debit, stock + lot draw-down, asset creation, ledger row, reward points; insufficient-funds & out-of-stock both reject atomically (no side effects); sell credits wallet, soft-deletes asset, records profit. **59 tests total.**
 - [x] **Make `SavingsService` injectable + integration-test** — deposit (wallet debit, weight/invested credit, both ledgers), sell (wallet credit, ledger rows), **THB→weight→THB round-trip conserves money**, physical-bar withdrawal (0.25 multiple guard, premium fee, asset mint, stock −1), insufficient-funds & over-sell reject atomically. **67 tests total.** (Documented a `fake_cloud_firestore` limitation: `set(merge)+FieldValue.increment` in a tx isn't applied correctly, so the savings aggregate cache after a decrement is left to the emulator suite.)
-- [ ] **Unit-test `pawn_service.dart`** pawn/redeem flow once injectable.
+- [x] **`pawn_service.dart` — injectable + tested.** Pure calculators (`calculatePawnLoan` 85% LTV; `calculatePawnOwed` standard interest, overdue penalty, 1-day minimum) and the full flow: pawn (loan→wallet, asset→pawned, `pawn_loans` opened, ledger row), redeem (wallet debit, loan fields cleared, `pawn_loans`→redeemed, profit=interest), pawn→redeem round-trip nets only interest; not-owned / not-pawned / insufficient-funds all reject atomically. **78 tests total.**
 
 ---
 

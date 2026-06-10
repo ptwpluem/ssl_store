@@ -13,14 +13,53 @@ import 'wallet_service.dart';
 
 /// Handles pawn (จำนำ) and redeem (ไถ่ถอน) transactions.
 class PawnService {
-  static final PawnService _instance = PawnService._internal();
-  factory PawnService() => _instance;
-  PawnService._internal();
+  /// No-arg `PawnService()` returns the app-wide singleton (production,
+  /// unchanged). Passing any dependency builds an isolated instance for tests;
+  /// sub-services default to ones backed by the injected [firestore].
+  factory PawnService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    WalletService? walletService,
+    IdGeneratorService? ids,
+  }) {
+    if (firestore == null &&
+        auth == null &&
+        walletService == null &&
+        ids == null) {
+      return _instance;
+    }
+    final db = firestore ?? FirebaseFirestore.instance;
+    return PawnService._(
+      firestore: db,
+      auth: auth ?? FirebaseAuth.instance,
+      walletService: walletService ?? WalletService(firestore: db),
+      ids: ids ?? IdGeneratorService(firestore: db),
+    );
+  }
 
-  final WalletService _walletService = WalletService();
-  final IdGeneratorService _ids = IdGeneratorService();
+  static final PawnService _instance = PawnService._(
+    firestore: FirebaseFirestore.instance,
+    auth: FirebaseAuth.instance,
+    walletService: WalletService(),
+    ids: IdGeneratorService(),
+  );
 
-  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+  PawnService._({
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+    required WalletService walletService,
+    required IdGeneratorService ids,
+  })  : _firestore = firestore,
+        _auth = auth,
+        _walletService = walletService,
+        _ids = ids;
+
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final WalletService _walletService;
+  final IdGeneratorService _ids;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   // ─── Pawn an asset ────────────────────────────────────────────────────────
 
@@ -41,21 +80,21 @@ class PawnService {
     final notifId = await _ids.generateId('notifications');
     final displayName = await _getDisplayName(uid);
 
-    final walletQuery = await FirebaseFirestore.instance
+    final walletQuery = await _firestore
         .collection('wallets')
         .where('userId', isEqualTo: uid)
         .limit(1)
         .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance
+    final walletRef = _firestore
         .collection('wallets')
         .doc(walletId);
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
     final fmt = NumberFormat('#,##0.00');
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await _firestore.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
       final assetRef = userRef.collection('assets').doc(asset.id);
       final assetDoc = await tx.get(assetRef); // READ 1
@@ -90,7 +129,7 @@ class PawnService {
       // ── Create pawn loan as a first-class entity ───────────────────────────
       // Stored in a top-level collection so the owner can query ALL active
       // loans without scanning every user's assets subcollection.
-      tx.set(FirebaseFirestore.instance.collection('pawn_loans').doc(id), {
+      tx.set(_firestore.collection('pawn_loans').doc(id), {
         'userId': uid,
         'assetId': asset.id,
         'assetName': asset.name,
@@ -115,7 +154,7 @@ class PawnService {
         'loanAmount': loanAmount,
       });
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': asset.id,
         'type': 'pawn',
         'amount': loanAmount,
@@ -125,7 +164,7 @@ class PawnService {
         'details': 'จำนำ: ${asset.name} (${asset.weight} บาท)',
         'loanId': id,
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -159,21 +198,21 @@ class PawnService {
     final notifId = await _ids.generateId('notifications');
     final displayName = await _getDisplayName(uid);
 
-    final walletQuery = await FirebaseFirestore.instance
+    final walletQuery = await _firestore
         .collection('wallets')
         .where('userId', isEqualTo: uid)
         .limit(1)
         .get();
     if (walletQuery.docs.isEmpty) throw Exception('Wallet not found');
     final walletId = walletQuery.docs.first.id;
-    final walletRef = FirebaseFirestore.instance
+    final walletRef = _firestore
         .collection('wallets')
         .doc(walletId);
 
-    final userRef = await getUserDocRef(uid);
+    final userRef = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
     final fmt = NumberFormat('#,##0.00');
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await _firestore.runTransaction((tx) async {
       // ── ALL reads before any writes ───────────────────────────────────────
       final assetRef = userRef.collection('assets').doc(asset.id);
       final assetDoc = await tx.get(assetRef); // READ 1
@@ -212,7 +251,7 @@ class PawnService {
       // ── Close the pawn loan record ─────────────────────────────────────────
       if (loanId != null) {
         tx.update(
-          FirebaseFirestore.instance.collection('pawn_loans').doc(loanId),
+          _firestore.collection('pawn_loans').doc(loanId),
           {
             'status': 'redeemed',
             'closedByTxId': id,
@@ -232,7 +271,7 @@ class PawnService {
         'interestPaid': interestPaid,
       });
 
-      tx.set(FirebaseFirestore.instance.collection('transactions').doc(id), {
+      tx.set(_firestore.collection('transactions').doc(id), {
         'assetId': asset.id,
         'type': 'redeem',
         'amount': totalOwed,
@@ -247,7 +286,7 @@ class PawnService {
         'details': 'ไถ่ถอน: ${asset.name} (${asset.weight} บาท)',
         'loanId': loanId,
         'userId': uid,
-        'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'Unknown',
+        'userEmail': _auth.currentUser?.email ?? 'Unknown',
         'userDisplayName': displayName,
       });
 
@@ -312,7 +351,7 @@ class PawnService {
 
   Future<String> _getDisplayName(String uid) async {
     try {
-      final ref = await getUserDocRef(uid);
+      final ref = await getUserDocRef(uid, firestore: _firestore, auth: _auth);
       final doc = await ref.get();
       final data = doc.data() as Map<String, dynamic>?;
       if (data?['firstName'] != null && data?['lastName'] != null) {
